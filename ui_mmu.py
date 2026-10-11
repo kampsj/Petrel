@@ -28,9 +28,18 @@ class MMUViewMixin:
         slot = max(1, min(60, (width - gap * (count - 1)) // count))
         total = slot * count + gap * (count - 1)
         start = left + max(0, (width - total) // 2)
+        layout = (id(self.lcd), count)
+        if layout != getattr(self, '_home_mmu_layout', None):
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)
+            self._home_mmu_layout = layout
+            self._home_mmu_title = None
+            self._home_mmu_gates = {}
         title = str(mmu.get('name') or 'MMU')[:22]
         title_x = max(4, (self.lcd.DWIN_WIDTH - 6 * len(title)) // 2)
-        self.lcd.draw_text(False, True, self.lcd.font6x12,
+        if title != self._home_mmu_title:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 44)
+            self._home_mmu_title = title
+            self.lcd.draw_text(False, True, self.lcd.font6x12,
                              self.lcd.Color_White, self.lcd.Color_Bg_Black,
                              title_x, 32, title)
 
@@ -51,34 +60,41 @@ class MMUViewMixin:
             body_right = reel_x + reel_w - flange_w - 1
             y0, y1 = top + 13, top + 52
 
-            # Warm cardboard/wood flanges stand out against the black UI.
-            self.lcd.draw_rectangle(1, flange, reel_x + 1, top + 7,
-                                    reel_x + flange_w, top + 58)
-            self.lcd.draw_rectangle(0, flange_edge, reel_x + 1, top + 7,
-                                    reel_x + flange_w, top + 58)
-            self.lcd.draw_rectangle(1, flange, reel_x + reel_w - flange_w - 1, top + 7,
-                                    reel_x + reel_w - 2, top + 58)
-            self.lcd.draw_rectangle(0, flange_edge, reel_x + reel_w - flange_w - 1, top + 7,
-                                    reel_x + reel_w - 2, top + 58)
-            self.lcd.draw_rectangle(1, color, body_left, y0, body_right, y1)
-
             winding = self.lcd.Color_White if sum(mmu['gate_color_rgb'][gate]) < 0.7 else flange
-            for line_x in range(body_left + 5, body_right, 7):
-                self.lcd.draw_line(winding, line_x, y0, line_x, y1)
+            cache = self._home_mmu_gates.setdefault(gate, {})
+            reel = (color, winding)
+            reel_changed = cache.get('reel') != reel
+            if reel_changed:
+                cache['reel'] = reel
+                # Warm cardboard/wood flanges stand out against the black UI.
+                self.lcd.draw_rectangle(1, flange, reel_x + 1, top + 7,
+                                        reel_x + flange_w, top + 58)
+                self.lcd.draw_rectangle(0, flange_edge, reel_x + 1, top + 7,
+                                        reel_x + flange_w, top + 58)
+                self.lcd.draw_rectangle(1, flange, reel_x + reel_w - flange_w - 1, top + 7,
+                                        reel_x + reel_w - 2, top + 58)
+                self.lcd.draw_rectangle(0, flange_edge, reel_x + reel_w - flange_w - 1, top + 7,
+                                        reel_x + reel_w - 2, top + 58)
+                self.lcd.draw_rectangle(1, color, body_left, y0, body_right, y1)
+
+                for line_x in range(body_left + 5, body_right, 7):
+                    self.lcd.draw_line(winding, line_x, y0, line_x, y1)
 
             percent = percentages[gate] if gate < len(percentages) else None
             # Percent text needs enough horizontal room. Compact high-gate
             # layouts prioritize distinct lanes over overlapping text.
             if slot >= 28:
                 pct = '--' if percent is None else '%d%%' % percent
-                # Black backing keeps the percentage readable on white/yellow filament.
-                pct_w = 6 * len(pct) + 4
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                                        cx - pct_w // 2, top + 27,
-                                        cx + pct_w // 2, top + 41)
-                self.lcd.draw_text(False, True, self.lcd.font6x12,
-                                     self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                                     cx - 3 * len(pct), top + 28, pct)
+                if reel_changed or cache.get('percent') != pct:
+                    cache['percent'] = pct
+                    # Black backing keeps the percentage readable on white/yellow filament.
+                    pct_w = 28
+                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
+                                            cx - pct_w // 2, top + 27,
+                                            cx + pct_w // 2, top + 41)
+                    self.lcd.draw_text(False, True, self.lcd.font6x12,
+                                         self.lcd.Color_White, self.lcd.Color_Bg_Black,
+                                         cx - 3 * len(pct), top + 28, pct)
 
             label = str(gate + 1)
             label_w = max(1, min(38, slot - 2 if slot > 2 else slot))
@@ -101,21 +117,23 @@ class MMUViewMixin:
             # Black/off LEDs therefore render as black rather than falling back.
             label_bg = indicator
             border = indicator
-            self.lcd.draw_rectangle(1, label_bg, lx0, top + 64, lx1, top + 78)
-            self.lcd.draw_rectangle(0, border, lx0, top + 64, lx1, top + 78)
-            # Choose black or white text for maximum contrast against
-            # the live lane color.  This keeps bright green/yellow/cyan lane
-            # numbers readable without sacrificing dark-color visibility.
-            r5 = (label_bg >> 11) & 0x1F
-            g6 = (label_bg >> 5) & 0x3F
-            b5 = label_bg & 0x1F
-            luminance = (299 * r5 * 255 // 31 +
-                         587 * g6 * 255 // 63 +
-                         114 * b5 * 255 // 31) // 1000
-            label_fg = 0x0000 if luminance >= 140 else self.lcd.Color_White
-            self.lcd.draw_text(False, True, self.lcd.font6x12,
-                                 label_fg, label_bg,
-                                 cx - 3 * len(label), top + 65, label)
+            if cache.get('indicator') != indicator:
+                cache['indicator'] = indicator
+                self.lcd.draw_rectangle(1, label_bg, lx0, top + 64, lx1, top + 78)
+                self.lcd.draw_rectangle(0, border, lx0, top + 64, lx1, top + 78)
+                # Choose black or white text for maximum contrast against
+                # the live lane color.  This keeps bright green/yellow/cyan lane
+                # numbers readable without sacrificing dark-color visibility.
+                r5 = (label_bg >> 11) & 0x1F
+                g6 = (label_bg >> 5) & 0x3F
+                b5 = label_bg & 0x1F
+                luminance = (299 * r5 * 255 // 31 +
+                             587 * g6 * 255 // 63 +
+                             114 * b5 * 255 // 31) // 1000
+                label_fg = 0x0000 if luminance >= 140 else self.lcd.Color_White
+                self.lcd.draw_text(False, True, self.lcd.font6x12,
+                                     label_fg, label_bg,
+                                     cx - 3 * len(label), top + 65, label)
 
     # Dedicated MMU pages own the complete 272x480 canvas. The home dashboard
     # above is intentionally independent and keeps its existing appearance.
