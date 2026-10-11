@@ -239,8 +239,9 @@ class BedMeshSession:
             for match in self.PROBE_RESPONSE.finditer(response):
                 try:
                     x, y, z = map(finite, match.groups())
-                    # Probe reports nozzle XY; grid is defined in probe coordinates.
-                    pos = (x + offset[0], y + offset[1])
+                    # Modern output already reports bed XY; legacy output reports nozzle XY.
+                    modern = 'bed will contact at' in match.group(0).lower()
+                    pos = (x, y) if modern else (x + offset[0], y + offset[1])
                     indices = tuple(round((pos[a]-low[a])/(high[a]-low[a])*(counts[a]-1)) for a in (0, 1))
                     expected = tuple(low[a]+indices[a]*(high[a]-low[a])/(counts[a]-1) for a in (0, 1))
                     if any(not 0 <= indices[a] < counts[a] or abs(pos[a]-expected[a]) > .1 for a in (0, 1)):

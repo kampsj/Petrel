@@ -140,16 +140,35 @@ class MeshTests(unittest.TestCase):
 
     def test_current_probe_output_updates_samples_before_completion(self):
         source = data()
-        source['settings']['bed_mesh'].update(mesh_min=[-30, 200.975], mesh_max=[170, 400.975])
+        source['settings']['bed_mesh'].update(mesh_min=[10, 10.975], mesh_max=[210, 210.975])
         p, session = self.make(source)
         session.start()
         for serial, z in enumerate((-.0525, -.06, -.0475), 1):
             p.subscription.responses_since.return_value = (serial, (
                 f'probe: at 10.000,210.975 bed will contact at z={z:.6f}',))
             session.update()
-            self.assertEqual(session.progress, {(0, 0): z})
+            self.assertEqual(session.progress, {(0, 2): z})
             self.assertEqual(session.phase, 'measuring')
             self.assertIsNone(session.mesh)
+
+    def test_modern_nonzero_offsets_and_serpentine_points_map_directly(self):
+        source = data()
+        source['settings']['bed_mesh'].update(mesh_min=[10, 10.975],
+            mesh_max=[210.988, 210.975], probe_count=[8, 8])
+        p, session = self.make(source)
+        session.start()
+        # Real-style 8x8 coordinates, including direction reversal on the next row.
+        messages = (
+            'probe: at 10.000,210.975 bed will contact at z=-0.047500',
+            'probe: at 38.713,210.975 bed will contact at z=-0.075000',
+            'probe: at 210.988,210.975 bed will contact at z=0.020000',
+            'probe: at 210.988,182.404 bed will contact at z=0.030000')
+        for serial, message in enumerate(messages, 1):
+            p.subscription.responses_since.return_value = (serial, (message,))
+            session.update()
+            self.assertEqual(len(session.progress), serial)
+        self.assertEqual(session.progress,
+                         {(0, 7): -.0475, (1, 7): -.075, (7, 7): .02, (7, 6): .03})
 
     def test_reported_default_profile_requires_completion_and_matching_mesh(self):
         for completed, matching in ((True, True), (False, True), (True, False)):
@@ -274,7 +293,7 @@ class MeshViewTests(unittest.TestCase):
         for serial, z in enumerate((.10, .12), 1):
             view.lcd.reset_mock()
             view.pd.subscription.responses_since.return_value = (serial, (
-                f'probe: at 60.000,40.000 bed will contact at z={z}',))
+                f'probe: at 20.000,30.000 bed will contact at z={z}',))
             view._poll_bed_mesh()
             draw_cell.assert_called_with(3, 3, (0, 0), z)
             view.Clear_Main_Window.assert_not_called()
