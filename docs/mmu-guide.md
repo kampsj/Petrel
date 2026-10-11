@@ -12,13 +12,15 @@ With a configured Happy Hare MMU, select **Home → MMU**. Home also shows gate 
   <img src="assets/screens/mmu-gate-details.png" width="240" alt="Gate actions">
 </p>
 
-Rotate to select; press to open. Browsing gates or details does not move filament. **G0 is Happy Hare gate 0**; gates and logical tools both use zero-based numbering. `T*` means several tools share that gate.
+Rotate to select; press to activate. Select a colored **T0, T1, …** button to change filament: Happy Hare unloads the current tool and loads the chosen tool automatically. The gate above each spool shows its actual mapping; several tools can use the same gate. More than four tools appear in groups as you rotate. **G0 is Happy Hare gate 0**.
 
-Actions open a confirmation showing the target, with **Cancel initially selected**. Routine movement and edits require an idle MMU outside printing/pauses. Unsupported options are hidden; actions may be locked when the printer state is busy, unknown or unsuitable. Check the actual printer before retrying a failed/unconfirmed operation.
+The vertical diagram follows filament loading and withdrawal. The Gate circle fills green when filament is detected. The nozzle retains the previous filament color while residual material remains; purge has a small extrusion animation and follows Happy Hare's reported color. The MMU screen shows nozzle temperature; general printer information remains on Home.
+
+The overview's tool and **Load/Unload** buttons start immediately and keep the diagram visible. **More** opens gates, mapping, bypass, management and detailed status. Actions on those pages open a confirmation with **Cancel initially selected**. Routine movement and edits require an idle MMU outside printing/pauses. Unsupported options are hidden; actions may be locked when the printer state is busy, unknown or unsuitable. Check the actual printer before retrying a failed/unconfirmed operation.
 
 ## Gates and loading
 
-Open **MMU → Gates → [gate]**:
+Open **MMU → More → Gates → [gate]**:
 
 | Action | Use |
 |---|---|
@@ -41,7 +43,7 @@ Assignment depends on the configured Spoolman mode: known `off`, `readonly` and 
 
 ## Tool map
 
-Open **MMU → Tool map**. Select a tool, press, rotate to its gate and press to accept. Repeat for other tools, then **Save** and confirm, or **Cancel** to discard the draft. Several tools can share one gate.
+Open **MMU → More → Tool map**. Select a tool, press, rotate to its gate and press to accept. Repeat for other tools, then **Save** and confirm, or **Cancel** to discard the draft. Several tools can share one gate.
 
 Make edits while idle and outside printing/pauses. If the mapping changes from the web UI during editing, reopen the editor before continuing.
 
@@ -58,7 +60,7 @@ Make changes while idle and outside printing/pauses. Matching metadata is a guid
 
 ## Bypass
 
-Open **MMU → Bypass**. First **Unload current gate**, then **Select bypass**. Use **Load extruder** and **Unload extruder** for the extruder-only filament path. Confirm each operation. Bypass selection requires unloaded filament.
+Open **MMU → More → Bypass**. First **Unload current gate**, then **Select bypass**. Use **Load extruder** and **Unload extruder** for the extruder-only filament path. Confirm each operation. Bypass selection requires unloaded filament.
 
 ## Recovery and status
 
@@ -67,7 +69,7 @@ Open **MMU → Bypass**. First **Unload current gate**, then **Select bypass**. 
   <img src="assets/screens/mmu-status.png" width="240" alt="MMU status and sensors">
 </p>
 
-An MMU error pause with a reported reason opens recovery automatically. You can also use **MMU → Manage → Recover state**.
+An MMU error pause with a reported reason opens recovery automatically. You can also use **MMU → More → Manage → Recover state**. A failed overview operation replaces its main action with **Recover**, opening the result and recovery options.
 
 1. Read the error and fix the physical filament problem.
 2. Use recovery, or the manual state editor to report the actual gate/tool/filament state. Manual Apply reports state; it does not load or unload filament.

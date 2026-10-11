@@ -29,7 +29,7 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 | Baskıyı yönetmek | İlerleme ve süre, Pause/Resume, Stop, hız, sıcaklık, fan, çalışma zamanı Z offset ve akış takibi |
 | Yazıcıyı hazırlamak | Home, motorları bırakma, XYZ/extruder hareketi, Live jog, ön ısıtma presetleri ve soğutma |
 | Tablayı kalibre etmek | Dört köşe vida ayarı, probe offset kalibrasyonu, bed mesh ölçümü ve kayıtlı mesh görüntüleme |
-| MMU yönetmek | Happy Hare kanalları, yükleme/boşaltma, bypass, takım eşlemesi, EndlessSpool, kurtarma, bakım, LED'ler ve çoklu ünite |
+| MMU yönetmek | Doğrudan takım değiştirme, canlı filament yolu ve purge gösterimi, Happy Hare kanalları, yükleme/boşaltma, bypass, takım eşlemesi, EndlessSpool, kurtarma, bakım, LED'ler ve çoklu ünite |
 | Filamenti incelemek | Kanal malzemesi/rengi, makara ataması ve mevcutsa Spoolman kalan yüzdesi |
 | Ekranı ayarlamak | Güç döngüsünde korunan parlaklık, boşta kısma süresi ve kısılmış parlaklık |
 | Işık ve gücü yönetmek | PWM kabin ışığı, encoder basılı tutarak güç açma ve onaylı güç kapatma |

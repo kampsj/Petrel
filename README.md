@@ -29,7 +29,7 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 | Manage a print | Progress and time, Pause/Resume, Stop, speed, temperature, fan, runtime Z offset and flow monitoring |
 | Prepare the printer | Homing, stepper release, XYZ/extruder movement, Live jog, preheat presets and cooldown |
 | Calibrate the bed | Four-corner screw adjustment, probe-offset calibration, bed mesh measurement and saved mesh viewing |
-| Manage an MMU | Happy Hare gates, load/unload, bypass, tool mapping, EndlessSpool, recovery, maintenance, LEDs and multiple units |
+| Manage an MMU | Direct tool changes, live filament path and purge display, Happy Hare gates, load/unload, bypass, tool mapping, EndlessSpool, recovery, maintenance, LEDs and multiple units |
 | Inspect filament | Gate material/color, spool assignment and Spoolman remaining percentage when available |
 | Adjust the display | Brightness, idle dimming time and dimmed brightness, retained across power cycles |
 | Control lighting and power | PWM case light, encoder hold to power on and a power-off confirmation |

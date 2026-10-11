@@ -12,13 +12,15 @@ Happy Hare MMU yapılandırılmışsa **Home → MMU** seçin. Ana ekran kanal r
   <img src="assets/screens/mmu-gate-details.png" width="240" alt="Kanal işlemleri">
 </p>
 
-Seçmek için çevirin; açmak için basın. Kanallara veya ayrıntılara göz atmak filament hareketi yapmaz. **G0, Happy Hare kanal 0'dır**; kanallar ve mantıksal takımlar 0 tabanlı numaralandırılır. `T*`, birden fazla takımın o kanalı paylaştığını gösterir.
+Seçmek için çevirin; çalıştırmak için basın. Filament değiştirmek için renkli **T0, T1, …** düğmesini seçin: Happy Hare mevcut takımı boşaltıp seçtiğiniz takımı otomatik yükler. Her makaranın üstündeki kanal gerçek eşleşmesini gösterir; birkaç takım aynı kanalı kullanabilir. Dörtten fazla takım, çevirirken gruplar halinde görünür. **G0, Happy Hare kanal 0'dır**.
 
-İşlemler hedefi gösteren onay açar; **başlangıçta Cancel seçilidir**. Normal hareket ve düzenlemeler baskı/duraklama dışında boşta MMU gerektirir. Desteklenmeyen seçenekler gizlenir; yazıcı durumu meşgul, bilinmiyor veya uygun değilse işlemler kilitlenebilir. Başarısız/doğrulanmamış işlemi tekrarlamadan önce gerçek yazıcıyı kontrol edin.
+Dikey şema filamentin yüklenmesini ve geri çekilmesini takip eder. Filament algılandığında Gate dairesi yeşil dolar. Artık malzeme kaldığı sürece nozzle eski filament rengini korur; purge sırasında küçük bir filament çıkışı animasyonu görünür ve renk Happy Hare'in bildirdiği durumu takip eder. MMU ekranında nozzle sıcaklığı gösterilir; genel yazıcı bilgileri ana ekranda kalır.
+
+Genel görünümdeki takım ve **Load/Unload** düğmeleri doğrudan çalışır ve şema ekranda kalır. **More**; kanalları, eşleştirmeyi, bypass'ı, yönetimi ve ayrıntılı durumu açar. Bu sayfalardaki işlemler onay açar; **başlangıçta Cancel seçilidir**. Normal hareket ve düzenlemeler baskı/duraklama dışında boşta MMU gerektirir. Desteklenmeyen seçenekler gizlenir; yazıcı durumu meşgul, bilinmiyor veya uygun değilse işlemler kilitlenebilir. Başarısız/doğrulanmamış işlemi tekrarlamadan önce gerçek yazıcıyı kontrol edin.
 
 ## Kanallar ve yükleme
 
-**MMU → Gates → [kanal]** açın:
+**MMU → More → Gates → [kanal]** açın:
 
 | İşlem | Kullanım |
 |---|---|
@@ -41,7 +43,7 @@ Atama yapılandırılmış Spoolman moduna bağlıdır: bilinen `off`, `readonly
 
 ## Takım eşlemesi
 
-**MMU → Tool map** açın. Takımı seçip basın, kanalına çevirin ve kabul etmek için basın. Diğer takımlar için tekrarlayın; ardından **Save** seçip onaylayın veya taslağı silmek için **Cancel** seçin. Birden fazla takım aynı kanalı paylaşabilir.
+**MMU → More → Tool map** açın. Takımı seçip basın, kanalına çevirin ve kabul etmek için basın. Diğer takımlar için tekrarlayın; ardından **Save** seçip onaylayın veya taslağı silmek için **Cancel** seçin. Birden fazla takım aynı kanalı paylaşabilir.
 
 Düzenlemeyi boşta ve baskı/duraklama dışında yapın. Düzenleme sırasında web arayüzünden eşleme değişirse devam etmeden önce düzenleyiciyi yeniden açın.
 
@@ -58,7 +60,7 @@ Değişiklikleri boşta ve baskı/duraklama dışında yapın. Eşleşen metadat
 
 ## Bypass
 
-**MMU → Bypass** açın. Önce **Unload current gate**, ardından **Select bypass** kullanın. Yalnız extruder filament yolu için **Load extruder** ve **Unload extruder** kullanın. Her işlemi onaylayın. Bypass seçimi boşaltılmış filament gerektirir.
+**MMU → More → Bypass** açın. Önce **Unload current gate**, ardından **Select bypass** kullanın. Yalnız extruder filament yolu için **Load extruder** ve **Unload extruder** kullanın. Her işlemi onaylayın. Bypass seçimi boşaltılmış filament gerektirir.
 
 ## Kurtarma ve durum
 
@@ -67,7 +69,7 @@ Değişiklikleri boşta ve baskı/duraklama dışında yapın. Eşleşen metadat
   <img src="assets/screens/mmu-status.png" width="240" alt="MMU durumu ve sensörler">
 </p>
 
-Nedeni bildirilen MMU hata duraklaması kurtarmayı otomatik açar. **MMU → Manage → Recover state** yolunu da kullanabilirsiniz.
+Nedeni bildirilen MMU hata duraklaması kurtarmayı otomatik açar. **MMU → More → Manage → Recover state** yolunu da kullanabilirsiniz. Genel görünümdeki işlem başarısız olursa ana düğme **Recover** olur; sonuç ve kurtarma seçeneklerini açar.
 
 1. Hatayı okuyun ve fiziksel filament sorununu düzeltin.
 2. Kurtarmayı veya gerçek kanal/takım/filament durumunu bildirmek için manuel durum düzenleyicisini kullanın. Manuel Apply durum bildirir; filament yüklemez veya boşaltmaz.
