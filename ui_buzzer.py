@@ -1,16 +1,18 @@
 """Display-menu buzzer selection and sound preferences."""
 from dataclasses import replace
-from buzzer_control import Settings, Player, outputs, TONES
+from buzzer_control import Settings, Player, outputs, resolve_output, TONES
 from t5uic1_driver import T5UIC1ProtocolError
 
 
 class BuzzerViewMixin:
     def _buzzer_settings(self):
         value = getattr(self, '_buzzer_values', None)
-        return value if isinstance(value, Settings) else Settings()
+        value = value if isinstance(value, Settings) else Settings()
+        name = resolve_output(value.output, self._buzzer_outputs())
+        return replace(value, output=name) if name and name != value.output else value
 
     def _buzzer_outputs(self):
-        return outputs(self.pd.state.settings)
+        return outputs(self.pd.state.settings, self.pd.state.objects)
 
     def _buzzer_enabled(self):
         return self._buzzer_settings().output in self._buzzer_outputs()

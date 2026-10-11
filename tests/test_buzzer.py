@@ -14,9 +14,10 @@ Settings = ui.BuzzerSettings
 
 def data():
     value = snapshot()
-    value['settings'].update({'pwm_cycle_time Buzzer': {'scale': 1},
-                              'pwm_cycle_time Second': {'scale': 100},
+    value['settings'].update({'pwm_cycle_time buzzer': {'scale': 1},
+                              'pwm_cycle_time second': {'scale': 100},
                               'output_pin unrelated': {}})
+    value['objects'].extend(('pwm_cycle_time Buzzer', 'pwm_cycle_time Second', 'output_pin unrelated'))
     return value
 
 
@@ -31,7 +32,8 @@ class BuzzerSettingsTests(unittest.TestCase):
         self.assertIsNone(Settings.decode(bytes(RECORD_SIZE)))
         from icon_library import METADATA_ADDRESS, METADATA_SIZE
         self.assertGreaterEqual(ADDRESS, METADATA_ADDRESS + METADATA_SIZE)
-        self.assertEqual(outputs(data()['settings']), ('Buzzer', 'Second'))
+        self.assertEqual(outputs(data()['settings'], data()['objects']), ('Buzzer', 'Second'))
+        self.assertEqual(outputs(data()['settings'], ()), ())
         for invalid in (Settings('a\nSET_PIN'), Settings('x' * 97), Settings(volume=101), Settings(click=9)):
             with self.assertRaises(ValueError): invalid.encode()
 
@@ -46,6 +48,16 @@ class BuzzerSettingsTests(unittest.TestCase):
 
 
 class BuzzerMenuTests(unittest.TestCase):
+    def test_lowercase_saved_selection_uses_actual_case_in_menu_and_feedback(self):
+        view = self.view()
+        view._buzzer_values = view._buzzer_saved = Settings('buzzer', 70, 4, 1)
+        self.assertEqual(view._buzzer_outputs(), ('Buzzer', 'Second'))
+        self.assertEqual(view._buzzer_rows()[0][1], 'Buzzer')
+        view._buzzer_player = Mock()
+        view._buzzer_feedback('press')
+        view._buzzer_player.play.assert_called_once_with(Settings('Buzzer', 70, 4, 1), 'press')
+        self.assertTrue(view._buzzer_enabled())
+
     def test_saved_preferences_load_once_and_survive_uart_reconnect(self):
         from test_uart_reconnect import UARTReconnectTests
         view = UARTReconnectTests().display()
@@ -161,7 +173,7 @@ class SoundWorkerTests(unittest.TestCase):
         subscription.notify.side_effect = notify
         with patch('buzzer_control.PATTERNS', ((), (), ((1000, 10),))):
             player = Player(subscription); self.addCleanup(player.close)
-            self.assertTrue(player.play(Settings('Buzzer', 100), 'press'))
+            self.assertTrue(player.play(Settings('buzzer', 100), 'press'))
             self.assertTrue(sent.wait(1))
             for _ in range(100): self.assertFalse(player.play(Settings('Buzzer'), 'rotate'))
             self.assertFalse(off.is_set())

@@ -1,5 +1,5 @@
 """Persistent buzzer preferences and a bounded, nonblocking PWM sound worker."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import Condition, Thread
 import math
 import re
@@ -48,10 +48,24 @@ class Settings:
             return None
 
 
-def outputs(settings):
-    return tuple(sorted((key[15:] for key in settings
-                         if key.startswith('pwm_cycle_time ') and NAME.fullmatch(key[15:])),
+def outputs(settings, objects):
+    # Effective config keys are lowercase; SET_PIN names retain object-name case.
+    configured = {key.casefold() for key in settings if key.startswith('pwm_cycle_time ')}
+    return tuple(sorted((key[15:] for key in objects
+                         if key.startswith('pwm_cycle_time ') and NAME.fullmatch(key[15:])
+                         and key.casefold() in configured),
                         key=str.casefold))
+
+
+def resolve_output(name, names):
+    if name in names:
+        return name
+    matches = [value for value in names if value.casefold() == name.casefold()]
+    return matches[0] if len(matches) == 1 else ''
+
+
+def available(snapshot):
+    return outputs(snapshot.get('settings', {}), snapshot.get('objects', ()))
 
 
 class Player:
@@ -71,8 +85,10 @@ class Player:
         if not settings.output or not settings.volume or not tone:
             return False
         snapshot = self.subscription.snapshot()
-        if snapshot['state'] != 'ready' or settings.output not in outputs(snapshot.get('settings', {})):
+        name = resolve_output(settings.output, available(snapshot))
+        if snapshot['state'] != 'ready' or not name:
             return False
+        settings = replace(settings, output=name)
         with self.condition:
             if self.stopped or self.busy or self.pending is not None:
                 return False
@@ -104,7 +120,9 @@ class Player:
             active = False
             try:
                 snapshot = self.subscription.snapshot()
-                config = snapshot.get('settings', {}).get('pwm_cycle_time ' + settings.output, {})
+                key = ('pwm_cycle_time ' + settings.output).casefold()
+                config = next((value for section, value in snapshot.get('settings', {}).items()
+                               if section.casefold() == key), {})
                 scale = float(config.get('scale') or 1)
                 if not math.isfinite(scale) or scale <= 0:
                     continue
@@ -116,7 +134,7 @@ class Player:
                         current = self.subscription.snapshot()
                         return (not self.stopped and generation == self.generation and
                                 time.monotonic() - queued < .5 and
-                                settings.output in outputs(current.get('settings', {})))
+                                settings.output in available(current))
                     command = 'SET_PIN PIN={} VALUE={:g}'.format(settings.output, settings.volume / 200 * scale if frequency else 0)
                     if frequency:
                         command += ' CYCLE_TIME={:.8f}'.format(1 / frequency)
@@ -125,7 +143,7 @@ class Player:
                     with self.condition:
                         self.condition.wait_for(lambda: self.stopped or generation != self.generation, timeout=duration)
                     self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
-                               lambda: settings.output in outputs(self.subscription.snapshot().get('settings', {})))
+                               lambda: settings.output in available(self.subscription.snapshot()))
                     active = False
             except Exception:
                 # Sounds are optional and must not interrupt UI/printer actions.
@@ -134,7 +152,7 @@ class Player:
                 try:
                     if active:
                         self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
-                                   lambda: settings.output in outputs(self.subscription.snapshot().get('settings', {})))
+                                   lambda: settings.output in available(self.subscription.snapshot()))
                 except Exception:
                     pass
                 with self.condition:
