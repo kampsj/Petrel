@@ -67,9 +67,9 @@ Rotate the encoder to navigate; press to select. For a numeric setting, press, r
 | Home entry | Where it takes you |
 |---|---|
 | Print | File browser and print preview |
-| Prepare | Movement, homing, screw adjustment, preheat and cooldown |
-| Control | Temperature, runtime motion limits, probe calibration and case light |
-| Leveling | Bed mesh calibration and saved mesh viewer |
+| Prepare | Movement, homing, preheat and cooldown |
+| Control | Temperature, runtime motion limits and case light |
+| Leveling | Bed mesh calibration, mesh viewer, screw adjustment and probe calibration |
 | MMU | Happy Hare filament controls and recovery |
 | Display | Brightness and idle dimming |
 | Info | System status, software versions and updates |

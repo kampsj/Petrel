@@ -69,8 +69,7 @@ class ScrewsTiltMixin:
             self._screws_selection = max(0, selection - 1)
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
-                self.checkkey = self.Prepare
-                self.Draw_Prepare_Menu()
+                self._return_to_mesh_menu()
                 return
             try:
                 self.pd.screws_tilt.start()

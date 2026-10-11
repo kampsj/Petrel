@@ -67,9 +67,9 @@ Gezinmek için encoderi çevirin; seçmek için basın. Sayısal ayarlarda bası
 | Ana ekran öğesi | Açılan bölüm |
 |---|---|
 | Print | Dosya tarayıcısı ve baskı önizlemesi |
-| Prepare | Hareket, home, vida ayarı, ön ısıtma ve soğutma |
-| Control | Sıcaklık, çalışma zamanı hareket sınırları, probe kalibrasyonu ve kabin ışığı |
-| Leveling | Bed mesh kalibrasyonu ve kayıtlı mesh görüntüleyici |
+| Prepare | Hareket, home, ön ısıtma ve soğutma |
+| Control | Sıcaklık, çalışma zamanı hareket sınırları ve kabin ışığı |
+| Leveling | Bed mesh kalibrasyonu, mesh görüntüleyici, vida ayarı ve prob kalibrasyonu |
 | MMU | Happy Hare filament kontrolleri ve kurtarma |
 | Display | Parlaklık ve boşta kısma |
 | Info | Sistem durumu, yazılım sürümleri ve güncellemeler |

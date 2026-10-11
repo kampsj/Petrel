@@ -81,7 +81,7 @@ Requires a probe and four distinct corner screws in Klipper's `[screws_tilt_adju
   <img src="assets/screens/screws-tilt-success.png" width="220" alt="Corners leveled">
 </p>
 
-1. Open **Prepare → Screws Tilt Adjust → Calculate**. Missing axes are homed before measurement.
+1. Open **Leveling → Screws Tilt Adjust → Calculate**. Missing axes are homed before measurement.
 2. Wait through **Probing corners…** and **Reading results…**.
 3. Leave the **Base** screw unchanged. Turn the other screws according to **CW** (clockwise) or **CCW** (counter-clockwise) and the displayed amount. `01:20` means one full turn plus 20/60 of a turn.
 4. Choose **Continue**, adjust as needed and calculate again. Green **Corners leveled / Tolerance achieved!** means the measured highest-to-lowest difference is below **0.05 mm**.
@@ -107,7 +107,7 @@ Open **Home → Leveling**. With a configured probe, **Bed Mesh Calibrate** home
 ## Probe-offset calibration
 
 1. Ensure the bed is clear for calibration. The screen homes XYZ when needed, raises Z for clearance and moves the probe to the configured bed center before probing.
-2. Open **Control → Probe calibration → Start**.
+2. Open **Leveling → Probe Calibration → Start**.
 3. Watch the live Z height between the lower and upper tested positions. Turn the knob to select one of the four **-- / - / + / ++** buttons and press it to move using Klipper's search steps.
 4. Select **Accept** when satisfied, or **Cancel** to cancel the session.
 5. After Accept, choose **Save** to persist the offset and restart Klipper, or **Continue** to leave it unsaved.

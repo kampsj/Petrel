@@ -47,11 +47,15 @@ class BedMeshMixin:
             if self.pd.capabilities.probe:
                 entries.append(('CALIBRATE', 'Bed Mesh Calibrate', self.ICON_HotendTemp))
             entries.append(('VIEWER', 'Mesh Viewer', self.ICON_HotendTemp))
+        if self.pd.capabilities.screws_tilt_adjust:
+            entries.append(('SCREWS', 'Screws Tilt Adjust', self.ICON_SetEndTemp))
+        if self.pd.capabilities.probe and 'manual_probe' in self.pd.state.objects:
+            entries.append(('PROBE', 'Probe Calibration', self.ICON_Zoffset))
         return tuple(entries)
 
     def Draw_Bed_Mesh_Menu(self):
         self.Clear_Main_Window()
-        self.Draw_Title('Bed Mesh')
+        self.Draw_Title('Leveling')
         entries = self._mesh_menu_entries()
         choice = min(getattr(self, '_mesh_menu_selection', 0), len(entries)-1)
         self._mesh_menu_selection = choice
@@ -76,6 +80,16 @@ class BedMeshMixin:
                 self.Goto_MainMenu()
             elif key == 'CALIBRATE':
                 self._start_bed_mesh(self.BedMeshMenu)
+            elif key == 'SCREWS':
+                self.checkkey = self.ScrewsTiltMenu
+                self._screws_selection = 0
+                self.Draw_Screws_Menu()
+            elif key == 'PROBE':
+                self.checkkey = self.ProbeWizardID
+                self._drawn_probe_wizard = None
+                self._probe_ui_error = None
+                self._probe_selection = 0
+                self.Draw_Probe_Wizard()
             elif key == 'VIEWER':
                 self._mesh_profile_selection = 0
                 self._open_mesh_profiles()

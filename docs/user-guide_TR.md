@@ -81,7 +81,7 @@ Klipper'ın `[screws_tilt_adjust]` yapılandırmasında probe ve dört ayrı kö
   <img src="assets/screens/screws-tilt-success.png" width="220" alt="Köşeler düzeltildi">
 </p>
 
-1. **Prepare → Screws Tilt Adjust → Calculate** açın. Eksik eksenler ölçümden önce home edilir.
+1. **Leveling → Screws Tilt Adjust → Calculate** açın. Eksik eksenler ölçümden önce home edilir.
 2. **Probing corners…** ve **Reading results…** aşamalarını bekleyin.
 3. **Base** vidasını değiştirmeyin. Diğer vidaları **CW** (saat yönü) veya **CCW** (saat yönünün tersi) ve gösterilen miktara göre çevirin. `01:20` bir tam tur ve turun 20/60'ı demektir.
 4. **Continue** seçin, gerektiğinde ayarlayın ve tekrar hesaplatın. Yeşil **Corners leveled / Tolerance achieved!**, ölçülen en yüksek/en düşük farkın **0,05 mm** altında olduğunu belirtir.
@@ -107,7 +107,7 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 ## Probe offset kalibrasyonu
 
 1. XYZ home edin ve **Prepare → Move** ile nozulu uygun kalibrasyon XY noktasına götürün.
-2. **Control → Probe calibration → Start** açın.
+2. **Leveling → Probe Calibration → Start** açın.
 3. Alt ve üst denenmiş konumların arasında canlı Z yüksekliğini izleyin. Düğmeyi çevirerek dört **-- / - / + / ++** butonundan birini seçin ve basarak Klipper'ın arama adımlarıyla hareket edin.
 4. Uygunsa **Accept**, oturumu iptal etmek için **Cancel** seçin.
 5. Accept sonrası kalıcı kayıt ve Klipper'ı yeniden başlatmak için **Save**, kaydetmeden çıkmak için **Continue** seçin.

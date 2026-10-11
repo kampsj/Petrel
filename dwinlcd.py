@@ -715,8 +715,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             if self.pd.HAS_FAN and menu != 'preheat':
                 self._menus[menu].append(('FAN', 'Fan speed', self.ICON_FanSpeed))
         self._menus['tune'].append(('ZOFF', 'Runtime Z offset', self.ICON_Zoffset))
-        if caps.screws_tilt_adjust:
-            self._menus['prepare'].append(('SCREWS', 'Screws Tilt Adjust', self.ICON_SetEndTemp))
         if heat:
             for index, preset in enumerate(self.pd.material_preset):
                 key = 'PRESET:' + str(index)
@@ -730,8 +728,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if heat or self.pd.HAS_FAN:
             self._menus['control'].append(('TEMP', 'Temperature', self.ICON_Temperature))
         self._menus['control'].append(('MOVE', 'Motion', self.ICON_Motion))
-        if caps.probe and 'manual_probe' in self.pd.state.objects:
-            self._menus['control'].append(('PROBE', 'Probe calibration', self.ICON_Zoffset))
         if recovery:
             self._menus['control'].append(('RECOVERY', 'Restore jog state', self.ICON_Homing))
         if caps.case_light:
@@ -1151,7 +1147,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         entries = [('PRINT', 'Print', self.ICON_Print_0, self.ICON_Print_1),
                    ('PREPARE', 'Prepare', self.ICON_Prepare_0, self.ICON_Prepare_1),
                    ('CONTROL', 'Control', self.ICON_Control_0, self.ICON_Control_1)]
-        if self.pd.HAS_ONESTEP_LEVELING:
+        if len(self._mesh_menu_entries()) > 1:
             entries.append(('LEVEL', 'Leveling', self.ICON_Leveling_0, self.ICON_Leveling_1))
         entries.append(('MMU', 'MMU', None, None))
         entries.append(('DISPLAY', 'Display', None, None))
@@ -1342,10 +1338,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.checkkey = self.AxisMove
                 self.select_axis.reset()
                 self.Draw_Move_Menu()
-            elif self.select_prepare.now == self.PREPARE_CASE_SCREWS:
-                self.checkkey = self.ScrewsTiltMenu
-                self._screws_selection = 0
-                self.Draw_Screws_Menu()
             elif self.select_prepare.now == self.PREPARE_CASE_DISA:  # Disable steppers
                 self._action("Disable steppers", lambda: self.pd.sendGCode("M84"), silent=True)
             elif self.select_prepare.now == self.PREPARE_CASE_HOME:  # Homing
@@ -1390,12 +1382,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.checkkey = self.Motion
                 self.select_motion.reset()
                 self.Draw_Motion_Menu()
-            if self.select_control.now == self.CONTROL_CASE_PROBE:
-                self.checkkey = self.ProbeWizardID
-                self._drawn_probe_wizard = None
-                self._probe_ui_error = None
-                self._probe_selection = 0
-                self.Draw_Probe_Wizard()
             if self.select_control.now == self.CONTROL_CASE_RECOVERY:
                 self._action('Restore jog state', self.pd.restore_jog_state, silent=True)
             if self.select_control.now == self.CONTROL_CASE_LIGHT:
@@ -2144,8 +2130,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
 
     def _leave_probe(self):
         self._drawn_probe_wizard = None
-        self.checkkey = self.Control
-        self.Draw_Control_Menu()
+        self._return_to_mesh_menu()
 
     def _probe_button(self, label, box, selected):
         x, y, width, height = box

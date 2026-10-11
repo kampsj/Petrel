@@ -133,11 +133,13 @@ class ViewTests(unittest.TestCase):
         view.pd.subscription.request.side_effect = lambda *args, **kwargs: Future()
         return view
 
-    def test_optional_prepare_menu_and_navigation(self):
+    def test_optional_leveling_menu_and_navigation(self):
         self.assertEqual(display(snapshot()).PREPARE_CASE_SCREWS, -1)
         view = self.make()
-        view.select_prepare.set(view.PREPARE_CASE_SCREWS)
-        view.HMI_Prepare()
+        self.assertEqual(view.PREPARE_CASE_SCREWS, -1)
+        view.checkkey = view.BedMeshMenu
+        view._mesh_menu_selection = next(i for i,e in enumerate(view._mesh_menu_entries()) if e[0]=='SCREWS')
+        view.HMI_Bed_Mesh_Menu()
         self.assertEqual(view.checkkey, view.ScrewsTiltMenu)
         view.get_encoder_state.return_value = view.ENCODER_DIFF_CW
         view.HMI_Screws_Tilt()
@@ -161,7 +163,7 @@ class ViewTests(unittest.TestCase):
         self.assertEqual(view.checkkey, view.ScrewsTiltMenu)
         view._screws_selection = 0
         view.HMI_Screws_Tilt()
-        self.assertEqual(view.checkkey, view.Prepare)
+        self.assertEqual(view.checkkey, view.BedMeshMenu)
 
     def test_only_success_instructions_are_green(self):
         view = self.make()
@@ -183,7 +185,7 @@ class ViewTests(unittest.TestCase):
 
     def test_tramming_menu_uses_marlin_small_stock_icons(self):
         view = self.make()
-        row = next(row for row in view._menus['prepare'] if row[0] == 'SCREWS')
+        row = next(row for row in view._mesh_menu_entries() if row[0] == 'SCREWS')
         self.assertEqual(row[2], view.ICON_SetEndTemp)
         self.assertEqual(row[2], 46)
         view.Draw_Menu_Line = Mock()

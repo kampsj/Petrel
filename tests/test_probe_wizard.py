@@ -139,7 +139,8 @@ class ProbeTests(unittest.TestCase):
 
     def test_ui_offers_probe_separately_from_runtime_offset(self):
         result = display(data())
-        self.assertIn('PROBE', [item[0] for item in result._menus['control']])
+        self.assertNotIn('PROBE', [item[0] for item in result._menus['control']])
+        self.assertIn('PROBE', [item[0] for item in result._mesh_menu_entries()])
         result._probe_selection = 0
         result.checkkey = result.ProbeWizardID
         result.Draw_Probe_Wizard()
@@ -331,3 +332,26 @@ class ProbeCenterSafetyTests(unittest.TestCase):
         self.assertEqual(result.subscription.request.call_count, 2)
         self.assertIn('G1 X125.000 Y130.000',result.subscription.request.call_args.args[1]['script'])
         self.assertNotIn('PROBE_CALIBRATE',result.subscription.request.call_args.args[1]['script'])
+
+
+class LevelingNavigationTests(unittest.TestCase):
+    def test_probe_navigation_and_return_to_leveling(self):
+        view = display(data())
+        view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
+        view.checkkey = view.BedMeshMenu
+        view._mesh_menu_selection = next(i for i,e in enumerate(view._mesh_menu_entries()) if e[0]=='PROBE')
+        view.HMI_Bed_Mesh_Menu()
+        self.assertEqual(view.checkkey, view.ProbeWizardID)
+        view.pd.subscription.request.assert_not_called()
+        view._leave_probe()
+        self.assertEqual(view.checkkey, view.BedMeshMenu)
+        self.assertEqual(view._mesh_menu_entries()[view._mesh_menu_selection][0], 'PROBE')
+
+    def test_probe_only_printer_has_leveling_without_mesh_options(self):
+        source = data()
+        source['objects'].remove('bed_mesh')
+        view = display(source)
+        self.assertIn('LEVEL', [entry[0] for entry in view._home_entries()])
+        self.assertEqual([entry[0] for entry in view._mesh_menu_entries()], ['BACK','PROBE'])
+        absent = display(snapshot())
+        self.assertNotIn('LEVEL', [entry[0] for entry in absent._home_entries()])
