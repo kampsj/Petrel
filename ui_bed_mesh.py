@@ -41,21 +41,29 @@ def point_label(z, columns):
 
 
 class BedMeshMixin:
-    def _mesh_menu_entries(self):
+    def _leveling_menu_entries(self):
         entries = [('BACK', 'Back', self.ICON_Back)]
         if self.pd.capabilities.bed_mesh:
-            if self.pd.capabilities.probe:
-                entries.append(('CALIBRATE', 'Bed Mesh Calibrate', self.ICON_HotendTemp))
-            entries.append(('VIEWER', 'Mesh Viewer', self.ICON_HotendTemp))
+            entries.append(('MESH', 'Bed Mesh', 203))
         if self.pd.capabilities.screws_tilt_adjust:
-            entries.append(('SCREWS', 'Screws Tilt Adjust', self.ICON_SetEndTemp))
+            entries.append(('SCREWS', 'Screws Tilt Adjust', 202))
         if self.pd.capabilities.probe and 'manual_probe' in self.pd.state.objects:
             entries.append(('PROBE', 'Probe Calibration', self.ICON_Zoffset))
         return tuple(entries)
 
+    def _mesh_menu_entries(self):
+        if not getattr(self, '_mesh_submenu', False):
+            return self._leveling_menu_entries()
+        entries = [('BACK', 'Back', self.ICON_Back)]
+        if self.pd.capabilities.bed_mesh:
+            if self.pd.capabilities.probe:
+                entries.append(('CALIBRATE', 'Calibrate', 29))
+            entries.append(('VIEWER', 'Mesh Viewer', 55))
+        return tuple(entries)
+
     def Draw_Bed_Mesh_Menu(self):
         self.Clear_Main_Window()
-        self.Draw_Title('Leveling')
+        self.Draw_Title('Bed Mesh' if getattr(self, '_mesh_submenu', False) else 'Leveling')
         entries = self._mesh_menu_entries()
         choice = min(getattr(self, '_mesh_menu_selection', 0), len(entries)-1)
         self._mesh_menu_selection = choice
@@ -77,7 +85,15 @@ class BedMeshMixin:
         elif event == self.ENCODER_DIFF_ENTER:
             key = entries[choice][0]
             if key == 'BACK':
-                self.Goto_MainMenu()
+                if getattr(self, '_mesh_submenu', False):
+                    self._return_to_mesh_menu()
+                else:
+                    self.Goto_MainMenu()
+            elif key == 'MESH':
+                self._mesh_submenu = True
+                self._leveling_selection = choice
+                self._mesh_menu_selection = getattr(self, '_bed_mesh_selection', 0)
+                self.Draw_Bed_Mesh_Menu()
             elif key == 'CALIBRATE':
                 self._start_bed_mesh(self.BedMeshMenu)
             elif key == 'SCREWS':
@@ -96,7 +112,14 @@ class BedMeshMixin:
             return
         self.Draw_Bed_Mesh_Menu()
 
-    def _return_to_mesh_menu(self):
+    def _return_to_mesh_menu(self, bed_mesh=False):
+        if bed_mesh:
+            self._mesh_submenu = True
+        else:
+            if getattr(self, '_mesh_submenu', False):
+                self._bed_mesh_selection = getattr(self, '_mesh_menu_selection', 0)
+                self._mesh_menu_selection = getattr(self, '_leveling_selection', 1)
+            self._mesh_submenu = False
         self.checkkey = self.BedMeshMenu
         self.Draw_Bed_Mesh_Menu()
 
@@ -247,7 +270,7 @@ class BedMeshMixin:
     def _return_from_mesh(self):
         self._mesh_confirmation = None
         if getattr(self, '_mesh_origin', self.BedMeshMenu) == self.BedMeshMenu:
-            self._return_to_mesh_menu()
+            self._return_to_mesh_menu(True)
         elif getattr(self, '_mesh_origin', self.Prepare) == self.MainMenu:
             self.Goto_MainMenu()
         elif getattr(self, '_mesh_origin', self.Prepare) == self.Control:
@@ -265,7 +288,7 @@ class BedMeshMixin:
             return
         if session.phase != 'listed':
             if event == self.ENCODER_DIFF_ENTER:
-                self._return_to_mesh_menu()
+                self._return_to_mesh_menu(True)
             return
         choice = getattr(self, '_mesh_profile_selection', 0)
         if event == self.ENCODER_DIFF_CW:
@@ -274,7 +297,7 @@ class BedMeshMixin:
             self._mesh_profile_selection = max(0, choice-1)
         elif event == self.ENCODER_DIFF_ENTER:
             if choice == 0:
-                self._return_to_mesh_menu()
+                self._return_to_mesh_menu(True)
                 return
             name = session.entries()[choice-1]
             self._open_mesh_profiles(name, view_after=True)

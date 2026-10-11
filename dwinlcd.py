@@ -1147,7 +1147,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         entries = [('PRINT', 'Print', self.ICON_Print_0, self.ICON_Print_1),
                    ('PREPARE', 'Prepare', self.ICON_Prepare_0, self.ICON_Prepare_1),
                    ('CONTROL', 'Control', self.ICON_Control_0, self.ICON_Control_1)]
-        if len(self._mesh_menu_entries()) > 1:
+        if len(self._leveling_menu_entries()) > 1:
             entries.append(('LEVEL', 'Leveling', self.ICON_Leveling_0, self.ICON_Leveling_1))
         entries.append(('MMU', 'MMU', None, None))
         entries.append(('DISPLAY', 'Display', None, None))

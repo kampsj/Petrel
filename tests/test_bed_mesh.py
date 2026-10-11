@@ -265,7 +265,7 @@ class MeshViewTests(unittest.TestCase):
         self.assertEqual(view.PREPARE_CASE_MESH,-1)
         self.assertEqual(view.CONTROL_CASE_MESH,-1)
         view.select_page.set(3)
-        view.HMI_Leveling()
+        view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         self.assertEqual(view.checkkey,view.BedMeshMenu)
         self.assertIsNone(view.pd.bed_mesh.pending)
         self.event(view,view.ENCODER_DIFF_CW)
@@ -279,6 +279,8 @@ class MeshViewTests(unittest.TestCase):
         self.assertEqual(view.checkkey,view.BedMeshMenu)
         self.assertEqual(view._mesh_menu_selection,1)
         self.assertEqual(view.pd.subscription.request.call_count,2)
+        self.event(view,view.ENCODER_DIFF_CCW);self.event(view,view.ENCODER_DIFF_ENTER)
+        self.assertFalse(view._mesh_submenu)
         self.event(view,view.ENCODER_DIFF_CCW);self.event(view,view.ENCODER_DIFF_ENTER)
         self.assertEqual(view.checkkey,view.MainMenu)
         self.assertEqual(view.select_page.now,3)
@@ -306,7 +308,7 @@ class MeshViewTests(unittest.TestCase):
         view.lcd.update.assert_not_called()
 
     def test_profile_menu_refresh_selection_and_return_without_load(self):
-        view=self.make();view.HMI_Leveling()
+        view=self.make();view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         view._mesh_menu_selection=2;view.HMI_Bed_Mesh_Menu()
         self.assertEqual(view.checkkey,view.MeshProfiles)
         result=payload('PETG 80C');view.pd.bed_mesh.pending.set_result(result);view._poll_bed_mesh()
@@ -612,7 +614,7 @@ class MeshLifecycleTests(unittest.TestCase):
 
     def test_home_shortcut_opens_menu_without_calibration_even_when_printing(self):
         view=self.make();view.pd.status='printing';view.checkkey=view.Leveling
-        view.HMI_Leveling()
+        view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         self.assertEqual(view.checkkey,view.BedMeshMenu)
         view.pd.subscription.request.assert_not_called()
         view._mesh_menu_selection=1;view.HMI_Bed_Mesh_Menu()
@@ -648,13 +650,15 @@ class MeshMenuTests(unittest.TestCase):
     make=MeshViewTests.make
 
     def test_mesh_entries_are_only_in_home_submenu(self):
-        view=self.make();view.HMI_Leveling()
+        view=self.make();view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         self.assertEqual([e[0] for e in view._mesh_menu_entries()],['BACK','CALIBRATE','VIEWER'])
         for name in ('prepare','control'):
             self.assertNotIn('MESH',[e[0] for e in view._menus[name]])
             self.assertFalse(any(e[1] in ('Bed Mesh Calibrate','Mesh Viewer') for e in view._menus[name]))
         labels=[c.args[-1] for c in view.lcd.draw_text.call_args_list]
-        self.assertIn('Bed Mesh Calibrate',labels);self.assertIn('Mesh Viewer',labels)
+        view.Draw_Bed_Mesh_Menu()
+        labels=[c.args[-1] for c in view.lcd.draw_text.call_args_list]
+        self.assertIn('Calibrate',labels);self.assertIn('Mesh Viewer',labels)
         view.pd.subscription.request.assert_not_called()
 
     def test_without_probe_home_menu_still_has_profile_viewer(self):
@@ -662,14 +666,14 @@ class MeshMenuTests(unittest.TestCase):
         view=display(source);view.get_encoder_state=Mock(return_value=view.ENCODER_DIFF_ENTER)
         view.pd.subscription.request.side_effect=lambda *a, **k:Future()
         self.assertTrue(view.pd.HAS_ONESTEP_LEVELING)
-        view.HMI_Leveling()
+        view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         self.assertEqual([e[0] for e in view._mesh_menu_entries()],['BACK','VIEWER'])
         view._mesh_menu_selection=1;view.HMI_Bed_Mesh_Menu()
         self.assertEqual(view.checkkey,view.MeshProfiles)
         view.pd.subscription.request.assert_called_once_with('printer.objects.query',{'objects':{'bed_mesh':None}})
 
     def test_menu_cursor_bounds_and_capability_removal(self):
-        view=self.make();view.HMI_Leveling()
+        view=self.make();view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0
         view.get_encoder_state.return_value=view.ENCODER_DIFF_CW
         for _ in range(5):view.HMI_Bed_Mesh_Menu()
         self.assertEqual(view._mesh_menu_selection,2)
@@ -681,7 +685,7 @@ class MeshMenuTests(unittest.TestCase):
 
     def test_uart_reconnect_redraws_mesh_menu_without_starting_measurement(self):
         from test_regressions import ui
-        view=self.make();view.HMI_Leveling();view._mesh_menu_selection=2
+        view=self.make();view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0;view._mesh_menu_selection=2
         view._closed=False;view._settings=('/dev/fake',);view._uart_epoch=0
         view._uart_online=False;view._next_uart_retry=0
         view.HMI_Init=Mock();view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh_Menu=Mock()
@@ -689,4 +693,24 @@ class MeshMenuTests(unittest.TestCase):
             self.assertTrue(view._ensure_uart())
         view.Draw_Bed_Mesh_Menu.assert_called_once()
         self.assertEqual(view._mesh_menu_selection,2)
+        view.pd.subscription.request.assert_not_called()
+
+
+class MeshSubmenuNavigationTests(unittest.TestCase):
+    def test_leveling_icons_and_nested_mesh_back(self):
+        view = display(data())
+        view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
+        view.HMI_Leveling()
+        self.assertEqual([e[0] for e in view._mesh_menu_entries()], ['BACK','MESH'])
+        self.assertEqual(view._mesh_menu_entries()[1][2], 203)
+        view._mesh_menu_selection = 1
+        view.HMI_Bed_Mesh_Menu()
+        self.assertTrue(view._mesh_submenu)
+        self.assertEqual([(e[0], e[2]) for e in view._mesh_menu_entries()],
+                         [('BACK',view.ICON_Back),('CALIBRATE',29),('VIEWER',55)])
+        view._mesh_menu_selection = 0
+        view.HMI_Bed_Mesh_Menu()
+        self.assertFalse(view._mesh_submenu)
+        self.assertEqual(view.checkkey,view.BedMeshMenu)
+        self.assertEqual(view._mesh_menu_selection,1)
         view.pd.subscription.request.assert_not_called()
