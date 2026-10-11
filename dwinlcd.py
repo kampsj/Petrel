@@ -657,6 +657,8 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             elif hasattr(self, '_loop'):
                 self._loop.set_interval(.5)
             self._display_idle_tick()
+            if self._draw_header_clock():
+                self.lcd.update()
             self.EachMomentUpdate()
         except OSError:
             if self.lcd is not None and getattr(self.lcd, '_closed', False):
@@ -2490,8 +2492,19 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 241, 2, 267, 28)
 
     def Draw_Title(self, title):
-        self.lcd.draw_text(False, False, self.lcd.DWIN_FONT_HEAD, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 4, title)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 0, title)
+        self._draw_header_clock()
         self._draw_power_icon(getattr(self, '_power_focus', False))
+
+    def _draw_header_clock(self):
+        value = time.strftime('%H:%M', time.localtime())
+        key = (id(self.lcd), value)
+        if key == getattr(self, '_header_clock_drawn', None):
+            return False
+        self.lcd.draw_text(True, False, self.lcd.font6x12, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Blue, 121, 18, value)
+        self._header_clock_drawn = key
+        return True
 
     def Draw_Popup_Bkgd_105(self):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 105, 258, 374)
@@ -2856,6 +2869,8 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
     def Clear_Title_Bar(self):
         self._info_render_scroll = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH, 30)
+        self._header_clock_drawn = None
+        self._draw_header_clock()
 
     def Clear_Menu_Area(self):
         self._list_render = None
@@ -3264,8 +3279,7 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
 
     def _draw_power_confirmation(self):
         self.Clear_Popup_Area()
-        self.lcd.draw_text(False, False, self.lcd.DWIN_FONT_HEAD, self.lcd.Color_White,
-                           self.lcd.Color_Bg_Blue, 14, 4, 'Power')
+        self.Draw_Title('Power')
         self.Draw_Popup_Bkgd_105()
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
                            self.lcd.Color_Bg_Window, 42, 150, 'Turn off printer?')

@@ -116,6 +116,8 @@ Baskı durmuş olmalıdır. Bekleyen yapılandırma değişiklikleri kalibrasyon
 
 ## Ekran ayarları
 
+Üst bar, Raspberry Pi'nin yerel sistem saatini **SS:DD** biçiminde gösterir.
+
 <p align="center"><img src="assets/screens/display.png" width="240" alt="Parlaklık ve boşta kısma"></p>
 
 **Home → Display** açın:

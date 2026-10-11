@@ -116,6 +116,8 @@ Printing must be stopped. Pending configuration changes do not block calibration
 
 ## Display settings
 
+The top bar shows the Raspberry Pi's local system time in **HH:MM** format.
+
 <p align="center"><img src="assets/screens/display.png" width="240" alt="Brightness and idle dimming"></p>
 
 Open **Home → Display**:
