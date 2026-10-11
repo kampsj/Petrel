@@ -7,6 +7,13 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
+  <a href="https://github.com/sezgynus/KlipperDWIN/tree/v2.0.0"><img alt="v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-0969da"></a>
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
+  <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
+  <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/screens/home.png" width="240" alt="Ana ekran, birinci sayfa">
   <img src="docs/assets/screens/home-page-2.png" width="240" alt="Ana ekran, ikinci sayfa">
   <img src="docs/assets/screens/print-preview.png" width="240" alt="Baskı önizlemesi">
