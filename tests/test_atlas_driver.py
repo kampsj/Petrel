@@ -50,7 +50,7 @@ class AtlasDriverTests(unittest.TestCase):
         from PIL import Image
 
         for icon_id in (lcd_atlas.ICON_MCU, lcd_atlas.ICON_MACHINE,
-                        lcd_atlas.ICON_HOST, lcd_atlas.ICON_SOFTWARE, lcd_atlas.ICON_DISPLAY, lcd_atlas.ICON_HOMING, lcd_atlas.ICON_SPOOL_EMPTY):
+                        lcd_atlas.ICON_HOST, lcd_atlas.ICON_SOFTWARE, lcd_atlas.ICON_DISPLAY, lcd_atlas.ICON_SPOOL_EMPTY):
             with self.subTest(icon_id=icon_id):
                 area, x, y, width, height = lcd_atlas.ICON_COORDINATES[icon_id]
                 path = Path(lcd_atlas.__file__).parent / lcd_atlas.ATLAS_FILES[area][0]
@@ -129,7 +129,6 @@ class AtlasDriverTests(unittest.TestCase):
         self.assertEqual(lcd_atlas.ICON_SOFTWARE, 0x0106)
         self.assertEqual(lcd_atlas.ICON_POWER, 0x0107)
         self.assertEqual(lcd_atlas.ICON_DISPLAY, 0x0108)
-        self.assertEqual(lcd_atlas.ICON_HOMING, 0x0109)
         self.assertEqual(lcd_atlas.ICON_SPOOL_EMPTY, 0x010A)
         self.assertEqual(
             {i: r for i, r in lcd_atlas.ICON_COORDINATES.items()
@@ -144,7 +143,6 @@ class AtlasDriverTests(unittest.TestCase):
                 0x0106: (0, 192, 32, 20, 20),
                 0x0107: (0, 224, 32, 20, 20),
                 0x0108: (0, 0, 48, 52, 64),
-                0x0109: (0, 64, 48, 73, 66),
                 0x010A: (0, 144, 64, 42, 52),
             },
         )
