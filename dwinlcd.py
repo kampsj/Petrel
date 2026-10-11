@@ -641,7 +641,15 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             if getattr(self, '_boot_active', False):
                 self._poll_boot()
                 return
-            if getattr(self, 'checkkey', None) == self.FilePreview:
+            if (getattr(self, 'checkkey', None) == self.MMUMenu
+                    and getattr(self, '_mmu_page', None) == 'home'):
+                if hasattr(self, '_loop'):
+                    self._loop.set_interval(.05)
+                if now < getattr(self, '_mmu_status_at', 0):
+                    self._mmu_animation_tick()
+                    return
+                self._mmu_status_at = now + .5
+            elif getattr(self, 'checkkey', None) == self.FilePreview:
                 if not getattr(self, '_pending_start', None) and not getattr(self, '_start_error_visible', False):
                     self._poll_file_preview()
                 if time.monotonic() < getattr(self, '_preview_status_at', 0):

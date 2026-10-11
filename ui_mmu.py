@@ -476,6 +476,13 @@ class MMUViewMixin:
         if m.num_gates > 4:
             self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 132, 8, small=True)
 
+    def _mmu_animation_tick(self):
+        view = getattr(self, '_mmu_filament_view', None)
+        state = getattr(self, '_mmu_animation_state', None)
+        if view is not None and state is not None:
+            if view.draw(state, active_color=self._mmu_animation_color):
+                self.lcd.update()
+
     def _mmu_draw_overview(self, m, items):
         if m:
             self._mmu_spools(m)
@@ -484,6 +491,8 @@ class MMUViewMixin:
                 view = self._mmu_filament_view = MMUFilamentView(self.lcd)
             rgb = (self.pd.mmu or {}).get('gate_color_rgb', ())
             active_color = self._rgb565(rgb[m.gate]) if m.gate is not None and 0 <= m.gate < len(rgb) else None
+            self._mmu_animation_state = m
+            self._mmu_animation_color = active_color
             view.draw(m, active_color=active_color)
             distance = '--' if m.filament_position is None else '%.1f' % m.filament_position
             self._mmu_text('distance', 'Filament: %smm' % distance, 40, 147, 32, small=True)

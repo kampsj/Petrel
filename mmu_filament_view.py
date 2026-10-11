@@ -48,6 +48,8 @@ class MMUFilamentView:
     X = 59
     TOP = 168
     BODY = 186
+    GATE_HEIGHT = round(85 * (BODY - 1) / 371)
+    GATE_Y = TOP + GATE_HEIGHT
 
     def __init__(self, lcd):
         self.lcd = lcd
@@ -62,13 +64,18 @@ class MMUFilamentView:
     def _tube_segment(self, start, end, color):
         self._rect(color, self.X + 1, self.TOP + start, self.X + 8, self.TOP + end - 1)
 
+    def _height_at(self, now):
+        fraction = min(1, max(0, (now - self._changed) / .5))
+        return self._from + (self._target - self._from) * fraction
+
     def draw(self, m, now=None, active_color=None):
         now = time.monotonic() if now is None else now
+        before = self._painted.copy()
         if not self._painted:
             self._rect(self.BLOCK, 12, 176, 145, 244)
             self._rect(self.BLOCK, 12, 340, 145, 373)
             self._rect(self.TUBE, self.X, self.TOP, self.X + 9, self.TOP + self.BODY - 1)
-            self.lcd.draw_text(False, False, self.lcd.font6x12, 0xFFFF, self.BLOCK, 84, 208, 'Gate')
+            self.lcd.draw_text(False, False, self.lcd.font6x12, 0xFFFF, self.BLOCK, 84, self.GATE_Y - 6, 'Gate')
         color = filament_color(m.colors[m.gate]) if m.gate is not None and 0 <= m.gate < m.num_gates else 0x8410
         if active_color is not None:
             color = active_color
@@ -76,9 +83,12 @@ class MMUFilamentView:
         if self._target is None:
             self._target = self._from = target
         elif target != self._target:
-            self._from = self._painted.get('height', self._target)
+            self._from = self._height_at(now)
             self._target, self._changed = target, now
-        height = round(self._from + (self._target - self._from) * min(1, max(0, (now - self._changed) / .5)))
+        height = round(self._height_at(now))
+        # A triggered sensor confirms that filament has already reached Gate.
+        if m.gate != -2 and m.sensor('mmu_gate') is True:
+            height = max(height, self.GATE_HEIGHT)
         if m.action == 'Forming Tip':
             height = round((338 if int(now * 2) % 2 else 371) * (self.BODY - 1) / 371)
         previous = self._painted.get('height', 0)
@@ -114,10 +124,10 @@ class MMUFilamentView:
         sensor = m.sensor('mmu_gate')
         signature = (sensor, m.gate == -2)
         if self._painted.get('sensor') != signature:
-            self._rect(self.BLOCK, 69, 207, 81, 221)
+            self._rect(self.BLOCK, 69, self.GATE_Y - 7, 81, self.GATE_Y + 7)
             if m.gate != -2:
-                self.lcd.fill_circle(0x07E0 if sensor is True else self.BLOCK, 75, 214, 5)
-                self.lcd.draw_circle(0x07E0 if sensor is not None else 0x8410, 75, 214, 5)
+                self.lcd.fill_circle(0x07E0 if sensor is True else self.BLOCK, 75, self.GATE_Y, 5)
+                self.lcd.draw_circle(0x07E0 if sensor is not None else 0x8410, 75, self.GATE_Y, 5)
             self._painted['sensor'] = signature
 
         purge_frame = int(now * 2) % 8 if m.action == 'Purging' else -1
@@ -142,3 +152,5 @@ class MMUFilamentView:
                 self.lcd.draw_line(0xFFFF, 41, y + 3, 54, y + 11 - delta)
                 self.lcd.draw_line(0xFFFF, 41, y + 11, 54, y + 3 + delta)
             self._painted['cut'] = cut
+
+        return before != self._painted

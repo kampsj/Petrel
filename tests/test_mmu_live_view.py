@@ -1,6 +1,7 @@
 import unittest
+import time
 from dataclasses import replace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import test_mmu_control as control
 import test_mmu_ui as ui
 from test_mmu_control import mmu_snapshot
@@ -145,5 +146,43 @@ class LiveMMUViewTests(unittest.TestCase):
         view.draw(state, now=0)
         lcd.reset_mock()
         view.draw(replace(state, sensors=(('mmu_gate', True),)), now=1)
-        lcd.fill_circle.assert_called_once_with(0x07E0, 75, 214, 5)
-        lcd.draw_rectangle.assert_called_once_with(1, view.BLOCK, 69, 207, 81, 221)
+        lcd.fill_circle.assert_called_once_with(0x07E0, 75, view.GATE_Y, 5)
+        lcd.draw_rectangle.assert_called_once_with(1, view.BLOCK, 69, view.GATE_Y - 7, 81, view.GATE_Y + 7)
+
+    def test_retarget_advances_previous_trajectory_before_starting_next(self):
+        view = MMUFilamentView(Mock())
+        state = MMUState.from_snapshot(mmu_snapshot(filament='Unknown', filament_pos=0,
+                                                   sensors={'mmu_gate': False}))
+        view.draw(state, now=0)
+        heights = []
+        for i, progress in enumerate((0, 25, 50, 75, 100), 1):
+            view.draw(replace(state, filament_pos=3, bowden_progress=progress), now=i * .5)
+            heights.append(view._painted['height'])
+        self.assertTrue(all(a < b for a, b in zip(heights, heights[1:])), heights)
+        self.assertGreater(heights[-1], 100)
+
+    def test_gate_detection_immediately_confirms_filament_at_same_height(self):
+        view = MMUFilamentView(Mock())
+        state = MMUState.from_snapshot(mmu_snapshot(filament='Unknown', filament_pos=0,
+                                                   sensors={'mmu_gate': False}))
+        view.draw(state, now=0)
+        view.draw(replace(state, sensors=(('mmu_gate', True),)), now=.05)
+        self.assertEqual(view._painted['height'], view.GATE_Y - view.TOP)
+
+    def test_animation_ticks_do_not_poll_status_or_redraw_overview(self):
+        view, _ = ui.MMUUITests().make()
+        view._uart_online = True
+        view._next_uart_probe = float('inf')
+        view._poll_panel_power = Mock()
+        view._sync_case_light_tracking = Mock()
+        view._display_idle_tick = Mock()
+        view._draw_header_clock = Mock(return_value=False)
+        view.EachMomentUpdate = Mock()
+        view._mmu_animation_tick = Mock()
+        view._loop = Mock()
+        for now in (100, 100.05, 100.1, 100.5):
+            with patch.object(time, 'monotonic', return_value=now):
+                view._ui_tick()
+        self.assertEqual(view.EachMomentUpdate.call_count, 2)
+        self.assertEqual(view._mmu_animation_tick.call_count, 2)
+        view._loop.set_interval.assert_called_with(.05)
