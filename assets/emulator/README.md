@@ -1,21 +1,22 @@
-# Original panel assets for the optional emulator
+# Emulator assets
 
-These files are **host-side inputs only**. Enabling the emulator never uploads
-them, changes the LCD's font/icon library or modifies the managed atlases.
+[English](README.md) · [Türkçe](README_TR.md) · [Capture guide](../../docs/ui-emulator.md)
 
-- `9.ICO`: the stock library supplied for this project; original 256-entry,
-  16-byte directory and embedded JPEG payloads are retained, including holes.
-- `0_DWIN_ASC.HZK`: the developer-supplied file, downloaded unchanged from
-  [ihrapsa/T5UIC1-DWIN-toolset](https://github.com/ihrapsa/T5UIC1-DWIN-toolset/blob/main/Dwin_Toolbox-en%2F0_DWIN_ASC.HZK).
-  It is a **DGUS** ASCII library: 128 glyphs per bank, widths 4..64,
-  height twice the width. It is retained and can be selected explicitly.
-- `0T5UIC1.HZK`: default T5UIC1 original font from
-  [Quint097/DWIN_Font_Tools](https://github.com/Quint097/DWIN_Font_Tools/blob/main/HZK%20Font%20Files/DWIN%20Font%20(Original)/0T5UIC1.HZK).
-  The native ASCII banks use widths 6, 8, 10, 12, 14, 16, 20, 24, 28, 32;
-  each has 128 glyphs and MSB-first, byte-aligned rows.
-  Layout references: [upstream decoder](https://github.com/Quint097/DWIN_Font_Tools/blob/main/HZK%20Font%20Decoder/src/decode.go)
-  and [Marlin font generator](https://github.com/MarlinFirmware/Marlin/blob/2.1.x/buildroot/share/fonts/buildhzk.py).
+## Choose matching resources
 
-Upstream assets retain their original provenance; this project does not claim
-authorship of these binary files. Match the selected font and 9.ICO to the
-files installed on your physical panel when comparing screenshots.
+These files are inputs for screenshot rendering on the Pi. Enabling the emulator does not install them on the physical display or replace its fonts/icons.
+
+| File | Use |
+|---|---|
+| `9.ICO` | Stock icon library supplied for this project |
+| `0T5UIC1.HZK` | Default original T5UIC1 font |
+| `0_DWIN_ASC.HZK` | Alternative DGUS ASCII font; select explicitly only when appropriate |
+
+For a custom panel font, set `DWIN_EMULATOR_FONT` to the matching file in the service environment and restart. See [optional emulator settings](../../docs/ui-emulator.md#optional-settings). Matching resources matters when comparing a screenshot with a physical display.
+
+## Provenance
+
+- `0T5UIC1.HZK`: [Quint097/DWIN_Font_Tools](https://github.com/Quint097/DWIN_Font_Tools/blob/main/HZK%20Font%20Files/DWIN%20Font%20(Original)/0T5UIC1.HZK).
+- `0_DWIN_ASC.HZK`: [ihrapsa/T5UIC1-DWIN-toolset](https://github.com/ihrapsa/T5UIC1-DWIN-toolset/blob/main/Dwin_Toolbox-en%2F0_DWIN_ASC.HZK).
+
+Upstream resources retain their original provenance; KlipperDWIN does not claim authorship of these binary files.

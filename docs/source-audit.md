@@ -2,9 +2,9 @@
 
 This document records an earlier source review and its closed findings. It is
 **not the current feature list or a claim of complete hardware validation**.
-For v1.0.0 functionality and current limits, see [README](../README.md) and
+For current functionality and usage, see [README](../README.md) and
 [README_TR](../README_TR.md). For current software checks, see
-[test contracts](../tests/README.md).
+[test guide](../tests/README.md).
 
 ## Scope at the time
 

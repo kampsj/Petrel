@@ -1,121 +1,74 @@
-# Developer framebuffer emulator
+# Emulator screenshots
 
-This optional feature mirrors the **successfully written T5UIC1 UART packets**
-from the running UI. It does not implement a second menu system, read the UART,
-simulate Moonraker, host a live viewer or continuously save pictures.
+[English](ui-emulator.md) · [Türkçe](ui-emulator_TR.md) · [Contributing](../CONTRIBUTING.md)
 
-## Enable on the Pi
+## What it is for
 
-Emulator dependencies are installed by the normal installer and Moonraker
-Update Manager through `requirements.txt`. For an existing checkout:
+The optional emulator captures the screens drawn by the running KlipperDWIN service. Use it to review layouts, refresh documentation and report visual bugs as original-size images. It follows the real LCD UI; it is not a standalone printer simulator or live browser viewer. Navigate with the physical encoder, then request a capture over SSH.
+
+## Enable or disable
+
+Dependencies are included in normal installation and Moonraker updates. In `~/.config/KlipperDWIN/KlipperDWIN.env`, change the default:
+
+```ini
+DWIN_EMULATOR=1
+```
+
+Then restart:
+
+```bash
+sudo systemctl restart KlipperDWIN.service
+```
+
+To disable, set `DWIN_EMULATOR=0` and restart again. Re-running installation/configuration preserves an existing enabled value. For an older installation missing dependencies:
 
 ```bash
 cd ~/KlipperDWIN
 ~/klipperdwin-env/bin/python -m pip install -r requirements.txt
 ```
 
-Change the default `DWIN_EMULATOR=0` to `DWIN_EMULATOR=1` in the external service environment file
-`~/.config/KlipperDWIN/KlipperDWIN.env`, then restart:
-
-```ini
-DWIN_EMULATOR=1
-```
-
-```bash
-sudo systemctl restart KlipperDWIN.service
-```
-
-The installer/configurator writes `DWIN_EMULATOR=0` by default and preserves an
-existing enabled value. No framebuffer,
-asset loading, socket server or emulator imports occur in the disabled UI path.
-The driver's optional observer check is the only addition to normal sends.
-The LCD remains on the configured UART (the reference installation uses
-`/dev/ttyS0`); the emulator does not open another serial connection.
-
 ## Capture over SSH
 
-Navigate on the real LCD, then run **as the service user**, without sudo:
+1. Open the desired screen on the LCD and wait for it to finish drawing.
+2. In SSH, run **as the service user, without sudo**:
 
 ```bash
 ~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/screenshot.py
 ```
 
-The command prints the saved absolute path. Default output is
-`~/KlipperDWIN-screenshots/YYYY-MM-DD_HH-MM-SS_microseconds_unique.png`.
-Screenshots are RGB at the original 272x480 portrait size, with no scaling,
-antialiasing or JPEG conversion. PNG uses compression level 0 and is lossless;
-BMP is available for a completely uncompressed bitmap:
+The command prints the saved path. By default images go to `~/KlipperDWIN-screenshots/` with timestamped, unique filenames. Output is lossless **272×480 RGB PNG**, without resizing. No screenshots are saved automatically.
+
+For BMP output:
 
 ```bash
 ~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/screenshot.py --format bmp
 ```
 
-No image is saved until requested. Each request copies the last completed
-`0x3D` LCD update under the framebuffer lock; encoding and disk I/O run outside
-that lock. Simultaneous drawing cannot create a half-rendered screenshot.
-Disconnected panels, missing assets and unsupported visual instructions return
-an error instead of claiming a valid capture. Screenshots survive service exits.
+Copy images to your computer for review. Repository screenshots belong in `docs/assets/screens/` with names describing the screen/state.
 
-## Configuration
+## Optional settings
 
-| Environment | CLI | Purpose |
-|---|---|---|
-| `DWIN_EMULATOR` | `--emulator` / `--no-emulator` | Default off |
-| `DWIN_EMULATOR_SOCKET` | `--emulator-socket` | Private Unix socket path |
-| `DWIN_SCREENSHOT_DIRECTORY` | `--screenshot-directory` | Output directory |
-| `DWIN_EMULATOR_FONT` | `--emulator-font` | HZK font matching the physical LCD |
+Set these in the same external environment file and restart the service:
 
-The socket always defaults to `~/.cache/KlipperDWIN-emulator/control.sock`,
-independent of XDG_RUNTIME_DIR, so systemd and SSH sessions agree. Its
-directory must be owned by the service user with permissions 0700; the socket
-uses 0600. Pass the same custom path to `screenshot.py --socket PATH`.
-Only local screenshot requests are accepted; there is no TCP port or browser.
-Owned stale sockets from a crashed process are recovered; active servers and
-regular files are never replaced.
+| Variable | Purpose |
+|---|---|
+| `DWIN_SCREENSHOT_DIRECTORY` | Custom output directory |
+| `DWIN_EMULATOR_SOCKET` | Custom local capture socket; default `~/.cache/KlipperDWIN-emulator/control.sock` |
+| `DWIN_EMULATOR_FONT` | Font file matching a customized physical panel |
 
-## Rendering and fidelity
+For a custom socket, use the same path in the capture command:
 
-- Original bitmap glyphs, stock JPEG icons, managed atlas slots 14/15, slot-0
-  bootsplash and SRAM thumbnails are decoded into RGB565 colors.
-- Direction 1 rotates physical 480x272 JPEGs clockwise into portrait space.
-- Areas 0/1 are independent. `show_jpeg` updates the screen and area 0;
-  `cache_jpeg` updates area 1 only. Copy, transparency and restoration flags
-  operate on those buffers.
-- Clear, points, lines, rectangles/XOR, bitmaps, text, ordinary native numeric
-  fonts, QR, region translation/wrap and SRAM writes/picture storage are handled.
-- Backlight changes do not darken saved pixels: captures represent framebuffer
-  contents, including when the physical backlight is dimmed.
+```bash
+~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/screenshot.py --socket /path/to/control.sock
+```
 
-This is an instruction/asset mirror, **not a readback of the LCD hardware RAM**.
-Font/library mismatches cannot be detected automatically. The supplied DGUS font
-is not the native T5UIC1 font; the bundled original T5UIC1 file is the default.
-Select an installed custom font explicitly when applicable.
+## Troubleshooting and limits
 
-Hardware JPEG rounding, the undocumented enhanced black-filter threshold and
-automatic glyph-width adjustment can differ from the host decoder. Enhanced
-filtering currently drops RGB channel values at or below 31. QR uses fixed
-version 7/L, byte mode, a 46-module box, inferred from the documented 154-byte
-capacity and dimensions; the panel's mask selection can differ. QR captures are
-valid standard codes, but exact module-for-module equality needs a physical
-comparison. Native numeric fonts 0x0A/0x0B, animation and barcode commands are
-not used by the current UI and fail explicitly if encountered. Do not describe
-these unverified cases as proven pixel-identical hardware output.
+| Problem | What to do |
+|---|---|
+| Cannot connect or permission denied | Check `DWIN_EMULATOR=1`, restart the service, run as its user and check the socket path |
+| Capture rejected | Check panel connection, loaded assets and the service log; wait for a completed screen |
+| Text/icons differ from the panel | Compare the font/icon files; see [emulator assets](../assets/emulator/README.md) |
+| Dimming is not visible in the image | Captures show screen pixels, not physical backlight brightness |
 
-## Future conditional activation
-
-`Emulator.set_enabled(bool)` is a separate, locked lifecycle API; there is no
-condition hard-coded into the packet interpreter. Disabled observers discard
-packets and release the model. Re-enabling creates a fresh model but deliberately
-rejects snapshots until `reset_panel()` establishes a baseline and an update
-arrives. A future condition should run on the UI owner thread and reconnect/
-reinitialize the LCD after enabling, then attach the observer to its driver.
-No unbounded command history is retained while disabled.
-
-## Verification
-
-Tests cover transmitted-frame observation, partial-write exclusion, font bits,
-stock libraries and holes, atlas rotation/copies, real UI packet replay, region
-movement, SRAM thumbnails, XOR, QR capacity, lifecycle/reset and lossless output.
-Unix-socket tests run on Linux CI; environments that prohibit creating Unix
-sockets explicitly skip those two integration tests. Other tests still verify
-the file writer byte-for-byte. The CI workflow includes this feature branch.
+The emulator mirrors drawing instructions rather than reading the LCD's memory. Fonts, JPEG decoding and QR patterns can differ from a physical panel. For those issues, provide both a screenshot and a photo; a capture alone does not prove physical display accuracy.
