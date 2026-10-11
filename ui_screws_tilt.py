@@ -3,11 +3,10 @@
 
 class ScrewsTiltMixin:
     def Draw_Screws_Menu(self):
-        self.Clear_Main_Window()
-        self.Draw_Title('Screws Tilt Adjust')
-        self.Draw_Menu_Line(0, self.ICON_Back, 'Back')
-        self.Draw_Menu_Line(1, self.ICON_SetEndTemp, 'Calculate')
-        self.Draw_Menu_Cursor(getattr(self, '_screws_selection', 0))
+        self._draw_list_menu('Screws Tilt Adjust', [
+            ('Back', self.ICON_Back, None, None),
+            ('Calculate', self.ICON_SetEndTemp, None, None)],
+            getattr(self, '_screws_selection', 0))
         self.lcd.update()
 
     def _screws_text(self, text, y, color=None, font=None, width=8):

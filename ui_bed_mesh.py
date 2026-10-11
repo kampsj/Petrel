@@ -62,14 +62,11 @@ class BedMeshMixin:
         return tuple(entries)
 
     def Draw_Bed_Mesh_Menu(self):
-        self.Clear_Main_Window()
-        self.Draw_Title('Bed Mesh' if getattr(self, '_mesh_submenu', False) else 'Leveling')
         entries = self._mesh_menu_entries()
         choice = min(getattr(self, '_mesh_menu_selection', 0), len(entries)-1)
         self._mesh_menu_selection = choice
-        for index, (_, label, icon) in enumerate(entries):
-            self.Draw_Menu_Line(index, icon, label)
-        self.Draw_Menu_Cursor(choice)
+        self._draw_list_menu('Bed Mesh' if getattr(self, '_mesh_submenu', False) else 'Leveling',
+                             [(label, icon, None, None) for _, label, icon in entries], choice)
         self.lcd.update()
 
     def HMI_Bed_Mesh_Menu(self):
@@ -221,21 +218,19 @@ class BedMeshMixin:
 
     def Draw_Mesh_Profiles(self):
         session = self.pd.bed_mesh
-        self.Clear_Main_Window()
-        self.Draw_Title('Mesh Viewer')
         if session.pending or session.phase not in ('listed', 'viewing'):
+            self.Clear_Main_Window()
+            self.Draw_Title('Mesh Viewer')
             self._mesh_text(session.message or 'Reading mesh profiles...', 150, size=6)
             if not session.pending: self._mesh_button('Continue', 86, True)
         else:
-            entries = ('Back',) + tuple('Current Mesh' if n is None else n for n in session.entries())
-            choice = getattr(self, '_mesh_profile_selection', 0)
-            choice = min(choice, len(entries)-1)
+            names = ('Back',) + tuple('Current Mesh' if n is None else n for n in session.entries())
+            choice = min(getattr(self, '_mesh_profile_selection', 0), len(names)-1)
             self._mesh_profile_selection = choice
-            start = max(0, choice-self.MROWS)
-            for index in range(start, min(len(entries), start+self.TROWS)):
-                label = T5UIC1Display._panel_text(entries[index])[:25]
-                self.Draw_Menu_Line(index-start, self.ICON_Back if index == 0 else self.ICON_HotendTemp, label)
-            self.Draw_Menu_Cursor(choice-start)
+            entries = [(T5UIC1Display._panel_text(label)[:25],
+                        self.ICON_Back if index == 0 else self.ICON_HotendTemp, None, None)
+                       for index, label in enumerate(names)]
+            self._draw_list_menu('Mesh Viewer', entries, choice)
         self.lcd.update()
 
     def _open_mesh_profiles(self, selected=None, view_after=False):

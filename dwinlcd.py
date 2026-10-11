@@ -778,20 +778,51 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self.lcd.update()
         return True
 
-    def _draw_capability_menu(self, name, selection, bottom=None, profile=None):
-        self.Clear_Main_Window()
-        title = name.title() if profile is None else self.pd.material_preset[profile].name + ' settings'
-        self.Draw_Title(title)
-        start = max(0, (bottom or self.MROWS) - self.MROWS)
-        entries = [('BACK', 'Back', self.ICON_Back)] + self._menus[name]
-        for logical in range(start, min(len(entries), start + self.TROWS)):
-            key, label, icon = entries[logical]
+    def _draw_list_menu(self, title, entries, selection, start=None):
+        # Entries: label, icon, displayed value signature, optional row painter.
+        frame = (id(self.lcd), title, tuple((e[0], e[1]) for e in entries))
+        old = getattr(self, '_list_render', None)
+        valid = old is not None and old['frame'] == frame
+        if start is None:
+            start = old['start'] if valid else 0
+            start = max(0, min(start, selection), selection - self.MROWS)
+        visible = range(start, min(len(entries), start + self.TROWS))
+        previous_values = old['values'] if valid else {}
+        delta = start - old['start'] if valid else 0
+        if not valid or abs(delta) >= self.TROWS:
+            self.Clear_Main_Window()
+            self.Draw_Title(title)
+            previous_values = {}
+        elif old['selection'] != selection or delta:
+            self.Erase_Menu_Cursor(old['selection'] - old['start'])
+            if delta:
+                self.lcd.move_area(1,
+                    self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
+                    abs(delta) * self.MLINE, self.lcd.Color_Bg_Black,
+                    0, 31, 271, 348)
+        values = {}
+        for logical in visible:
+            label, icon, value, painter = entries[logical]
             row = logical - start
-            self.Draw_Menu_Line(row, icon, label)
-            if logical == selection.now:
-                self.Draw_Menu_Cursor(row)
-            value = None
-            preset = self.pd.material_preset[profile] if profile is not None else None
+            values[logical] = value
+            preserved = valid and logical in range(old['start'], old['start'] + self.TROWS)
+            if not preserved or logical not in previous_values or previous_values[logical] != value:
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
+                    16, 31 + row * self.MLINE, 271, 83 + row * self.MLINE)
+                if icon or label:
+                    self.Draw_Menu_Line(row, icon, label)
+                if painter is not None:
+                    painter(row)
+        if not valid or delta or old['selection'] != selection:
+            self.Draw_Menu_Cursor(selection - start)
+        self._list_render = dict(frame=frame, start=start, selection=selection, values=values)
+
+    def _draw_capability_menu(self, name, selection, bottom=None, profile=None):
+        title = name.title() if profile is None else self.pd.material_preset[profile].name + ' settings'
+        entries = [('Back', self.ICON_Back, None, None)]
+        preset = self.pd.material_preset[profile] if profile is not None else None
+        for key, label, icon in self._menus[name]:
+            value, painter = None, None
             if name in ('temperature', 'tune', 'preheat'):
                 if key == 'TEMP':
                     value = preset.hotend_temp if preset else self.pd.thermalManager['temp_hotend'][0]['target']
@@ -802,12 +833,15 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 elif key == 'SPEED':
                     value = self.pd.feedrate_percentage
                 elif key == 'ZOFF':
-                    self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16, self.lcd.Color_Bg_Black,
-                                               2, 2, 202, self.MBASE(row), self.pd.BABY_Z_VAR * 100)
-                if value is not None:
-                    self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
-                                          self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                                          3, 216, self.MBASE(row), value)
+                    value = self.pd.BABY_Z_VAR * 100
+                    painter = lambda row, v=value: self.lcd.draw_signed_scaled_float_text(
+                        self.lcd.font8x16, self.lcd.Color_Bg_Black, 2, 2, 202, self.MBASE(row), v)
+                if value is not None and painter is None:
+                    painter = lambda row, v=value: self.lcd.draw_integer_text(
+                        True, True, 0, self.lcd.font8x16, self.lcd.Color_White,
+                        self.lcd.Color_Bg_Black, 3, 216, self.MBASE(row), v)
+            entries.append((label, icon, value, painter))
+        self._draw_list_menu(title, entries, selection.now, max(0, (bottom or self.MROWS) - self.MROWS))
 
     def _open_thermal_editor(self, key, row, profile=None):
         preset = self.pd.material_preset[profile] if profile is not None else None
@@ -1434,25 +1468,25 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self._display_dimmed = True
 
     def Draw_Display_Menu(self):
-        self.Clear_Main_Window()
-        self.Draw_Title('Display')
         selection = getattr(self, '_display_selection', 0)
-        self.Draw_Back_First(selection == 0)
         values = getattr(self, '_display_values', [100, 0, 10])
-        self.Draw_Menu_Line(1, 205, 'Brightness')
-        self.Draw_Menu_Line(2, 15, 'Idle dim')
-        self.Draw_Menu_Line(3, 205, 'Dim brightness')
-        for row, text in ((1, str(values[0]) + '%'),
-                          (2, str(values[1]) + ' min' if values[1] else 'Off'),
-                          (3, str(values[2]) + '%')):
+        entries = [('Back', self.ICON_Back, None, None)]
+        for row, label, icon, text in (
+                (1, 'Brightness', 205, str(values[0]) + '%'),
+                (2, 'Idle dim', 15, str(values[1]) + ' min' if values[1] else 'Off'),
+                (3, 'Dim brightness', 205, str(values[2]) + '%')):
             editing = getattr(self, '_display_edit', False) and selection == row
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 190, self.MBASE(row) - 3, 255, self.MBASE(row) + 18)
-            self.lcd.draw_text(True, False, self.lcd.font8x16, self.lcd.Color_White,
-                               self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
-                               196, self.MBASE(row) - 1, text)
-        if selection:
-            self.Draw_Menu_Cursor(selection)
-        self._draw_menu_text(getattr(self, '_display_save_message', ''), 16, 250)
+            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
+                True, False, self.lcd.font8x16, self.lcd.Color_White,
+                self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
+                196, self.MBASE(row) - 1, text)
+            entries.append((label, icon, (text, editing), painter))
+        self._draw_list_menu('Display', entries, selection)
+        message = getattr(self, '_display_save_message', '')
+        if message != getattr(self, '_display_drawn_message', None):
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 16, 250, 271, 266)
+            self._draw_menu_text(message, 16, 250)
+            self._display_drawn_message = message
 
     def HMI_Display_Menu(self):
         event = self.get_encoder_state()
@@ -2530,9 +2564,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._draw_print_time(self.pd.remain(), 176)
 
     def Draw_Print_File_Menu(self):
-        self.Clear_Title_Bar()
-        directory = getattr(self, '_file_directory', '')
-        self.Draw_Title(('Print: /' + directory)[-32:] if directory else 'Print file')
         self.Redraw_SD_List()
 
     def Draw_Prepare_Menu(self):
@@ -2705,67 +2736,44 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._draw_capability_menu('temperature', self.select_temp, self.index_temp)
 
     def Draw_Motion_Menu(self):
-        self.Clear_Main_Window()
-        self.Draw_Title('Motion (runtime)')
-        self.Draw_Back_First(self.select_motion.now == 0)
         settings = self.pd.motion_settings()
         if self.select_motion.now > len(settings):
             self.select_motion.reset()
-        for row, (field, _, label, _, value) in enumerate(settings, 1):
-            self.Draw_Menu_Line(row, self.ICON_Motion, label)
+        entries = [('Back', self.ICON_Back, None, None)]
+        for field, _, label, _, value in settings:
             editing = self.checkkey == self.MotionValue and self._motion_field == field
             if editing:
                 value = self._motion_target
-            if self.select_motion.now == row:
-                self.Draw_Menu_Cursor(row)
             text = '{:g}'.format(value)
             if len(text) > 9:
                 text = '{:.3g}'.format(value)
             if len(text) > 9:
                 text = '#' * 9
-            self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
-                                 168, self.MBASE(row), text.rjust(9))
+            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
+                False, True, self.lcd.font8x16, self.lcd.Color_White,
+                self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
+                168, self.MBASE(row), text.rjust(9))
+            entries.append((label, self.ICON_Motion, (text, editing), painter))
+        self._draw_list_menu('Motion (runtime)', entries, self.select_motion.now)
 
     def Draw_Move_Menu(self):
-        self.Clear_Main_Window()
-        self.Draw_Title('Move')
-        self.draw_move_en(self.MBASE(1))
-        self.say_x(36, self.MBASE(1))  # "Move X"
-        self.draw_move_en(self.MBASE(2))
-        self.say_y(36, self.MBASE(2))  # "Move Y"
-        self.draw_move_en(self.MBASE(3))
-        self.say_z(36, self.MBASE(3))  # "Move Z"
-        if self.pd.HAS_HOTEND:
-            self._draw_menu_text('Extruder', self.LBLX, self.MBASE(4))
-
-        live_row = 4 + int(self.pd.HAS_HOTEND)
-        self.Draw_Menu_Line(live_row, self.ICON_Axis, 'Live jog')
-        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
-                             self.lcd.Color_Bg_Black, 224, self.MBASE(live_row),
-                             '[X]' if getattr(self, '_live_jog', False) else '[ ]')
-
-        self.Draw_Back_First(self.select_axis.now == 0)
-        if (self.select_axis.now):
-            self.Draw_Menu_Cursor(self.select_axis.now)
-
-        # Match editor/jog command space, including offsets and transforms.
         position = self.pd.state.status['gcode_move']['position']
-        for index in range(3 + int(self.pd.HAS_HOTEND)):
+        entries = [('Back', self.ICON_Back, None, None)]
+        for index, label in enumerate(('Move X', 'Move Y', 'Move Z', 'Extruder')[:3 + int(self.pd.HAS_HOTEND)]):
             value = position[index] * self.MINUNITMULT
-            if index == 3:
-                self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16, self.lcd.Color_Bg_Black,
-                                           3, 1, 216, self.MBASE(4), value)
-            else:
-                self.lcd.draw_scaled_float_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White,
-                    self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(index + 1), value)
-
-        # Draw separators and icons
-        for i in range(3 + int(self.pd.HAS_HOTEND)):
-            self.Draw_Menu_Line(i + 1, self.ICON_MoveX + i)
-        if self.select_axis.now == live_row:
-            self.Draw_Menu_Cursor(live_row)
+            def painter(row, v=value, index=index):
+                if index == 3:
+                    self.lcd.draw_signed_scaled_float_text(self.lcd.font8x16,
+                        self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
+                else:
+                    self.lcd.draw_scaled_float_text(True, True, 0, self.lcd.font8x16,
+                        self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
+            entries.append((label, self.ICON_MoveX + index, value, painter))
+        live = '[X]' if getattr(self, '_live_jog', False) else '[ ]'
+        entries.append(('Live jog', self.ICON_Axis, live,
+            lambda row: self.lcd.draw_text(False, True, self.lcd.font8x16,
+                self.lcd.Color_White, self.lcd.Color_Bg_Black, 224, self.MBASE(row), live)))
+        self._draw_list_menu('Move', entries, self.select_axis.now)
 
     # --------------------------------------------------------------#
     # --------------------------------------------------------------#
@@ -2816,6 +2824,9 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH, 30)
 
     def Clear_Menu_Area(self):
+        self._list_render = None
+        self._display_drawn_message = None
+        self._file_drawn_message = None
         self._home_mmu_layout = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.STATUS_Y)
 
@@ -2825,6 +2836,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self.Clear_Menu_Area()
 
     def Clear_Popup_Area(self):
+        self._list_render = None
         self._status_layout = None
         self.Clear_Title_Bar()
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT)
@@ -2898,21 +2910,21 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
     def Redraw_SD_List(self):
         if not hasattr(self, '_file_paths'):
             self._refresh_file_snapshot()
-        self.Clear_Menu_Area()
-        entries = ('Back',) + getattr(self, '_file_paths', ())
-        start = max(0, self.index_file - self.MROWS)
-        for logical in range(start, min(len(entries), start + self.TROWS)):
-            row = logical - start
-            if logical == 0:
-                self.Draw_Menu_Line(row, self.ICON_Back, 'Back')
-            else:
-                self.Draw_SDItem(logical - 1, row)
-            if logical == self.select_file.now:
-                self.Draw_Menu_Cursor(row)
-        if len(entries) == 1 and (self.pd.file_error or not (self.pd._files_loading or self.pd._directory_loading)):
-            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
-                                 self.lcd.Color_Bg_Black, 20, self.MBASE(2),
-                                 'File list unavailable' if self.pd.file_error else 'No files')
+        entries = [('Back', self.ICON_Back, None, None)]
+        for index, path in enumerate(self._file_paths):
+            entries.append(('', False, path,
+                lambda row, index=index: self.Draw_SDItem(index, row)))
+        directory = getattr(self, '_file_directory', '')
+        self._draw_list_menu(('Print: /' + directory)[-32:] if directory else 'Print file',
+                             entries, self.select_file.now, max(0, self.index_file - self.MROWS))
+        message = ('File list unavailable' if self.pd.file_error else 'No files') if (
+            len(entries) == 1 and (self.pd.file_error or not (self.pd._files_loading or self.pd._directory_loading))) else ''
+        if message != getattr(self, '_file_drawn_message', None):
+            if getattr(self, '_file_drawn_message', None):
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 20, self.MBASE(2), 271, self.MBASE(2) + 16)
+            if message:
+                self._draw_menu_text(message, 20, self.MBASE(2))
+            self._file_drawn_message = message
 
     def CompletedHoming(self):
         self.pd.HMI_flag.home_flag = False
@@ -3292,6 +3304,12 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         return False
 
     def _dispatch_input(self):
+        editors = (self.Move_X, self.Move_Y, self.Move_Z, self.Extruder,
+                   self.PrintSpeed, self.ETemp, self.BedTemp, self.FanSpeed,
+                   self.Homeoffset, self.CaseLightBrightness)
+        cached = getattr(self, '_list_render', None)
+        if cached and self.checkkey in editors:
+            cached['values'].pop(cached['selection'], None)
         feedback = getattr(self, '_action_feedback', None)
         if feedback is not None:
             if feedback.phase == 'error' and self.get_encoder_state() == self.ENCODER_DIFF_ENTER:
