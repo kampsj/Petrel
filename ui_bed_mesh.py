@@ -9,8 +9,9 @@ MESH_PALETTE = ('313695', '4575b4', '74add1', 'abd9e9', 'e0f3f8', 'ffffbf',
                 'fee090', 'fdae61', 'f46d43', 'd73027', 'a50026')
 
 
-def mesh_color(z):
-    position = max(0.0, min(1.0, (z + .1) / .2)) * (len(MESH_PALETTE)-1)
+def mesh_color(z, minimum=-.1, maximum=.1):
+    normalized = .5 if maximum == minimum else (z-minimum)/(maximum-minimum)
+    position = max(0.0, min(1.0, normalized)) * (len(MESH_PALETTE)-1)
     index = min(int(position), len(MESH_PALETTE)-2)
     fraction = position-index
     low, high = MESH_PALETTE[index:index+2]
@@ -19,9 +20,9 @@ def mesh_color(z):
     return ((rgb[0] >> 3) << 11) | ((rgb[1] >> 2) << 5) | (rgb[2] >> 3)
 
 
-def point_style(z, columns):
+def point_style(z, columns, color_range=None):
     value = max(-20, min(20, round(z * 100)))
-    color = mesh_color(z)
+    color = mesh_color(z, *color_range) if color_range is not None else mesh_color(z)
     maximum = min(23, int(111 / (columns - 1)))
     minimum = min(5, maximum)
     radius = round(minimum + (value+20)/40 * (maximum-minimum))
@@ -99,7 +100,7 @@ class BedMeshMixin:
         if selected:
             self.lcd.draw_rectangle(0, self.lcd.Color_White, x-2, 303, x+101, 345)
 
-    def _draw_mesh_grid(self, columns, rows, points):
+    def _draw_mesh_grid(self, columns, rows, points, color_range=None):
         xs = [round(25 + x*222/(columns-1)) for x in range(columns)]
         ys = [round(277 - y*222/(rows-1)) for y in range(rows)]
         color = 0x03B5
@@ -110,7 +111,7 @@ class BedMeshMixin:
         stride = max(1, math.ceil((36 if columns < 9 else 24) / (222/(columns-1))))
         row_stride = max(1, math.ceil(12 / (222/(rows-1))))
         for (x, y), z in sorted(points.items()):
-            color, radius = point_style(z, max(columns, rows))
+            color, radius = point_style(z, max(columns, rows), color_range)
             for dy in range(-radius, radius+1):
                 dx = math.isqrt(radius*radius-dy*dy)
                 self.lcd.draw_rectangle(1, color, xs[x]-dx, ys[y]+dy, xs[x]+dx, ys[y]+dy)
@@ -159,7 +160,8 @@ class BedMeshMixin:
         elif session.mesh:
             mesh = session.mesh
             self._draw_mesh_grid(len(mesh.points[0]), len(mesh.points),
-                                 {(x,y):z for y,row in enumerate(mesh.points) for x,z in enumerate(row)})
+                                 {(x,y):z for y,row in enumerate(mesh.points) for x,z in enumerate(row)},
+                                 color_range=mesh.extrema)
             low, high = mesh.extrema
             self._mesh_text('minZ: {:.2f}  maxZ: {:.2f}'.format(low, high), 347, size=6)
             if session.phase == 'complete':

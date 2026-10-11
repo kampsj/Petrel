@@ -458,6 +458,35 @@ class MeshViewTests(unittest.TestCase):
         self.assertEqual(mesh_color(-.09), 0x3AB4)  # midpoint RGB 59,86,165
         self.assertNotEqual(mesh_color(-.005), mesh_color(0))
 
+    def test_final_and_saved_mesh_colors_use_own_extrema(self):
+        from ui_bed_mesh import mesh_color
+        for name, points in (('positive', [[.2, .3], [.3, .4]]),
+                             ('negative', [[-.4, -.3], [-.3, -.2]]),
+                             ('flat', [[.3, .3], [.3, .3]])):
+            for phase in ('complete', 'viewing'):
+                with self.subTest(name=name, phase=phase):
+                    view = self.make()
+                    session = view.pd.bed_mesh
+                    session.mesh = MeshData.parse(name, points, (0, 0), (100, 100))
+                    session.phase = phase
+                    draw = Mock(wraps=view._draw_mesh_grid)
+                    view._draw_mesh_grid = draw
+                    view.lcd.reset_mock()
+                    view.Draw_Bed_Mesh()
+                    low, high = session.mesh.extrema
+                    self.assertEqual(draw.call_args.kwargs['color_range'], (low, high))
+                    colors = {call.args[1] for call in view.lcd.draw_rectangle.call_args_list
+                              if call.args[0] == 1 and call.args[3] < 300}
+                    if low == high:
+                        self.assertIn(mesh_color(0), colors)
+                    else:
+                        self.assertIn(mesh_color(-.1), colors)
+                        self.assertIn(mesh_color(.1), colors)
+                        self.assertEqual(mesh_color(low, low, high), mesh_color(-.1))
+                        self.assertEqual(mesh_color(high, low, high), mesh_color(.1))
+        self.assertEqual(mesh_color(.3), mesh_color(.1))  # live scale stays fixed
+        self.assertEqual(mesh_color(.3, .2, .4), mesh_color(0))
+
     def test_control_navigation_uses_discovered_rows_while_scrolling(self):
         view=self.make();view.checkkey=view.Control
         view._menus['control'] += [('EXTRA','Extra',view.ICON_Info)]*3
