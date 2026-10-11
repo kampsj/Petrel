@@ -183,24 +183,46 @@ class ProbeRegressionTests(unittest.TestCase):
             future.set_result('ok')
             result.probe_wizard.update()
 
-    def test_ui_keeps_feedback_separate_and_scrolls_to_accept_abort(self):
+    def test_compact_ui_shows_four_steps_and_live_bounds_without_waiting_text(self):
         view = display(data())
         view.pd = self.started()
         source = data()
-        source['status']['manual_probe'] = {'is_active': True, 'z_position': 5.982}
+        source['status']['manual_probe'] = {'is_active': True, 'z_position': 2.804,
+            'z_position_lower': 2.779, 'z_position_upper': 2.829}
         view.pd.subscription.snapshot.return_value = source
         view.pd.update_variable()
         view.checkkey = view.ProbeWizardID
-        options = view._probe_options()
-        self.assertEqual([label for label, _ in options][-2:], ['Accept', 'Abort'])
-        view._probe_selection = len(options)-1
-        view.pd.probe_wizard.message = 'Command failed; check printer and calibration point'
+        view._probe_selection = 1
+        self.assertEqual([label for label, _ in view._probe_options()],
+                         ['--', '-', '+', '++', 'Cancel', 'Accept'])
         view.Draw_Probe_Wizard()
-        texts = [c.args for c in view.lcd.draw_text.call_args_list]
-        self.assertIn('Z: 5.982 mm', [a[-1] for a in texts])
-        self.assertIn('Abort', [a[-1] for a in texts])
-        self.assertTrue(all(0 <= a[5] and a[5]+len(a[-1])* (6 if a[6] in (60,74) else 8) <= 272 for a in texts))
-        self.assertTrue(all(a[6] < 90 or 100 <= a[6] <= 314 for a in texts))
+        labels = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
+        for text in ('2.779', '2.804', '2.829', '--', '-', '+', '++', 'Cancel', 'Accept'):
+            self.assertIn(text, labels)
+        view.Clear_Main_Window = Mock()
+        view.Draw_Title = Mock()
         view.lcd.reset_mock()
+        future = view.pd.probe_wizard.testz('-')
         view.Draw_Probe_Wizard()
+        view.Clear_Main_Window.assert_not_called()
         view.lcd.update.assert_not_called()
+        view.get_encoder_state = Mock(return_value=view.ENCODER_DIFF_ENTER)
+        before = view.pd.subscription.request.call_count
+        view.HMI_Probe_Wizard()
+        self.assertEqual(view.pd.subscription.request.call_count, before)
+        future.set_result('ok')
+        source['status']['manual_probe']['z_position'] = 2.79
+        view.pd.update_variable()
+        view.pd.probe_wizard.update()
+        view.Draw_Probe_Wizard()
+        view.Clear_Main_Window.assert_not_called()
+        view.Draw_Title.assert_not_called()
+        labels = [c.args[-1] for c in view.lcd.draw_text.call_args_list]
+        self.assertIn('2.790', labels)
+        self.assertFalse(any('Waiting' in text or 'TESTZ' in text for text in labels))
+        view.lcd.reset_mock()
+        view.get_encoder_state.return_value = view.ENCODER_DIFF_CW
+        view.HMI_Probe_Wizard()
+        self.assertEqual(view._probe_selection, 2)
+        view.Clear_Main_Window.assert_not_called()
+        self.assertEqual([c.args[-1] for c in view.lcd.draw_text.call_args_list], ['-', '+'])

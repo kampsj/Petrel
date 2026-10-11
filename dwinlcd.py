@@ -1393,6 +1393,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             if self.select_control.now == self.CONTROL_CASE_PROBE:
                 self.checkkey = self.ProbeWizardID
                 self._drawn_probe_wizard = None
+                self._probe_ui_error = None
                 self._probe_selection = 0
                 self.Draw_Probe_Wizard()
             if self.select_control.now == self.CONTROL_CASE_RECOVERY:
@@ -2128,57 +2129,84 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
 
     def _probe_options(self):
         wizard = self.pd.probe_wizard
-        if wizard.pending:
-            return ()
         if wizard.phase == 'active':
-            moves = tuple(('TESTZ ' + step, lambda step=step: wizard.testz(step))
-                          for step in ('--', '-', '+', '++'))
-            moves += tuple(('Z {:+g} mm'.format(step), lambda step=step: wizard.testz(step))
-                           for step in (-.005, .005, -.01, .01, -.05, .05, -.1, .1, -1, 1))
-            return moves + (('Accept', wizard.accept), ('Abort', wizard.abort))
+            return tuple((step, lambda step=step: wizard.testz(step))
+                         for step in ('--', '-', '+', '++')) + (('Cancel', wizard.abort), ('Accept', wizard.accept))
         if wizard.phase == 'accepted':
-            return (('Save: restart Klipper', wizard.save), ('Leave unsaved', self._leave_probe))
+            return (('Save', wizard.save), ('Continue', self._leave_probe))
         if wizard.phase in ('error', 'interrupted', 'saved'):
-            return (('Back; check printer', self._leave_probe),)
-        return (('Start at current XY', wizard.start), ('Back', self._leave_probe))
+            return (('Back', self._leave_probe),)
+        return (('Start', wizard.start), ('Back', self._leave_probe))
 
     def _leave_probe(self):
         self._drawn_probe_wizard = None
         self.checkkey = self.Control
         self.Draw_Control_Menu()
 
+    def _probe_button(self, label, box, selected):
+        x, y, width, height = box
+        self.lcd.draw_rectangle(1, 0x03B5, x, y, x+width, y+height)
+        self.lcd.draw_rectangle(0, self.lcd.Color_White if selected else 0x03B5,
+                                x-2, y-2, x+width+2, y+height+2)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                           0x03B5, x+(width-len(label)*8)//2, y+(height-16)//2, label)
+
     def Draw_Probe_Wizard(self):
         wizard = self.pd.probe_wizard
         manual = self.pd.state.status.get('manual_probe', {})
-        signature = (wizard.phase, bool(wizard.pending), wizard.message,
-                     repr(manual), getattr(self, '_probe_selection', 0))
-        if signature == getattr(self, '_drawn_probe_wizard', None):
-            return
-        self.Clear_Main_Window()
-        self.Draw_Title('Probe calibration')
-        z = manual.get('z_position')
-        position = 'Z: {:.3f} mm'.format(z) if isinstance(z, (int, float)) else 'Z: ---'
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
-                           self.lcd.Color_Bg_Black, 12, 38, position)
-        # Keep feedback above the controls, wrapping within the panel width.
-        import textwrap
-        message = T5UIC1Display._panel_text(wizard.message)
-        for line, text in enumerate(textwrap.wrap(message, 40)[:2]):
-            self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
-                               self.lcd.Color_Bg_Black, 12, 60+line*14, text)
         options = self._probe_options()
-        selected = max(0, min(getattr(self, '_probe_selection', 0), max(0, len(options)-1)))
+        selected = max(0, min(getattr(self, '_probe_selection', 0), len(options)-1))
         self._probe_selection = selected
-        first = max(0, selected-5)
-        for row, index in enumerate(range(first, min(len(options), first+6))):
-            y = 100+row*41
-            chosen = index == selected
-            background = self.lcd.Select_Color if chosen else self.lcd.Color_Bg_Black
-            self.lcd.draw_rectangle(1, background, 8, y, 263, y+35)
-            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
-                               background, 16, y+9, options[index][0])
-        self._drawn_probe_wizard = (wizard.phase, bool(wizard.pending), wizard.message,
-                                    repr(manual), selected)
+        layout = ('active' if wizard.phase == 'active' else 'accepted' if wizard.phase == 'accepted'
+                  else 'error' if wizard.phase in ('error', 'interrupted')
+                  else 'saved' if wizard.phase == 'saved' else 'start')
+        values = tuple(manual.get(key) for key in ('z_position_lower', 'z_position', 'z_position_upper'))
+        error = wizard.message if layout == 'error' or getattr(self, '_probe_ui_error', None) else None
+        if getattr(self, '_probe_ui_error', None): error = self._probe_ui_error
+        signature = (layout, values, selected, error)
+        previous = getattr(self, '_drawn_probe_wizard', None)
+        if signature == previous:
+            return
+        full = previous is None or previous[0] != layout
+        if full:
+            self.Clear_Main_Window()
+            self.Draw_Title('Probe calibration')
+        if layout == 'active':
+            if full or previous[1] != values:
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 72, 263, 148)
+                def value_text(value):
+                    return '{:.3f}'.format(value) if isinstance(value, (int, float)) else '---'
+                for value, x, width, font, y in (
+                        (values[0], 8, 68, self.lcd.font8x16, 96),
+                        (values[1], 84, 104, self.lcd.font14x28, 86),
+                        (values[2], 196, 68, self.lcd.font8x16, 96)):
+                    label = value_text(value)
+                    char_width = 14 if x == 84 else 8
+                    self.lcd.draw_text(False, False, font, self.lcd.Color_White,
+                                       self.lcd.Color_Bg_Black, x+max(0,(width-len(label)*char_width)//2), y, label)
+                self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
+                                   self.lcd.Color_Bg_Black, 130, 123, 'mm')
+            boxes = ((12,174,52,44), (77,174,52,44), (142,174,52,44), (207,174,52,44),
+                     (26,294,99,40), (146,294,99,40))
+        else:
+            boxes = ((26,294,99,40), (146,294,99,40))
+            if full:
+                label = {'start': 'Ready to calibrate', 'accepted': 'Offset accepted',
+                         'saved': 'Saved', 'error': 'Calibration interrupted'}[layout]
+                self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                                   self.lcd.Color_Bg_Black, (272-len(label)*8)//2, 110, label)
+        for index, (label, _) in enumerate(options):
+            if full or selected != previous[2] and index in (selected, previous[2]):
+                self._probe_button(label, boxes[index], index == selected)
+        if error:
+            import textwrap
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 235, 263, 280)
+            for line, text in enumerate(textwrap.wrap(T5UIC1Display._panel_text(error), 40)[:3]):
+                self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
+                                   self.lcd.Color_Bg_Black, 12, 238+line*14, text)
+        elif previous and previous[3]:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 235, 263, 280)
+        self._drawn_probe_wizard = signature
         self.lcd.update()
 
     def HMI_Probe_Wizard(self):
@@ -2191,11 +2219,12 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self._probe_selection = min(len(options) - 1, self._probe_selection + 1)
         elif event == self.ENCODER_DIFF_CCW:
             self._probe_selection = max(0, self._probe_selection - 1)
-        elif event == self.ENCODER_DIFF_ENTER and options:
+        elif event == self.ENCODER_DIFF_ENTER and options and not wizard.pending:
             try:
+                self._probe_ui_error = None
                 options[self._probe_selection][1]()
             except ValueError as error:
-                wizard.message = str(error)
+                self._probe_ui_error = str(error)
         if self.checkkey == self.ProbeWizardID:
             self.Draw_Probe_Wizard()
 

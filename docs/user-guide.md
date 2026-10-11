@@ -108,9 +108,9 @@ Open **Home → Leveling**. With a configured probe, **Bed Mesh Calibrate** home
 
 1. Home XYZ and position the nozzle at an appropriate calibration XY point using **Prepare → Move**.
 2. Open **Control → Probe calibration → Start at current XY**.
-3. Watch the Z height and select signed **Z steps** of 0.005, 0.01, 0.05, 0.1 or 1 mm with your normal paper-test procedure. Turn the knob to scroll to **Accept/Abort**. The `-- / - / + / ++` options use Klipper's search steps.
-4. Select **Accept** when satisfied, or **Abort** to cancel the session.
-5. After Accept, choose **Save: restart Klipper** to persist the offset, or **Leave unsaved**.
+3. Watch the live Z height between the lower and upper tested positions. Turn the knob to select one of the four **-- / - / + / ++** buttons and press it to move using Klipper's search steps.
+4. Select **Accept** when satisfied, or **Cancel** to cancel the session.
+5. After Accept, choose **Save** to persist the offset and restart Klipper, or **Continue** to leave it unsaved.
 
 Printing must be stopped. Pending configuration changes do not block calibration. Saving is allowed only when the pending change is the accepted probe offset. Saving restarts Klipper; this is separate from the temporary runtime Z offset.
 
