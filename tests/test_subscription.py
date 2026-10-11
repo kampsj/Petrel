@@ -57,6 +57,19 @@ class FakeSocket:
 
 
 class SubscriptionTests(unittest.TestCase):
+    def test_saved_mmu_residue_variables_are_subscribed_when_available(self):
+        client = self.subscription()
+        connection = FakeSocket()
+        connection.snapshot['save_variables'] = {'variables': {
+            'mmu_state_filament_remaining': 8, 'mmu_state_filament_remaining_color': 'ff0000'}}
+        client._socket = connection
+        client._bootstrap()
+        subscription = next(r for r in connection.sent if r['method'] == 'printer.objects.subscribe')
+        self.assertIn('save_variables', subscription['params']['objects'])
+        client._notification({'method': 'notify_status_update', 'params': [
+            {'save_variables': {'variables': {'mmu_state_filament_remaining_color': '0000ff'}}}, 11]})
+        self.assertEqual(client.snapshot()['status']['save_variables']['variables']['mmu_state_filament_remaining_color'], '0000ff')
+
     def test_immediate_dispatch_rejects_invalid_guard_and_changed_connection(self):
         client = self.subscription()
         connection = FakeSocket()

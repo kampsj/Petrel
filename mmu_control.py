@@ -27,6 +27,10 @@ def text(value, default='Unknown'):
     return value if isinstance(value, str) and value else default
 
 
+def number(value, default=None):
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else default
+
+
 @dataclass(frozen=True)
 class MMUUnit:
     name: str
@@ -143,6 +147,14 @@ class MMUState:
     grip: bool | None
     motors: tuple
     leds: MMULeds | None
+    filament_pos: int | None = None
+    filament_position: float | None = None
+    filament_direction: int | None = None
+    filament_remaining: float = 0
+    filament_remaining_color: str = ''
+    gate_homing_endstop: str = ''
+    extruder_homing_endstop: str = ''
+    extruder_force_homing: bool = False
 
     @classmethod
     def from_snapshot(cls, snapshot):
@@ -189,6 +201,13 @@ class MMUState:
         if grip is None:
             grip = {'Down': True, 'Up': False}.get(text(selector.get('servo')))
         units = units_from_snapshot(snapshot, count)
+        saved = snapshot.get('status', {}).get('save_variables', {})
+        variables = saved.get('variables', {}) if isinstance(saved, Mapping) else {}
+        variables = variables if isinstance(variables, Mapping) else {}
+        config = snapshot.get('settings', {}).get('mmu', {})
+        config = config if isinstance(config, Mapping) else {}
+        remaining = max(0, number(raw.get('filament_remaining', variables.get('mmu_state_filament_remaining')), 0))
+        remaining_color = text(raw.get('filament_remaining_color', variables.get('mmu_state_filament_remaining_color')), '')
         return cls(snapshot.get('epoch', 0), count, index(raw.get('gate')),
                    index(raw.get('tool')), boolean(raw.get('enabled')),
                    text(raw.get('action')), status, filament, locked,
@@ -204,7 +223,13 @@ class MMUState:
                    values('endless_spool_groups', lambda v: integer(v) if integer(v) is not None and v >= 0 else None),
                    values('gate_color', lambda v: text(v, '--')), units,
                    integer(raw.get('unit')), boolean(raw.get('is_homed')), grip, motor_states(snapshot, units),
-                   led_state(snapshot, units, integer(raw.get('unit'))))
+                   led_state(snapshot, units, integer(raw.get('unit'))),
+                   pos if pos is not None and -1 <= pos <= 10 else None,
+                   number(raw.get('filament_position')), integer(raw.get('filament_direction')),
+                   remaining, remaining_color,
+                   text(config.get('gate_homing_endstop'), ''),
+                   text(config.get('extruder_homing_endstop'), ''),
+                   switch(config.get('extruder_force_homing')) is True)
 
     @property
     def busy(self):
@@ -224,6 +249,11 @@ class MMUState:
 
     def tools_for_gate(self, gate):
         return tuple(i for i, mapped in enumerate(self.ttg_map) if mapped == gate)
+
+    def sensor(self, name):
+        sensors = dict(self.sensors)
+        aliases = {'mmu_gate': 'mmu_shared_exit', 'mmu_pre_gate': 'mmu_entry', 'mmu_gear': 'mmu_exit'}
+        return sensors.get(name, sensors.get(aliases.get(name)))
 
 
 @dataclass(frozen=True)
@@ -299,8 +329,9 @@ class MMUSession:
             target = ''
         if action in ('select', 'load', 'preload', 'check', 'bypass', 'home_selector', 'check_all', 'grip', 'release', 'enable', 'motors_off', 'unit_select') and m.filament != 'unloaded':
             raise ValueError('Unload filament first')
-        if action in ('unload', 'unload_extruder') and m.filament != 'loaded':
-            raise ValueError('Loaded filament required')
+        if action in ('unload', 'unload_extruder') and not (
+                m.filament == 'loaded' or m.filament_pos is not None and 1 <= m.filament_pos <= 9):
+            raise ValueError('Known filament position required')
         if action == 'enable':
             if not isinstance(enabled, bool) or m.enabled == enabled:
                 raise ValueError('Choose a different known MMU enable state')
@@ -353,7 +384,9 @@ class MMUSession:
             tools = m.tools_for_gate(gate)
             if not tools or m.gate_status[gate] not in (1, 2) or m.filament == 'unknown' or m.gate == -2:
                 raise ValueError('Mapped available gate required')
-            tool = m.tool if m.tool in tools else tools[0]
+            if tool is not None and tool not in tools:
+                raise ValueError('Tool mapping changed')
+            tool = tool if tool is not None else m.tool if m.tool in tools else tools[0]
             script, label = 'MMU_CHANGE_TOOL TOOL=%d STANDALONE=1' % tool, 'Load/change T%d / %s' % (tool, target)
         elif action == 'unload':
             if gate != m.gate:
