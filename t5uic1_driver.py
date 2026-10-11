@@ -532,8 +532,8 @@ class T5UIC1Display:
 
     def draw_text(self, width_adjust, show_background, font, color,
                   background, x, y, text):
-        self._u16(x, "x")
-        self._u16(y, "y")
+        x = self._u16(x, "x")
+        y = self._u16(y, "y")
         if not isinstance(font, int) or not 0 <= font <= 9:
             raise ValueError("font must be 0..9")
         font_width = self.FONT_SIZES[font][0]
