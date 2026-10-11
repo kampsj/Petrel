@@ -198,3 +198,21 @@ class BootSplashTests(unittest.TestCase):
         v._poll_panel_power()
         self.assertIs(v.lcd, lcd)
         self.assertTrue(v._uart_online)
+
+
+class BootFilePreparationTests(unittest.TestCase):
+    view = BootSplashTests.view
+    def test_boot_prepares_files_before_main_and_does_not_wait_forever(self):
+        v = self.view()
+        v.pd.prefetch_files = Mock()
+        v.pd._files_loading = True
+        v.pd._directory_loading = False
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._poll_boot()
+        self.assertTrue(v._boot_active)
+        v.HMI_StartFrame.assert_not_called()
+        v.pd.prefetch_files.assert_called_once()
+        with patch.object(ui.time, 'monotonic', return_value=16):
+            v._poll_boot()
+        self.assertFalse(v._boot_active)
+        v.HMI_StartFrame.assert_called_once()

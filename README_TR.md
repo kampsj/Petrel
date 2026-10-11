@@ -122,6 +122,8 @@ Durum alanı mevcut ısıtıcı sıcaklıklarını/hedeflerini, fanı, baskı h�
 
 <p align="center"><img src="docs/assets/screens/print-file.png" width="260" alt="Dosya tarayıcısı"></p>
 
+Dosya listesi ve kök klasör açılış sırasında asenkron hazırlanır; dosyalar değiştiğinde arka planda yenilenir. Print menüsü bu önbelleği kullanır; önbellekte olmayan alt klasörler seçildiğinde yüklenir.
+
 Tarayıcı geçerli klasörü **klasörler önce** olacak şekilde gösterir; boş klasörler dahil edilir ve yalnızca `.gcode` dosyaları listelenir (büyük/küçük harf duyarsız). `.thumbs` gibi noktayla başlayan dosya/klasörler gizlenir. Klasörü seçerek içine girin; **Back** üst klasöre, kök dizinde ise ana ekrana döner. Satırlarda yalnızca dosya adı görünse de baskı tam göreli yol üzerinden başlatılır.
 
 Sıralama, Mainsail’in kayıtlı dosya adı, değiştirilme zamanı veya boyut kriterini ve artan/azalan yönünü izler; Moonraker’dan beş saniyede bir okunur. Her klasör seviyesinde aynı tercih uygulanır. Eksik, geçersiz veya desteklenmeyen tercihlerde **en yeni değiştirilen önce** sıralaması kullanılır. LCD bu tercihleri yalnızca okur. Mümkün olduğunda seçim dosya yolu üzerinden korunur; liste değişikliği sessizce başka bir dosya başlatamaz.

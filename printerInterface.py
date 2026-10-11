@@ -608,6 +608,14 @@ class PrinterData:
                 self._file_retry_at = time.monotonic() + 5
         return tuple(item['path'] for item in self.files)
 
+    def prefetch_files(self):
+        """Warm the root browser cache using the existing nonblocking read worker."""
+        if not self.state.ready:
+            return
+        key = (self.state.epoch, self.state.file_revision, '')
+        if not self._files_loaded or key not in self._directory_cache:
+            self.GetDirectory('')
+
     def GetDirectory(self, directory=''):
         self._directory_loading = False
         self.GetFiles()

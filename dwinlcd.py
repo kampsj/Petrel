@@ -306,6 +306,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._next_uart_probe = 0
         self._uart_probe_failures = 0
         self._boot_active = True
+        self._boot_files_started = (None, 0)
         self._boot_progress = -1
         self.encoder = self.button = self.lcd = self.pd = None
         self._settings = (USARTx, encoder_pins, button_pin, octoPrint_API_Key,
@@ -381,6 +382,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         """A relay cycle starts a new UI session; never replay old input/actions."""
         self.checkkey = self.MainMenu
         self._boot_active = True
+        self._boot_files_started = (None, 0)
         self._boot_progress = -1
         for name in self.SELECTIONS:
             selection = getattr(self, name, None)
@@ -547,6 +549,15 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if (snapshot['state'] != 'ready' or self.pd.connection_error
                 or not self.pd.state.ready or self.pd.state.epoch != snapshot['epoch']):
             self._draw_boot_progress(80, message='Waiting for printer data')
+            return
+        self.pd.prefetch_files()
+        epoch, started = getattr(self, '_boot_files_started', (None, 0))
+        if epoch != snapshot['epoch']:
+            started = time.monotonic()
+            self._boot_files_started = (snapshot['epoch'], started)
+        if ((self.pd._files_loading is True or self.pd._directory_loading is True)
+                and time.monotonic() - started < 5.0):
+            self._draw_boot_progress(90, message='Preparing file list')
             return
         self._draw_boot_progress(90)
         self._configure_menus()
@@ -2941,6 +2952,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._poll_case_light_state()
         # variable update
         update = self.pd.update_variable()
+        if not self.pd.connection_error and self.checkkey not in (self.SelectFile, self.FilePreview):
+            self.pd.prefetch_files()
         if not self.pd.connection_error and self._configure_menus():
             for name in self.SELECTIONS:
                 getattr(self, name).reset()

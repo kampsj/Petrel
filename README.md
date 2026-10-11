@@ -122,6 +122,8 @@ The dashboard shows available heater temperatures/targets, fan, print-speed fact
 
 <p align="center"><img src="docs/assets/screens/print-file.png" width="260" alt="File browser"></p>
 
+The file list and root folder are prepared asynchronously during startup and refreshed in the background after file changes. Opening Print reuses this cache; uncached subfolders load when selected.
+
 The browser shows the current folder with **folders first**, including empty folders, and only `.gcode` files (case-insensitive). Dot-prefixed files/folders such as `.thumbs` are hidden. Select a folder to enter it; **Back** returns to its parent, or Home at the root. Printing uses the full relative path even though rows show only basenames.
 
 Sorting follows Mainsail’s saved filename, modified-time or size criterion and ascending/descending direction, read from Moonraker every five seconds. The same preference applies at every folder level. Missing, invalid or unsupported preferences fall back to **newest modified first**. The LCD only reads these preferences. Selection is preserved by path where possible; a changed list cannot silently start a different file.

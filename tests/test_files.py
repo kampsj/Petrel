@@ -357,3 +357,37 @@ class DirectoryBrowserTests(unittest.TestCase):
         view.pd.getREST=Mock(return_value={'result':{'dirs':[{'dirname':'../secret'}],'files':[]}})
         self.assertEqual(view.pd.GetDirectory(''),())
         self.assertIsNotNone(view.pd.file_error)
+
+
+class FilePrefetchTests(unittest.TestCase):
+    def test_prefetch_populates_root_and_reuses_cache_then_refreshes_revision(self):
+        result = printer(snapshot())
+        def response(url):
+            if url == '/server/files/list':
+                return {'result': [{'path': 'part.gcode'}]}
+            if url.startswith('/server/files/directory?'):
+                return {'result': {'dirs': [{'dirname': 'empty'}],
+                                   'files': [{'filename': 'part.gcode'}]}}
+            return {'result': {}}
+        result.getREST = Mock(side_effect=response)
+        result.prefetch_files()
+        calls = result.getREST.call_count
+        self.assertEqual(result.GetDirectory(''), ('empty/', 'part.gcode'))
+        result.prefetch_files()
+        self.assertEqual(result.getREST.call_count, calls)
+        changed = snapshot(); changed['file_revision'] = 1
+        result.subscription.snapshot.return_value = changed
+        result.update_variable()
+        before = result.getREST.call_count
+        result.prefetch_files()
+        self.assertGreater(result.getREST.call_count, before)
+        self.assertIn((1, 1, ''), result._directory_cache)
+
+    def test_prefetch_does_not_fetch_when_printer_is_offline(self):
+        result = printer(snapshot())
+        from printer_state import PrinterState
+        data = snapshot(); data['state'] = 'disconnected'
+        result.state = PrinterState.from_snapshot(data)
+        result.getREST = Mock()
+        result.prefetch_files()
+        result.getREST.assert_not_called()
