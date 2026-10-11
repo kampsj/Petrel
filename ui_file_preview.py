@@ -64,8 +64,9 @@ class FilePreviewMixin:
         self._preview_shown = False
         self._preview_message = None
         if self._thumbnail_cache.address(self._preview_cache_key) is None:
-            self._preview_message = self._preview_error or 'Loading...'
-            self._draw_menu_text(self._preview_message[:16], 8, 120)
+            self._preview_message = self._preview_error
+            if self._preview_message:
+                self._draw_menu_text(self._preview_message[:16], 8, 120)
         self._preview_details_drawn = None
         self._draw_preview_metadata(force=True)
         self._preview_buttons()
@@ -168,7 +169,6 @@ class FilePreviewMixin:
             if not getattr(self, '_preview_validation', False):
                 self._preview_validation = True
                 self.pd.GetFiles(refresh=True)
-                self._show_message('Checking file...')
                 self._poll_preview_validation()
         self.lcd.update()
 
@@ -189,7 +189,6 @@ class FilePreviewMixin:
                 raise ValueError('File changed; select again')
             future = self.pd.openAndPrintFile(self._preview_path)
             self._pending_start = (future, self.pd.state.epoch, time.monotonic())
-            self._show_message('Starting print...')
             if hasattr(self, '_loop'):
                 self._loop.set_interval(2.0)
         except ValueError as error:

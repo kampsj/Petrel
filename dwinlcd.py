@@ -1552,7 +1552,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 if (self.pd.HMI_flag.pause_flag):
                     self._action("Resume", self.pd.resume_job,
                              lambda: self.pd.status == "printing",
-                             confirmation_timeout=60)
+                             confirmation_timeout=60, silent=True)
                 else:
                     self.pd.HMI_flag.select_flag = True
                     self.checkkey = self.Print_window
@@ -1577,13 +1577,14 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 if (self.pd.HMI_flag.select_flag):
                     self.pd.HMI_flag.pause_action = True
                     self._action("Pause", self.pd.pause_job, self.pd.printingIsPaused,
-                                 confirmation_timeout=60)
+                                 confirmation_timeout=60, silent=True)
                 self.Goto_PrintProcess()
             elif (self.select_print.now == 2):  # stop window
                 if (self.pd.HMI_flag.select_flag):
                     self._action("Cancel", self.pd.cancel_job,
                                  lambda: self.pd.status == "cancelled",
-                                 confirmation_timeout=60)
+                                 confirmation_timeout=60, silent=True,
+                                 on_accept=self._restore_action_screen)
                 else:
                     self.Goto_PrintProcess()  # cancel stop
         self.lcd.update()
@@ -2785,10 +2786,10 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.Draw_SDItem(logical - 1, row)
             if logical == self.select_file.now:
                 self.Draw_Menu_Cursor(row)
-        if len(entries) == 1:
+        if len(entries) == 1 and (self.pd.file_error or not (self.pd._files_loading or self.pd._directory_loading)):
             self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
                                  self.lcd.Color_Bg_Black, 20, self.MBASE(2),
-                                 'File list unavailable' if self.pd.file_error else 'Loading files...' if self.pd._files_loading or self.pd._directory_loading else 'No files')
+                                 'File list unavailable' if self.pd.file_error else 'No files')
 
     def CompletedHoming(self):
         self.pd.HMI_flag.home_flag = False
