@@ -527,9 +527,11 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         message = message or {40: 'Preparing display assets', 70: 'Waiting for printer...',
                               80: 'Reading printer status', 90: 'Preparing menus',
                               100: 'Starting interface'}.get(value, 'Starting display')
+        message = message[:27]
         value = max(getattr(self, '_boot_progress', -1), min(100, value))
         if (value == getattr(self, '_boot_progress', -1)
-                and message == getattr(self, '_boot_message', None)):
+                and message == getattr(self, '_boot_message', None)
+                and lcd is getattr(self, '_boot_animation_lcd', None)):
             return
         self._boot_progress = value
         self._boot_message = message
@@ -539,8 +541,12 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if value:
             lcd.draw_rectangle(1, 0x07E0, 18, 292, 18 + 235 * value // 100, 307)
         lcd.draw_rectangle(1, 0x0000, 16, 320, 255, 339)
+        x = (272 - (len(message)*8 + 24)) // 2
         lcd.draw_text(False, False, lcd.font8x16, 0xFFFF, 0x0000,
-                      (272 - len(message) * 8) // 2, 322, message)
+                      x+24, 322, message)
+        # The panel cycles stock frames; the host sends no per-frame updates.
+        lcd.configure_animation(0, value < 100, 9, 250, 253, x, 320, 10)
+        self._boot_animation_lcd = lcd
         lcd.update()
 
     def _poll_boot(self):

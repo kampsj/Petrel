@@ -29,7 +29,7 @@ class BootSplashTests(unittest.TestCase):
         v._show_message.assert_not_called()
         frames = v.lcd.serial.frames
         self.assertTrue(frames)
-        self.assertTrue(all(f[1] in (0x00, 0x05, 0x11, 0x3D) for f in frames))
+        self.assertTrue(all(f[1] in (0x00, 0x05, 0x11, 0x28, 0x3D) for f in frames))
         for frame in frames:
             if frame[1] == 0x05:
                 x0,y0,x1,y1 = [int.from_bytes(frame[i:i+2], 'big') for i in (5,7,9,11)]
@@ -40,6 +40,20 @@ class BootSplashTests(unittest.TestCase):
             elif frame[1] == 0x11:
                 self.assertEqual(int.from_bytes(frame[9:11], 'big'), 322)
                 self.assertIn(b'Waiting for printer...', frame)
+
+    def test_boot_animation_uses_stock_frames_and_stops_before_main_screen(self):
+        v = self.view()
+        v._draw_boot_progress(70)
+        frame = next(f for f in v.lcd.serial.frames if f[1] == 0x28)
+        self.assertEqual(frame[6:11], bytes((0xC0, 9, 250, 253, 10)))
+        self.assertEqual(int.from_bytes(frame[4:6], 'big'), 320)
+        text = next(f for f in v.lcd.serial.frames if f[1] == 0x11)
+        self.assertEqual(int.from_bytes(text[7:9], 'big'), int.from_bytes(frame[2:4], 'big')+24)
+        v.lcd.serial.frames.clear()
+        v._poll_boot()
+        animation = [f for f in v.lcd.serial.frames if f[1] == 0x28]
+        self.assertFalse(animation[-1][6] & 0x80)
+        self.assertFalse(v._boot_active)
 
     def test_unchanged_wait_does_not_repaint_or_fake_completion(self):
         v = self.view()
