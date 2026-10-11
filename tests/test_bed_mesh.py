@@ -598,7 +598,7 @@ class MeshLifecycleTests(unittest.TestCase):
         view=self.make();view._start_bed_mesh(view.Prepare)
         view._closed=False;view._settings=('/dev/fake',);view._uart_epoch=0
         view._uart_online=False;view._next_uart_retry=0
-        view.HMI_Init=Mock();view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh=Mock()
+        view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh=Mock()
         with patch.object(ui,'T5UIC1Display',return_value=Mock()):
             self.assertTrue(view._ensure_uart())
         view.Draw_Bed_Mesh.assert_called_once()
@@ -627,9 +627,6 @@ class MeshPacketTests(unittest.TestCase):
         from test_t5uic1_driver import driver as make_driver
         view=MeshViewTests.make(self)
         driver=make_driver();driver._needs_update=False
-        driver._atlas_synced=True
-        driver._atlas_virtual_areas_loaded=True
-        driver._virtual_area_pictures={0:5}
         view.lcd=driver
         view.pd.bed_mesh.status=payload()['status']['bed_mesh']
         view.pd.bed_mesh.mesh=MeshData.current(view.pd.bed_mesh.status)
@@ -688,7 +685,7 @@ class MeshMenuTests(unittest.TestCase):
         view=self.make();view.HMI_Leveling();view._mesh_submenu=True;view._mesh_menu_selection=0;view._mesh_menu_selection=2
         view._closed=False;view._settings=('/dev/fake',);view._uart_epoch=0
         view._uart_online=False;view._next_uart_retry=0
-        view.HMI_Init=Mock();view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh_Menu=Mock()
+        view.HMI_StartFrame=Mock();view.Draw_Bed_Mesh_Menu=Mock()
         with patch.object(ui,'T5UIC1Display',return_value=Mock()):
             self.assertTrue(view._ensure_uart())
         view.Draw_Bed_Mesh_Menu.assert_called_once()

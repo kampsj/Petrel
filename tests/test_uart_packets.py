@@ -45,9 +45,9 @@ class PacketTests(unittest.TestCase):
 
     def test_icon_and_copy_flags_follow_proui_transparency(self):
         result = driver()
-        result.show_icon(9, 1, 10, 20)
+        result.show_icon(7, 1, 10, 20)
         self.assertEqual(result.serial.frames[-1], bytes.fromhex(
-            'AA 23 00 0A 00 14 89 01 CC 33 C3 3C'))
+            'AA 23 00 0A 00 14 87 01 CC 33 C3 3C'))
         result.copy_cache(1, 0, 0, 10, 20, 30, 40)
         self.assertEqual(result.serial.frames[-1], bytes.fromhex(
             'AA 27 21 00 00 00 00 00 0A 00 14 00 1E 00 28 CC 33 C3 3C'))
@@ -56,10 +56,10 @@ class PacketTests(unittest.TestCase):
         port = Port([b'\xAA\x00OK' + Driver.TAIL])
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
                 patch.object(Driver.__init__.__globals__['time'], 'sleep') as sleep, \
-                patch.object(Driver, 'sync_atlases', return_value=False) as sync:
+                patch('icon_library.sync_library') as sync:
             result = Driver('/dev/fake')
         self.assertEqual(sleep.call_args_list[0].args, (0.750,))
-        sync.assert_called_once_with(allow_missing=True, automatic=True)
+        sync.assert_called_once_with(result)
         self.assertEqual(port.frames, [bytes.fromhex(frame) for frame in (
             'AA 00 CC 33 C3 3C',
             'AA 34 5A A5 01 CC 33 C3 3C',

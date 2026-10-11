@@ -8,10 +8,6 @@ from test_t5uic1_driver import driver as raw_driver
 
 def driver():
     lcd = raw_driver()
-    lcd._atlas_specs, lcd._atlas_icons = lcd._build_atlas_config()
-    lcd._atlas_synced = True
-    lcd._atlas_virtual_areas_loaded = True
-    lcd._virtual_area_pictures = {0: 5, 1: 6}
     return lcd
 
 
@@ -63,7 +59,7 @@ class PopupRenderingTests(unittest.TestCase):
         view.Popup_Window_Home()
         view.lcd.update()
         image, _ = model.snapshot()
-        assets.icon.assert_called_with(9, 78)
+        assets.icon.assert_called_with(7, 78)
         self.assertTrue(any(frame[1] == 0x23 and frame[-5] == 78
                             for frame in view.lcd.serial.frames))
         background = rgb565(view.lcd.Color_Bg_Window)

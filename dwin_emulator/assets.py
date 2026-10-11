@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 
 from PIL import Image
+from lcd_resources import ICON_LIBRARY_ID, ICON_LIBRARY_FILENAME
 
 ROOT = Path(__file__).resolve().parent.parent
 SIZES = (6, 8, 10, 12, 14, 16, 20, 24, 28, 32)
@@ -26,9 +27,12 @@ class PanelAssets:
     def __init__(self, root=ROOT, font_path=None):
         self.root = Path(root)
         self.font = Path(font_path or self.root / 'assets/emulator/0T5UIC1.HZK').expanduser().read_bytes()
-        self.ico = (self.root / 'assets/emulator/9.ICO').read_bytes()
+        from icon_library import build_library
+        sources = self.root / 'assets/icons'
+        self.ico = (build_library(sources) if sources.is_dir() else
+                    (self.root / 'assets/emulator' / ICON_LIBRARY_FILENAME).read_bytes())
         if len(self.ico) < 4096:
-            raise ValueError('Truncated 9.ICO directory')
+            raise ValueError(f'Truncated {ICON_LIBRARY_FILENAME} directory')
         self.glyph = lru_cache(maxsize=1280)(self.glyph)
         self.icon = lru_cache(maxsize=256)(self.icon)
         self.picture = lru_cache(maxsize=16)(self.picture)
@@ -54,7 +58,7 @@ class PanelAssets:
         return Image.frombytes('1', (row_bytes * 8, height), raw).crop((0, 0, width, height)).convert('L')
 
     def icon(self, library, icon):
-        if library != 9 or not 0 <= icon <= 255:
+        if library != ICON_LIBRARY_ID or not 0 <= icon <= 255:
             raise ValueError(f'Missing icon library {library}, icon {icon}')
         entry = self.ico[icon * 16:(icon + 1) * 16]
         width, height = int.from_bytes(entry[:2], 'big'), int.from_bytes(entry[2:4], 'big')
@@ -67,9 +71,7 @@ class PanelAssets:
             return panel_colors(image)
 
     def picture(self, slot):
-        from lcd_atlas import ATLAS_FILES
         paths = {0: 'assets/klipperdwin_bootsplash.jpg'}
-        paths.update({spec[1]: spec[0] for spec in ATLAS_FILES.values()})
         if slot not in paths:
             raise ValueError(f'No host image for picture slot {slot}')
         with Image.open(self.root / paths[slot]) as image:

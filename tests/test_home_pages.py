@@ -18,17 +18,19 @@ class HomePageTests(unittest.TestCase):
 
     def test_forward_and_reverse_page_crossing_skips_empty_slots(self):
         view=self.make()
-        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','LEVEL','MMU','DISPLAY','INFO'])
+        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','LEVEL','MMU','DISPLAY','MAINTENANCE','INFO'])
         for index in range(1,5):
             self.step(view,view.ENCODER_DIFF_CW)
             self.assertEqual(view.select_page.now,index)
         view.lcd.reset_mock();view._draw_home_page()
         icons=[c.args[1:] for c in view.lcd.show_icon.call_args_list]
-        self.assertEqual(icons,[(view.ICON_Info_0,17,246)])
+        self.assertEqual(icons,[(101,17,130),(108,145,130),(view.ICON_Maintenance_0,17,246),(view.ICON_Info_0,145,246)])
         self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,5)
         self.step(view,view.ENCODER_DIFF_CW)
         self.step(view,view.ENCODER_DIFF_CW)
+        self.assertEqual(view.select_page.now,7)
+        self.step(view,view.ENCODER_DIFF_CCW)
         self.assertEqual(view.select_page.now,6)
         self.step(view,view.ENCODER_DIFF_CCW)
         self.assertEqual(view.select_page.now,5)
@@ -43,23 +45,42 @@ class HomePageTests(unittest.TestCase):
 
     def test_without_mesh_mmu_first_page_and_info_second_page(self):
         view=self.make(False)
-        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','MMU','DISPLAY','INFO'])
+        self.assertEqual([e[0] for e in view._home_entries()],['PRINT','PREPARE','CONTROL','MMU','DISPLAY','MAINTENANCE','INFO'])
         for _ in range(8):self.step(view,view.ENCODER_DIFF_CW)
-        self.assertEqual(view.select_page.now,5)
+        self.assertEqual(view.select_page.now,6)
         view.lcd.reset_mock();view._draw_home_page()
-        self.assertIn((view.ICON_Info_1,145,130),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
         self.assertFalse(any(c.args[-1]=='1/1' for c in view.lcd.draw_text.call_args_list))
 
     def test_home_info_enter_returns_to_same_page(self):
-        view=self.make();view.select_page.set(6);view.Draw_Info_Menu=Mock()
+        view=self.make();view.select_page.set(7);view.Draw_Info_Menu=Mock()
         self.step(view,view.ENCODER_DIFF_ENTER)
         self.assertEqual(view.checkkey,view.Info)
         self.assertEqual(view._info_origin,view.MainMenu)
         view._info_items=Mock(return_value=[])
         view.HMI_Info()
         self.assertEqual(view.checkkey,view.MainMenu)
-        self.assertEqual(view.select_page.now,6)
-        self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        self.assertEqual(view.select_page.now,7)
+        self.assertIn((view.ICON_Info_1,145,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+
+    def test_maintenance_before_info_opens_and_returns_to_same_tile(self):
+        for mesh in (True, False):
+            view = self.make(mesh)
+            entries = view._home_entries()
+            self.assertEqual(entries[-2][0], 'MAINTENANCE')
+            self.assertEqual(entries[-1][0], 'INFO')
+            self.assertEqual(entries[-2][2:], (90, 91))
+            self.assertEqual(entries[-1][2:], (92, 93))
+            index = len(entries) - 2
+            view.select_page.set(index)
+            self.step(view, view.ENCODER_DIFF_ENTER)
+            self.assertEqual(view.checkkey, view.MaintenanceMenu)
+            self.assertTrue(view._power_at_first_item())
+            self.assertIn('Maintenance', [c.args[-1] for c in view.lcd.draw_text.call_args_list])
+            view._dispatch_input()
+            self.assertEqual(view.checkkey, view.MainMenu)
+            self.assertEqual(view.select_page.now, index)
+            view.pd.sendGCode.assert_not_called()
 
     def test_control_info_returns_to_control(self):
         view=self.make();view.checkkey=view.Control
@@ -114,12 +135,12 @@ class HomePageTests(unittest.TestCase):
         view.lcd.fill_circle.assert_not_called()
 
     def test_capability_removal_clamps_cursor_to_existing_info(self):
-        view=self.make();view.select_page.set(6)
+        view=self.make();view.select_page.set(7)
         source=snapshot(probe=False)
         view.pd.subscription.snapshot.return_value=source
         view.pd.update_variable()
-        view._draw_home_page();self.assertEqual(view.select_page.now,5)
-        self.assertIn((view.ICON_Info_1,145,130),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        view._draw_home_page();self.assertEqual(view.select_page.now,6)
+        self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
 
     def test_mmu_entry_and_back_preserve_home_selection(self):
         for mesh in (True, False):
@@ -136,25 +157,22 @@ class HomePageTests(unittest.TestCase):
             self.assertEqual(view.select_page.now,index)
             view.pd.sendGCode.assert_not_called()
 
-    def test_mmu_icon_uses_managed_atlas_for_both_selection_states(self):
-        from lcd_atlas import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
-        view=self.make()
-        for x,y in ((17,130),(145,246)):
-            for selected,icon_id in (
-                (False,ICON_MMU_HOME_NORMAL),
-                (True,ICON_MMU_HOME_SELECTED),
-            ):
-                view.lcd.reset_mock();view.Draw_MMU_Home_Icon(x,y,selected)
-                view.lcd.draw_atlas_icon.assert_called_once_with(icon_id,x+16,y+16)
-                view.lcd.draw_rectangle.assert_not_called()
-                view.lcd.draw_line.assert_not_called()
+    def test_mmu_icon_uses_icon_library_for_both_selection_states(self):
+        from lcd_resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
+        view = self.make()
+        for selection, icon in ((5, ICON_MMU_HOME_NORMAL), (4, ICON_MMU_HOME_SELECTED)):
+            view.select_page.set(selection)
+            view.lcd.reset_mock()
+            view._draw_home_page()
+            view.lcd.show_icon.assert_any_call(7, icon, 17, 130)
 
     def test_display_placeholder_before_info_opens_back_only_and_restores_focus(self):
         for mesh in (True, False):
             view = self.make(mesh)
             entries = view._home_entries()
             index = next(i for i, entry in enumerate(entries) if entry[0] == 'DISPLAY')
-            self.assertEqual(entries[index + 1][0], 'INFO')
+            self.assertEqual(entries[index + 1][0], 'MAINTENANCE')
+            self.assertEqual(entries[-1][0], 'INFO')
             self.assertEqual(index // 4, 1)
             view.select_page.set(index)
             self.step(view, view.ENCODER_DIFF_ENTER)
@@ -166,13 +184,13 @@ class HomePageTests(unittest.TestCase):
             self.assertEqual(view.select_page.now, index)
             view.pd.sendGCode.assert_not_called()
 
-    def test_display_uses_managed_device_gear_atlas_for_normal_and_selected(self):
-        from lcd_atlas import ICON_DISPLAY
+    def test_display_uses_device_gear_library_icon_for_normal_and_selected(self):
+        from lcd_resources import ICON_DISPLAY_NORMAL, ICON_DISPLAY_SELECTED
         view = self.make()
-        for selection in (4, 5):
+        for selection, icon in ((4, ICON_DISPLAY_NORMAL), (5, ICON_DISPLAY_SELECTED)):
             view.select_page.set(selection)
             view.lcd.reset_mock()
             view._draw_home_page()
-            view.lcd.draw_atlas_icon.assert_any_call(ICON_DISPLAY, 174, 134)
+            view.lcd.show_icon.assert_any_call(7, icon, 145, 130)
             self.assertFalse(any(call.args[-4:] == (173, 142, 226, 181)
                                  for call in view.lcd.draw_rectangle.call_args_list))
