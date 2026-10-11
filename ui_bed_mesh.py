@@ -111,6 +111,28 @@ class BedMeshMixin:
                 self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
                                      self.lcd.Color_Bg_Black, tx, ys[y]-6, label)
 
+    def _draw_live_mesh_cell(self, columns, rows, index, z):
+        x, y = index
+        xs = [round(25 + i*222/(columns-1)) for i in range(columns)]
+        ys = [round(277 - i*222/(rows-1)) for i in range(rows)]
+        cx, cy = xs[x], ys[y]
+        left = (xs[x-1]+cx)//2+1 if x else max(0, cx-23)
+        right = (cx+xs[x+1])//2 if x+1 < columns else min(271, cx+23)
+        top = (ys[y+1]+cy)//2+1 if y+1 < rows else max(31, cy-23)
+        bottom = (cy+ys[y-1])//2 if y else min(300, cy+23)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, left, top, right, bottom)
+        self.lcd.draw_line(0x03B5, cx, max(55, top), cx, min(277, bottom))
+        self.lcd.draw_line(0x03B5, max(25, left), cy, min(247, right), cy)
+        color, radius = point_style(z, max(columns, rows))
+        for dy in range(max(-radius, top-cy), min(radius, bottom-cy)+1):
+            dx = math.isqrt(radius*radius-dy*dy)
+            self.lcd.draw_rectangle(1, color, max(left, cx-dx), cy+dy, min(right, cx+dx), cy+dy)
+        label = point_label(z, columns)
+        if len(label)*6 <= right-left+1 and bottom-top+1 >= 12:
+            tx = max(left, min(right-len(label)*6+1, cx-len(label)*3))
+            self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
+                               self.lcd.Color_Bg_Black, tx, cy-6, label)
+
     def Draw_Bed_Mesh(self):
         session = self.pd.bed_mesh
         self.Clear_Main_Window()
@@ -281,8 +303,19 @@ class BedMeshMixin:
     def _poll_bed_mesh(self):
         session = self.pd.bed_mesh
         previous = session.revision
+        previous_phase = session.phase
+        previous_points = dict(session.progress)
         session.update()
         if self.checkkey not in (self.BedMeshScreen, self.MeshProfiles) or previous == session.revision:
+            return
+        if (self.checkkey == self.BedMeshScreen and previous_phase == session.phase == 'measuring'
+                and not getattr(self, '_mesh_confirmation', None)):
+            for index, z in session.progress.items():
+                if previous_points.get(index) != z:
+                    self._draw_live_mesh_cell(*session.layout[0], index, z)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 347, 271, 359)
+            self._mesh_text(session.message + ' (raw Z)', 347, size=6)
+            self.lcd.update()
             return
         if self.checkkey == self.MeshProfiles:
             if session.phase == 'listed':

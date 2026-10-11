@@ -1,6 +1,7 @@
 """Completion-tracked bed calibration and read-only profile snapshots."""
 from operation_guards import motion_dispatch_guard, config_save_guard
 import copy
+import logging
 from dataclasses import dataclass
 import math
 import re
@@ -59,7 +60,7 @@ class MeshData:
 
 class BedMeshSession:
     TIMEOUT = 900
-    PROBE_RESPONSE = re.compile(r'probe at\s+([-+\d.eE]+),\s*([-+\d.eE]+).*?\bz\s*=\s*([-+\d.eE]+)', re.I)
+    PROBE_RESPONSE = re.compile(r'probe\s*:?\s+at\s+([-+\d.eE]+),\s*([-+\d.eE]+).*?\bz\s*=\s*([-+\d.eE]+)', re.I)
 
     def __init__(self, printer):
         self.printer = printer
@@ -165,6 +166,8 @@ class BedMeshSession:
         if not has_pending:
             self.profile_name = 'lcd_mesh_' + str(index)
         self.mesh, self.status, self.progress = None, {}, {}
+        self._reported_profile = None
+        self._completion_reported = False
         self._cursor, _ = self.printer.subscription.responses_since(None)
         homed = self.printer.state.status['toolhead'].get('homed_axes', '')
         script = ('G28\n' if not all(a in homed for a in 'xyz') else '')
@@ -227,6 +230,11 @@ class BedMeshSession:
         probe = cfg.get('probe', cfg.get('bltouch', {}))
         offset = (finite(probe.get('x_offset', 0)), finite(probe.get('y_offset', 0)))
         for response in responses:
+            if 'Mesh Bed Leveling Complete' in response:
+                self._completion_reported = True
+            saved = re.search(r'Bed Mesh state has been saved to profile \[([^\]]+)\]', response)
+            if saved:
+                self._reported_profile = saved.group(1)
             for match in self.PROBE_RESPONSE.finditer(response):
                 try:
                     x, y, z = map(finite, match.groups())
@@ -289,8 +297,12 @@ class BedMeshSession:
                 self.status = copy.deepcopy(status)
                 if phase == 'reading':
                     mesh = MeshData.current(status)
-                    if mesh.name != self.profile_name or MeshData.profile(self.profile_name, status) != mesh:
+                    confirmed_name = self.profile_name
+                    if self._completion_reported and self._reported_profile:
+                        confirmed_name = self._reported_profile
+                    if mesh.name != confirmed_name or MeshData.profile(confirmed_name, status) != mesh:
                         raise ValueError('Unconfirmed calibration')
+                    self.profile_name = confirmed_name
                     self.mesh = self._calibrated_mesh = mesh
                     self.phase, self.message = 'complete', ''
                 else:
@@ -317,6 +329,7 @@ class BedMeshSession:
                 return
             self.revision += 1
         except Exception:
+            logging.exception('Bed mesh operation failed in phase %s', self.phase)
             message = ('Save unconfirmed; check after restart' if self.phase == 'saving'
                        else 'Stop unconfirmed; check printer' if self.phase == 'stopping'
                        else 'Mesh operation failed; check log')

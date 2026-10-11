@@ -138,6 +138,40 @@ class MeshTests(unittest.TestCase):
         self.complete(session)
         self.assertEqual(session.mesh.points[0][0], -.12)
 
+    def test_current_probe_output_updates_samples_before_completion(self):
+        source = data()
+        source['settings']['bed_mesh'].update(mesh_min=[-30, 200.975], mesh_max=[170, 400.975])
+        p, session = self.make(source)
+        session.start()
+        for serial, z in enumerate((-.0525, -.06, -.0475), 1):
+            p.subscription.responses_since.return_value = (serial, (
+                f'probe: at 10.000,210.975 bed will contact at z={z:.6f}',))
+            session.update()
+            self.assertEqual(session.progress, {(0, 0): z})
+            self.assertEqual(session.phase, 'measuring')
+            self.assertIsNone(session.mesh)
+
+    def test_reported_default_profile_requires_completion_and_matching_mesh(self):
+        for completed, matching in ((True, True), (False, True), (True, False)):
+            with self.subTest(completed=completed, matching=matching):
+                p, session = self.make()
+                session.start()
+                responses = ['Bed Mesh state has been saved to profile [default]']
+                if completed:
+                    responses.insert(0, 'Mesh Bed Leveling Complete')
+                p.subscription.responses_since.return_value = (2, tuple(responses))
+                session.pending.set_result(None)
+                session.update()
+                result = payload('default')
+                if not matching:
+                    result['status']['bed_mesh']['profiles']['default']['points'] = [[1, 2, 3]]*3
+                session.pending.set_result(result)
+                session.update()
+                self.assertEqual(session.phase, 'complete' if completed and matching else 'error')
+                if completed and matching:
+                    self.assertEqual(session.profile_name, 'default')
+                    self.assertEqual(session.mesh.extrema, (-.12, .12))
+
     def test_stop_uses_emergency_rpc_and_never_marks_result_complete(self):
         p, session = self.make();session.start();future = session.pending
         session.cancel()
@@ -229,6 +263,28 @@ class MeshViewTests(unittest.TestCase):
         self.event(view,view.ENCODER_DIFF_CCW);self.event(view,view.ENCODER_DIFF_ENTER)
         self.assertEqual(view.checkkey,view.MainMenu)
         self.assertEqual(view.select_page.now,3)
+
+    def test_live_probe_redraws_only_changed_cell_and_progress_label(self):
+        view = self.make()
+        view._start_bed_mesh(view.BedMeshMenu)
+        view.Clear_Main_Window = Mock()
+        view.Draw_Title = Mock()
+        draw_cell = Mock(wraps=view._draw_live_mesh_cell)
+        view._draw_live_mesh_cell = draw_cell
+        for serial, z in enumerate((.10, .12), 1):
+            view.lcd.reset_mock()
+            view.pd.subscription.responses_since.return_value = (serial, (
+                f'probe: at 60.000,40.000 bed will contact at z={z}',))
+            view._poll_bed_mesh()
+            draw_cell.assert_called_with(3, 3, (0, 0), z)
+            view.Clear_Main_Window.assert_not_called()
+            view.Draw_Title.assert_not_called()
+            view.lcd.update.assert_called_once()
+        self.assertEqual(draw_cell.call_count, 2)
+        view.pd.subscription.responses_since.return_value = (2, ())
+        view.lcd.reset_mock()
+        view._poll_bed_mesh()
+        view.lcd.update.assert_not_called()
 
     def test_profile_menu_refresh_selection_and_return_without_load(self):
         view=self.make();view.HMI_Leveling()
