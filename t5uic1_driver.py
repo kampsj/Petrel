@@ -16,6 +16,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from threading import Lock
 
 import display_settings
+import buzzer_control
 import serial
 
 
@@ -327,6 +328,16 @@ class T5UIC1Display:
         self.write_flash(self.DISPLAY_SETTINGS_ADDRESS, record)
         if self.read_flash(self.DISPLAY_SETTINGS_ADDRESS, len(record)) != record:
             raise OSError('Display settings verification failed')
+
+    def load_buzzer_settings(self):
+        return buzzer_control.Settings.decode(self.read_flash(
+            buzzer_control.ADDRESS, buzzer_control.RECORD_SIZE))
+
+    def save_buzzer_settings(self, settings):
+        record = settings.encode()
+        self.write_flash(buzzer_control.ADDRESS, record)
+        if self.read_flash(buzzer_control.ADDRESS, len(record)) != record:
+            raise OSError('Buzzer settings verification failed')
 
     def set_backlight(self, brightness):
         self._send(0x30, bytes((self._u8(brightness, "brightness"),)))

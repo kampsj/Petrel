@@ -2,6 +2,7 @@
 import ast
 from pathlib import Path
 import unittest
+from unittest.mock import Mock
 import test_mmu_ui as mmu_fixtures
 import test_t5uic1_driver as transport
 from t5uic1_driver import T5UIC1Display
@@ -10,6 +11,7 @@ from lcd_resources import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
 
 def lcd():
     result = transport.driver()
+    result.load_buzzer_settings = Mock(return_value=None)
     return result
 
 

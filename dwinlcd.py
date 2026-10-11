@@ -13,6 +13,8 @@ from threading import Lock
 from ui_events import UIEventLoop, InputEvent
 from ui_case_light import CaseLightMixin
 from ui_mmu import MMUViewMixin
+from ui_buzzer import BuzzerViewMixin
+from buzzer_control import Settings as BuzzerSettings
 from ui_screws_tilt import ScrewsTiltMixin
 from ui_bed_mesh import BedMeshMixin
 from ui_file_preview import FilePreviewMixin
@@ -62,7 +64,7 @@ class select_t:
         return self.changed()
 
 
-class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -135,6 +137,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
     PowerConfirm = 46
     DisplayMenu = 47
     MaintenanceMenu = 48
+    BuzzerMenu = 49
 
     MINUNITMULT = 10
 
@@ -492,6 +495,14 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                     values = None
                 self._display_values = list(values or (100, 0, 10))
                 self._display_saved = tuple(values or (100, 0, 10))
+            if not hasattr(self, '_buzzer_values'):
+                try:
+                    values = self.lcd.load_buzzer_settings()
+                except (OSError, TimeoutError, T5UIC1ProtocolError):
+                    logging.warning('Buzzer settings unavailable; sounds disabled')
+                    values = None
+                self._buzzer_values = values if isinstance(values, BuzzerSettings) else BuzzerSettings()
+                self._buzzer_saved = self._buzzer_values
             self._display_last_activity = time.monotonic()
             self._display_dimmed = False
             self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
@@ -515,6 +526,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.Draw_Display_Menu()
             if getattr(self, 'checkkey', None) == self.MaintenanceMenu:
                 self.Draw_Maintenance_Menu()
+            if getattr(self, 'checkkey', None) == self.BuzzerMenu:
+                self.Draw_Buzzer_Menu()
             self.lcd.update()
             if (self.pd.connection_error and self.checkkey != self.MMUMenu
                     and not getattr(self, '_boot_active', False)):
@@ -878,7 +891,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if self._closed:
             return
         self._closed = True
-        for resource in (getattr(self, '_screenshot_server', None),
+        for resource in (getattr(self, '_buzzer_player', None),
+                         getattr(self, '_screenshot_server', None),
                          getattr(self, '_emulator', None),
                          getattr(self, '_power_monitor', None), self.button, self.encoder, self.pd):
             if resource is not None:
@@ -1086,6 +1100,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             return
         if not self._sync_input_state(event):
             return
+        self._buzzer_feedback(event.kind)
         self._encoder_jog_rate = event.rate if event.kind == 'rotate' else 0.0
         acceleration_cap = self._encoder_acceleration_cap() if event.kind == 'rotate' else 1
         if event.kind == 'rotate' and getattr(self, 'checkkey', None) == self.CaseLightBrightness:
@@ -1478,6 +1493,9 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
 
     def Draw_Display_Menu(self):
         selection = getattr(self, '_display_selection', 0)
+        if selection >= 5 and not self._buzzer_enabled():
+            self._display_selection = selection = 4
+            self._display_edit = False
         values = getattr(self, '_display_values', [100, 0, 10])
         entries = [('Back', self.ICON_Back, None, None)]
         for row, label, icon, text in (
@@ -1490,15 +1508,22 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
                 196, self.MBASE(row) - 1, text)
             entries.append((label, icon, (text, editing), painter))
-        self._draw_list_menu('Display', entries, selection)
-        message = getattr(self, '_display_save_message', '')
-        if message != getattr(self, '_display_drawn_message', None):
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 16, 250, 271, 266)
-            self._draw_menu_text(message, 16, 250)
-            self._display_drawn_message = message
+        for row, (label, text, editable) in enumerate(self._buzzer_rows(), 4):
+            text = text[:11]
+            editing = getattr(self, '_display_edit', False) and selection == row
+            painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
+                True, False, self.lcd.font8x16, self.lcd.Color_White,
+                self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
+                max(172, 260 - len(text) * 8), self.MBASE(row) - 1, text)
+            entries.append((label, None, (text, editing), painter))
+        self._display_selection = min(selection, len(entries) - 1)
+        title = 'Display - not saved' if getattr(self, '_display_save_message', '') else 'Display'
+        self._draw_list_menu(title, entries, self._display_selection)
 
     def HMI_Display_Menu(self):
         event = self.get_encoder_state()
+        if self._buzzer_display_input(event):
+            return
         selection = getattr(self, '_display_selection', 0)
         editing = getattr(self, '_display_edit', False)
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
@@ -1510,7 +1535,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 if index == 0:
                     self.lcd.set_backlight(display_settings.raw_brightness(self._display_values[0]))
             else:
-                self._display_selection = max(0, min(3, selection + delta))
+                self._display_selection = max(0, min(3 + len(self._buzzer_rows()), selection + delta))
             self._display_save_message = ''
         elif event == self.ENCODER_DIFF_ENTER:
             if selection == 0:
@@ -3228,6 +3253,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self.FilePreview: '_preview_choice',
             self.Info: '_info_scroll',
             self.DisplayMenu: '_display_selection',
+            self.BuzzerMenu: '_buzzer_selection',
             self.MaintenanceMenu: '_maintenance_selection',
         }
         if self.checkkey == self.MMUMenu:
@@ -3267,6 +3293,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self.Motion: self.Draw_Motion_Menu,
             self.Info: self.Draw_Info_Menu,
             self.DisplayMenu: self.Draw_Display_Menu,
+            self.BuzzerMenu: self.Draw_Buzzer_Menu,
             self.MaintenanceMenu: self.Draw_Maintenance_Menu,
             self.Tune: self.Draw_Tune_Menu,
             self.MMUMenu: self.Draw_MMU_Menu,
@@ -3380,6 +3407,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self.HMI_MotionValue()
         elif self.checkkey == self.MaintenanceMenu:
             self.HMI_Maintenance_Menu()
+        elif self.checkkey == self.BuzzerMenu:
+            self.HMI_Buzzer_Menu()
         elif self.checkkey == self.DisplayMenu:
             self.HMI_Display_Menu()
         elif self.checkkey == self.Info:

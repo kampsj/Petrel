@@ -314,7 +314,17 @@ changed setting, never on encoder movement or idle dim/wake.
 | --- | --- | --- |
 | `0x0100..0x010F` | Display settings | 16 bytes |
 | `0x0200..0x037F` | Icon-library block metadata | 384 bytes |
+| `0x0400..0x047F` | Buzzer settings | 128 bytes |
 
 The Display record contains the magic/version `KDWDSPL2`, brightness (0–100),
 idle minutes (0 = Off, otherwise 1–60), dim brightness (0–100), one reserved byte and a CRC32. Legacy `KDWDSPL1` records retain brightness/timeout and default dim brightness to 10%, without an automatic flash write. The 16-byte allocation is unchanged. These
 addresses refer to Data Flash, separate from JPEG Picture Flash slots.
+
+### Buzzer preferences
+
+The separate `KDWBZR01` record stores the selected PWM section name, volume,
+click tone and encoder tone with CRC32 and exact readback verification. It is
+written only when confirming a changed setting. The sound worker uses a bounded
+single pending event, monotonic timing and epoch-guarded WebSocket notifications.
+It sends `SET_PIN` on/off without `G4` or sleeping in the UI thread. PWM periods
+are specified in seconds, per the [Klipper SET_PIN reference](https://www.klipper3d.org/G-Codes.html#pwm_cycle_time).

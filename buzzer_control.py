@@ -1,0 +1,149 @@
+"""Persistent buzzer preferences and a bounded, nonblocking PWM sound worker."""
+from dataclasses import dataclass
+from threading import Condition, Thread
+import math
+import re
+import struct
+import time
+import zlib
+
+ADDRESS = 0x0400
+RECORD_SIZE = 128
+NAME = re.compile(r'[A-Za-z0-9_.:-]{1,96}')
+TONES = ('Off', 'Tick', 'Short beep', 'Low', 'High', 'Double')
+PATTERNS = ((), ((1800, .015),), ((1400, .055),), ((700, .055),),
+            ((2400, .04),), ((1600, .035), (0, .035), (2000, .035)))
+
+@dataclass(frozen=True)
+class Settings:
+    output: str = ''
+    volume: int = 50
+    click: int = 2
+    encoder: int = 1
+
+    def validate(self):
+        if (self.output and not NAME.fullmatch(self.output) or
+                not isinstance(self.volume, int) or not 0 <= self.volume <= 100 or
+                not isinstance(self.click, int) or self.click not in range(len(TONES)) or
+                not isinstance(self.encoder, int) or self.encoder not in range(len(TONES))):
+            raise ValueError('Invalid buzzer settings')
+        return self
+
+    def encode(self):
+        self.validate()
+        body = struct.pack('>8sBBB', b'KDWBZR01', self.volume, self.click, self.encoder)
+        body += self.output.encode('ascii') + b'\0'
+        body = body.ljust(RECORD_SIZE - 4, b'\0')
+        return body + struct.pack('>I', zlib.crc32(body))
+
+    @classmethod
+    def decode(cls, raw):
+        if len(raw) != RECORD_SIZE or raw[:8] != b'KDWBZR01':
+            return None
+        if zlib.crc32(raw[:-4]) != int.from_bytes(raw[-4:], 'big'):
+            return None
+        try:
+            return cls(raw[11:-4].split(b'\0', 1)[0].decode('ascii'), *raw[8:11]).validate()
+        except (ValueError, UnicodeError):
+            return None
+
+
+def outputs(settings):
+    return tuple(sorted((key[15:] for key in settings
+                         if key.startswith('pwm_cycle_time ') and NAME.fullmatch(key[15:])),
+                        key=str.casefold))
+
+
+class Player:
+    def __init__(self, subscription):
+        self.subscription = subscription
+        self.condition = Condition()
+        self.pending = None
+        self.busy = False
+        self.stopped = False
+        self.generation = 0
+        self.thread = Thread(target=self._run, name='dwin-buzzer', daemon=True)
+        self.thread.start()
+
+    def play(self, settings, kind):
+        settings.validate()
+        tone = settings.click if kind == 'press' else settings.encoder
+        if not settings.output or not settings.volume or not tone:
+            return False
+        snapshot = self.subscription.snapshot()
+        if snapshot['state'] != 'ready' or settings.output not in outputs(snapshot.get('settings', {})):
+            return False
+        with self.condition:
+            if self.stopped or self.busy or self.pending is not None:
+                return False
+            self.pending = (settings, tone, snapshot['epoch'], self.generation, time.monotonic())
+            self.condition.notify()
+        return True
+
+    def cancel(self):
+        with self.condition:
+            self.pending = None
+            self.generation += 1
+            self.condition.notify_all()
+
+    def _send(self, script, epoch, guard=None):
+        def ready():
+            snapshot = self.subscription.snapshot()
+            return snapshot['state'] == 'ready' and snapshot['epoch'] == epoch and (guard is None or guard())
+        self.subscription.notify('printer.gcode.script', {'script': script}, guard=ready).result(timeout=1)
+
+    def _run(self):
+        while True:
+            with self.condition:
+                self.condition.wait_for(lambda: self.stopped or self.pending is not None)
+                if self.stopped:
+                    return
+                settings, tone, epoch, generation, queued = self.pending
+                self.pending = None
+                self.busy = True
+            active = False
+            try:
+                snapshot = self.subscription.snapshot()
+                config = snapshot.get('settings', {}).get('pwm_cycle_time ' + settings.output, {})
+                scale = float(config.get('scale') or 1)
+                if not math.isfinite(scale) or scale <= 0:
+                    continue
+                for frequency, duration in PATTERNS[tone]:
+                    with self.condition:
+                        if self.stopped or generation != self.generation:
+                            break
+                    def valid():
+                        current = self.subscription.snapshot()
+                        return (not self.stopped and generation == self.generation and
+                                time.monotonic() - queued < .5 and
+                                settings.output in outputs(current.get('settings', {})))
+                    command = 'SET_PIN PIN={} VALUE={:g}'.format(settings.output, settings.volume / 200 * scale if frequency else 0)
+                    if frequency:
+                        command += ' CYCLE_TIME={:.8f}'.format(1 / frequency)
+                    active = bool(frequency)
+                    self._send(command, epoch, valid)
+                    with self.condition:
+                        self.condition.wait_for(lambda: self.stopped or generation != self.generation, timeout=duration)
+                    self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
+                               lambda: settings.output in outputs(self.subscription.snapshot().get('settings', {})))
+                    active = False
+            except Exception:
+                # Sounds are optional and must not interrupt UI/printer actions.
+                pass
+            finally:
+                try:
+                    if active:
+                        self._send('SET_PIN PIN={} VALUE=0'.format(settings.output), epoch,
+                                   lambda: settings.output in outputs(self.subscription.snapshot().get('settings', {})))
+                except Exception:
+                    pass
+                with self.condition:
+                    self.busy = False
+
+    def close(self):
+        with self.condition:
+            self.stopped = True
+            self.pending = None
+            self.generation += 1
+            self.condition.notify_all()
+        self.thread.join(timeout=2)

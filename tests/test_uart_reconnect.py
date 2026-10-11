@@ -147,6 +147,7 @@ class UARTReconnectTests(unittest.TestCase):
         result = self.display()
         lcd = driver()
         lcd.load_display_settings = Mock(return_value=(100, 0))
+        lcd.load_buzzer_settings = Mock(return_value=None)
         lcd._needs_update = False
         result.HMI_StartFrame = lambda update: lcd.clear(0)
         with patch.object(ui, 'T5UIC1Display', return_value=lcd):

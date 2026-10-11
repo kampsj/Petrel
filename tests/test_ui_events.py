@@ -324,6 +324,9 @@ class DisplayIntegrationTests(unittest.TestCase):
             def load_display_settings(self):
                 return (100, 0)
 
+            def load_buzzer_settings(self):
+                return None
+
             def __init__(self, port, **kwargs):
                 self.serial = Mock()
                 self.MYSERIAL1 = self.serial
