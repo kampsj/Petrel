@@ -1,4 +1,5 @@
 import display_settings
+import copy
 import textwrap
 from software_update import SoftwareUpdate
 from info_qr import PROJECT_URL, draw_project_qr
@@ -327,7 +328,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._power_origin = None
         self._power_confirm_yes = True
         self._loop = UIEventLoop(self._initialize, self._process_input,
-                                 self._ui_tick, self._close_resources)
+                                 self._ui_tick, self._close_resources, interval=.5)
         self._loop.start()
 
     def _initialize(self):
@@ -626,14 +627,14 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                     self._poll_file_preview()
                 if time.monotonic() < getattr(self, '_preview_status_at', 0):
                     return
-                self._preview_status_at = time.monotonic() + 2.0
+                self._preview_status_at = time.monotonic() + .5
             elif getattr(self, 'checkkey', None) == self.SelectFile:
                 self._poll_thumbnail_preload()
                 if hasattr(self, '_loop'):
                     self._loop.set_interval(.02 if self._thumbnail_cache.has_work() else .5)
                 if time.monotonic() < getattr(self, '_file_status_at', 0):
                     return
-                self._file_status_at = time.monotonic() + 2.0
+                self._file_status_at = time.monotonic() + .5
             elif hasattr(self, '_loop'):
                 self._loop.set_interval(.5)
             self._display_idle_tick()
@@ -1168,17 +1169,22 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         entries.append(('INFO', 'Info', self.ICON_Info_0, self.ICON_Info_1))
         return tuple(entries)
 
-    def _draw_home_page(self):
+    def _draw_home_page(self, previous=None):
         entries = self._home_entries()
         self.select_page.set(min(self.select_page.now, len(entries)-1))
         page = self.select_page.now // 4
-        # Clear only navigation: the logo/MMU and live dashboard stay in place.
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 126, 271, self.STATUS_Y-1)
-        for index in range(page*4, min(len(entries), page*4+4)):
+        partial = previous is not None and previous // 4 == page
+        if not partial:
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 126, 271, self.STATUS_Y-1)
+        indices = (previous, self.select_page.now) if partial else range(
+            page*4, min(len(entries), page*4+4))
+        for index in indices:
             key, label, normal, selected = entries[index]
             slot = index % 4
             x, y = (17 if slot % 2 == 0 else 145), (130 if slot < 2 else 246)
             active = index == self.select_page.now
+            if partial:
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, x, y, x+109, y+99)
             if key == 'DISPLAY':
                 self.lcd.draw_atlas_icon(ICON_DISPLAY, x + 29, y + 4)
             elif key == 'MMU':
@@ -1189,7 +1195,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.lcd.draw_rectangle(0, self.lcd.Color_White, x, y, x+109, y+99)
             self._draw_menu_text(label, x+(109-len(label)*8)//2, y+71)
         pages = (len(entries)+3)//4
-        if pages > 1:
+        if pages > 1 and not partial:
             spacing = min(18, 256 // pages)
             first_x = 136 - (pages - 1) * spacing // 2
             for number in range(pages):
@@ -1240,7 +1246,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.checkkey = self.Info
                 self.Draw_Info_Menu()
         if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW) and previous != self.select_page.now:
-            self._draw_home_page()
+            self._draw_home_page(previous)
         self.lcd.update()
 
     def _refresh_file_snapshot(self):
@@ -2285,14 +2291,53 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
     # --------------------------------------------------------------#
     # --------------------------------------------------------------#
 
+    def _draw_status_field(self, method, *args):
+        # Compare the values that the LCD actually displays, not raw telemetry.
+        args = list(args)
+        if method == 'show_icon':
+            key = (method, args[-2], args[-1])
+        else:
+            key = (method, args[-3], args[-2])
+        cache = self._status_render
+        previous = cache.get(key)
+        value = list(args)
+        if method == 'draw_integer_text':
+            value[-1] = T5UIC1Display._format_scaled_decimal(
+                self.lcd, args[-1], args[-4], 0, False)
+        elif method == 'draw_signed_scaled_float_text':
+            value[-1] = T5UIC1Display._format_scaled_decimal(
+                self.lcd, args[-1], args[2], args[3], True)
+        value = tuple(value)
+        if previous == value:
+            return
+        if method == 'draw_text' and previous is not None:
+            x, y = args[-3:-1]
+            # Erase a shrinking string, leaving adjacent icons untouched.
+            right = min(271,
+                        x + max(len(previous[-1]), len(args[-1])) * self.STAT_CHR_W - 1)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
+                                    x, y, right, y + 19)
+            # Long telemetry text can reach the next column. Restore only
+            # the fields touched by the erasure when they are drawn below.
+            for other in list(cache):
+                if other != key and x < other[1] <= right and y - 1 <= other[2] <= y + 19:
+                    del cache[other]
+        getattr(self.lcd, method)(*args)
+        cache[key] = value
+
     def Draw_Status_Area(self, with_update):
         if getattr(self, 'checkkey', None) == self.MMUMenu:
+            self._status_render = {}
             return
         # Compact dashboard: temperatures / speed / fan, bed / flow / Z offset,
         # then interpolated live X/Y/Z positions.
-        self.lcd.draw_rectangle(
-            1, self.lcd.Color_Bg_Black, 0, self.STATUS_Y,
-            self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
+        layout = (id(self.lcd), self.pd.HAS_HOTEND, self.pd.HAS_FAN,
+                  self.pd.HAS_HEATED_BED, self.pd.HAS_ZOFFSET_ITEM)
+        if layout != getattr(self, '_status_layout', None) or not with_update:
+            self._status_layout = layout
+            self._status_render = {}
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0,
+                self.STATUS_Y, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
 
         y1, y2, y3 = 382, 416, 458
         # Temperature fields need enough width for "actual/target". Keep them
@@ -2301,14 +2346,14 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         value1, value2, value3 = 26, 137, 223
 
         if self.pd.HAS_HOTEND:
-            self.lcd.show_icon(self.ICON, self.ICON_HotendTemp, x1, y1 - 1)
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1 - 1)
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, value1, y1,
                 self.pd.thermalManager['temp_hotend'][0]['celsius'])
-            self.lcd.draw_text(False, False, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black,
                 value1 + 3 * self.STAT_CHR_W, y1, "/")
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
                 value1 + 4 * self.STAT_CHR_W, y1,
                 self.pd.thermalManager['temp_hotend'][0]['target'])
@@ -2316,46 +2361,46 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
         phase = int(time.monotonic() / 2.0) & 1
-        self.lcd.show_icon(self.ICON, self.ICON_Speed, x2, y1 - 1)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_Speed, x2, y1 - 1)
         if phase:
             speed_text = '{:.0f}%'.format(self.pd.feedrate_percentage)
         else:
             speed_text = '{:.0f}mm/s'.format(abs(self.pd.live_velocity))
-        self.lcd.draw_text(False, True, self.lcd.DWIN_FONT_STAT,
+        self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
             self.lcd.Color_White, self.lcd.Color_Bg_Black, value2, y1, speed_text)
 
         if self.pd.HAS_FAN:
-            self.lcd.show_icon(self.ICON, self.ICON_FanSpeed, x3, y1 - 1)
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('show_icon', self.ICON, self.ICON_FanSpeed, x3, y1 - 1)
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
                 value3, y1, self.pd.dashboard_fan_pwm)
 
         if self.pd.HAS_HEATED_BED:
-            self.lcd.show_icon(self.ICON, self.ICON_BedTemp, x1, y2 - 1)
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 1)
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, value1, y2,
                 self.pd.thermalManager['temp_bed']['celsius'])
-            self.lcd.draw_text(False, False, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black,
                 value1 + 3 * self.STAT_CHR_W, y2, "/")
-            self.lcd.draw_integer_text(True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
                 value1 + 4 * self.STAT_CHR_W, y2,
                 self.pd.thermalManager['temp_bed']['target'])
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
-        self.lcd.show_icon(self.ICON, self.ICON_StepE, x2, y2 - 1)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_StepE, x2, y2 - 1)
         if phase:
             flow_text = '{:.0f}%'.format(self.pd.flow_percentage)
         else:
             flow_text = '{:.1f}mm3/s'.format(self.pd.volumetric_flow)
-        self.lcd.draw_text(False, True, self.lcd.DWIN_FONT_STAT,
+        self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
             self.lcd.Color_White, self.lcd.Color_Bg_Black, value2, y2, flow_text)
 
         if self.pd.HAS_ZOFFSET_ITEM:
-            self.lcd.show_icon(self.ICON, self.ICON_Zoffset, x3, y2 - 1)
-            self.lcd.draw_signed_scaled_float_text(
+            self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2 - 1)
+            self._draw_status_field('draw_signed_scaled_float_text',
                 self.lcd.DWIN_FONT_STAT, self.lcd.Color_Bg_Black,
                 2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
 
@@ -2364,8 +2409,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 (self.ICON_MaxSpeedX, x1, value1, positions[0]),
                 (self.ICON_MaxSpeedY, x2, value2, positions[1]),
                 (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
-            self.lcd.show_icon(self.ICON, icon, xpos, y3 - 3)
-            self.lcd.draw_signed_scaled_float_text(
+            self._draw_status_field('show_icon', self.ICON, icon, xpos, y3 - 3)
+            self._draw_status_field('draw_signed_scaled_float_text',
                 self.lcd.DWIN_FONT_STAT, self.lcd.Color_Bg_Black,
                 3, 1, value_x, y3, position * 10)
 
@@ -2734,7 +2779,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             self.lcd.show_icon(self.ICON, self.ICON_LOGO, 71, 52)
         else:
             self.Draw_MMU_Status()
-        self._drawn_mmu_state = self.pd.mmu
+        self._drawn_mmu_state = copy.deepcopy(self.pd.mmu)
 
         self._draw_home_page()
 
@@ -2771,6 +2816,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH, 30)
 
     def Clear_Menu_Area(self):
+        self._home_mmu_layout = None
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.STATUS_Y)
 
     def Clear_Main_Window(self):
@@ -2779,6 +2825,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self.Clear_Menu_Area()
 
     def Clear_Popup_Area(self):
+        self._status_layout = None
         self.Clear_Title_Bar()
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT)
 
@@ -3128,17 +3175,17 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             if self.pd.ishomed():
                 self.CompletedHoming()
 
-        if update:
-            if self.checkkey == self.MainMenu:
-                mmu_state = self.pd.mmu
-                if mmu_state != getattr(self, '_drawn_mmu_state', None):
-                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)
-                    if mmu_state is None:
-                        self.lcd.show_icon(self.ICON, self.ICON_LOGO, 71, 52)
-                    else:
-                        self.Draw_MMU_Status()
-                    self._drawn_mmu_state = mmu_state
-            self.Draw_Status_Area(update)
+        if self.checkkey == self.MainMenu:
+            mmu_state = self.pd.mmu
+            if (mmu_state is None) != (getattr(self, '_drawn_mmu_state', None) is None):
+                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)
+                self._home_mmu_layout = None
+                if mmu_state is None:
+                    self.lcd.show_icon(self.ICON, self.ICON_LOGO, 71, 52)
+            if mmu_state is not None and mmu_state != getattr(self, '_drawn_mmu_state', None):
+                self.Draw_MMU_Status()
+            self._drawn_mmu_state = copy.deepcopy(mmu_state)
+        self.Draw_Status_Area(True)
         self.lcd.update()
 
     def _power_at_first_item(self):
