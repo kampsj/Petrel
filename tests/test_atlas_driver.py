@@ -41,7 +41,7 @@ class AtlasDriverTests(unittest.TestCase):
         from PIL import Image
 
         for icon_id in (lcd_atlas.ICON_MCU, lcd_atlas.ICON_MACHINE,
-                        lcd_atlas.ICON_HOST, lcd_atlas.ICON_SOFTWARE, lcd_atlas.ICON_DISPLAY, lcd_atlas.ICON_HOMING):
+                        lcd_atlas.ICON_HOST, lcd_atlas.ICON_SOFTWARE, lcd_atlas.ICON_DISPLAY, lcd_atlas.ICON_HOMING, lcd_atlas.ICON_SPOOL_EMPTY):
             with self.subTest(icon_id=icon_id):
                 area, x, y, width, height = lcd_atlas.ICON_COORDINATES[icon_id]
                 path = Path(lcd_atlas.__file__).parent / lcd_atlas.ATLAS_FILES[area][0]
@@ -93,6 +93,23 @@ class AtlasDriverTests(unittest.TestCase):
                 offset += length + 2
             self.assertEqual(jfif_count, 1)
 
+    def test_empty_spool_source_has_wooden_flanges_and_only_a_thin_gray_hub(self):
+        from PIL import Image
+        path = Path(lcd_atlas.__file__).parent / 'assets/spool-empty.png'
+        with Image.open(path) as image:
+            self.assertEqual(image.size, (42, 52))
+            self.assertEqual(image.getpixel((3, 10)), (156, 105, 49, 255))
+            self.assertEqual(image.getpixel((38, 10)), (156, 105, 49, 255))
+            for y in range(52):
+                self.assertEqual(image.getpixel((21, y))[3], 255 if 20 <= y <= 31 else 0)
+            self.assertEqual(image.getpixel((21, 26)), (132, 130, 132, 255))
+        area, x, y, width, height = lcd_atlas.ICON_COORDINATES[lcd_atlas.ICON_SPOOL_EMPTY]
+        with Image.open(Path(lcd_atlas.__file__).parent / lcd_atlas.ATLAS_FILES[area][0]) as atlas:
+            icon = atlas.transpose(Image.Transpose.ROTATE_270).crop((x, y, x+width, y+height)).convert('RGB')
+            self.assertLess(max(icon.getpixel((21, 8))), 20)
+            self.assertLess(max(icon.getpixel((21, 43))), 20)
+            self.assertGreater(min(icon.getpixel((21, 26))), 110)
+
     def test_manifest_coordinates_match_current_custom_static_icons(self):
         self.assertEqual(lcd_atlas.ICON_MMU_HOME_NORMAL, 0x0100)
         self.assertEqual(lcd_atlas.ICON_MMU_HOME_SELECTED, 0x0101)
@@ -104,6 +121,7 @@ class AtlasDriverTests(unittest.TestCase):
         self.assertEqual(lcd_atlas.ICON_POWER, 0x0107)
         self.assertEqual(lcd_atlas.ICON_DISPLAY, 0x0108)
         self.assertEqual(lcd_atlas.ICON_HOMING, 0x0109)
+        self.assertEqual(lcd_atlas.ICON_SPOOL_EMPTY, 0x010A)
         self.assertEqual(
             lcd_atlas.ICON_COORDINATES,
             {
@@ -117,6 +135,7 @@ class AtlasDriverTests(unittest.TestCase):
                 0x0107: (0, 224, 32, 20, 20),
                 0x0108: (0, 0, 48, 52, 64),
                 0x0109: (0, 64, 48, 73, 66),
+                0x010A: (0, 144, 64, 42, 52),
             },
         )
         self.assertEqual(

@@ -6,9 +6,10 @@
 
 | File | Purpose |
 |---|---|
-| `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power, Display and the homing popup |
+| `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power, Display, the homing popup and the shared empty spool |
 | `klipperdwin_atlas_1.jpg` | Reserved second atlas |
 | `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
+| `spool-empty.png` | Shared 42×52 empty spool sprite: wooden flanges and a thin gray hub |
 | `display-settings.png` | Original transparent Display icon sprite |
 | `klipperdwin-readme.png` | README logo and wordmark header adapted from the boot artwork |
 | [emulator/](emulator/README.md) | Host-side stock icon and font inputs for screenshots |

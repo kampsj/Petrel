@@ -6,9 +6,10 @@
 
 | Dosya | Amaç |
 |---|---|
-| `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç, Display ve homing penceresi |
+| `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç, Display, homing penceresi ve ortak boş makara |
 | `klipperdwin_atlas_1.jpg` | Ayrılmış ikinci atlas |
 | `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
+| `spool-empty.png` | Ortak 42×52 boş makara sprite’ı: ahşap kenarlar ve ince gri merkez |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |
 | `klipperdwin-readme.png` | Açılış görselinden uyarlanan README logo ve yazı başlığı |
 | [emulator/](emulator/README_TR.md) | Ekran görüntüleri için bilgisayar tarafı stok ikon ve font girdileri |

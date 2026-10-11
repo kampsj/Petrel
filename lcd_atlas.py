@@ -22,6 +22,7 @@ ICON_SOFTWARE = 0x0106
 ICON_POWER = 0x0107
 ICON_DISPLAY = 0x0108
 ICON_HOMING = 0x0109
+ICON_SPOOL_EMPTY = 0x010A
 
 # virtual_area: (repo-relative JPEG path, reserved Picture Flash ID)
 ATLAS_FILES = {
@@ -44,4 +45,5 @@ ICON_COORDINATES = {
     ICON_POWER: (0, 224, 32, 20, 20),
     ICON_DISPLAY: (0, 0, 48, 52, 64),
     ICON_HOMING: (0, 64, 48, 73, 66),
+    ICON_SPOOL_EMPTY: (0, 144, 64, 42, 52),
 }
