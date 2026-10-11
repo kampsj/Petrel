@@ -226,3 +226,37 @@ class ProbeRegressionTests(unittest.TestCase):
         self.assertEqual(view._probe_selection, 2)
         view.Clear_Main_Window.assert_not_called()
         self.assertEqual([c.args[-1] for c in view.lcd.draw_text.call_args_list], ['-', '+'])
+
+
+class RepeatedProbeStepTests(unittest.TestCase):
+    printer = ProbeTests.printer
+    status = ProbeTests.status
+    started = ProbeTests.started
+
+    def test_live_position_update_before_dispatch_does_not_reject_testz(self):
+        result = self.started()
+        future = result.probe_wizard.testz('-')
+        guard = result.subscription.request.call_args.kwargs['guard']
+        source = result.subscription.snapshot()
+        source['status']['gcode_move']['position'][2] -= .025
+        result.subscription.snapshot.return_value = source
+        self.assertTrue(guard())
+        source['status']['manual_probe']['is_active'] = False
+        self.assertFalse(guard())
+
+    def test_failed_step_keeps_live_session_without_replay(self):
+        from moonraker_client import MoonrakerError
+        for active in (True, False):
+            result = self.started()
+            future = result.probe_wizard.testz('-')
+            future.set_exception(MoonrakerError('state changed before dispatch'))
+            self.status(result, active)
+            result.probe_wizard.update()
+            self.assertEqual(result.probe_wizard.phase, 'active' if active else 'error')
+            self.assertIsNone(result.probe_wizard.pending)
+            self.assertEqual(result.subscription.request.call_count, 2)
+            if active:
+                result.probe_wizard.update()
+                self.assertEqual(result.subscription.request.call_count, 2)
+                result.probe_wizard.testz('-')
+                self.assertEqual(result.subscription.request.call_count, 3)

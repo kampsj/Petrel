@@ -36,7 +36,7 @@ class ProbeWizard:
 
     def _submit(self, action, script, dispatch_guard=None):
         guard = motion_dispatch_guard(self.printer, owner='probe_wizard',
-                                      manual_active=action in ('step', 'accept', 'abort'), position=action == 'step')
+                                      manual_active=action in ('step', 'accept', 'abort'))
         future = self.printer.subscription.request('printer.gcode.script', {'script': script},
                                                    guard=dispatch_guard or guard)
         self.pending = (action, future, time.monotonic())
@@ -116,8 +116,10 @@ class ProbeWizard:
         if future.done():
             if future.cancelled() or future.exception():
                 self.pending = None
-                self.phase = 'error'
-                self.message = 'Command failed; check printer'
+                # A rejected TESTZ does not end an active Klipper manual session.
+                # Keep the controls available without replaying the failed step.
+                self.phase = 'active' if action == 'step' and self.active() else 'error'
+                self.message = 'Step not applied' if self.phase == 'active' else 'Command failed; check printer'
                 return
             if action == 'start' and self.active():
                 self.phase, self.message = 'active', 'Adjust with TESTZ; then Accept'
