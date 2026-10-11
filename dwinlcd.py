@@ -543,7 +543,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         # Stop the panel before erasing its old frame, then reposition the animation.
         if lcd is getattr(self, '_boot_animation_lcd', None) and getattr(self, '_boot_animation_running', False):
             old_x = getattr(self, '_boot_animation_x', 16)
-            lcd.configure_animation(0, False, 9, 250, 253, old_x, 320, 10)
+            lcd.configure_animation(0, False, 9, 250, 254, old_x, 320, 10)
         self._boot_animation_running = False
         lcd.draw_rectangle(1, 0x0000, 16, 320, 255, 339)
         x = (272 - (len(message)*8 + 24)) // 2
@@ -551,7 +551,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                       x+24, 322, message)
         # The panel cycles stock frames; the host sends no per-frame updates.
         if value < 100:
-            lcd.configure_animation(0, True, 9, 250, 253, x, 320, 10)
+            lcd.configure_animation(0, True, 9, 250, 254, x, 320, 10)
             self._boot_animation_running = True
         self._boot_animation_x = x
         self._boot_animation_lcd = lcd
