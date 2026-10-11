@@ -7,7 +7,7 @@
 | File | Purpose |
 |---|---|
 | `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power, Display, the homing popup and the shared empty spool |
-| `klipperdwin_atlas_1.jpg` | Compact sizes of the shared spool icon |
+| `klipperdwin_atlas_1.jpg` | Empty reserve; no icons currently use it |
 | `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
 | `spool-empty.png` | Shared 42×52 empty spool sprite: wooden flanges and a thin gray hub |
 | `display-settings.png` | Original transparent Display icon sprite |
@@ -31,3 +31,15 @@ Run from the repository root. Use a **separate output filename**; the tool rejec
 ## Screenshots
 
 User-interface screenshots belong in `docs/assets/screens/`, not this artwork folder. Follow the [capture guide](../docs/ui-emulator.md) and preserve original 272×480 PNG output.
+
+## After reinstalling panel resources
+
+Atlases use Picture Flash slots 5 and 6. The second atlas is not uploaded while empty. A panel resource reinstall can leave stale atlas version metadata. Run these commands over SSH as the service user:
+
+```bash
+sudo systemctl stop KlipperDWIN.service
+~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_atlases.py --force
+sudo systemctl start KlipperDWIN.service
+```
+
+The tool reads the UART device from `~/.config/KlipperDWIN/KlipperDWIN.env`; override it with `--serial-port /dev/ttyS0` if needed. It rewrites only active atlases and updates their version records, preserving display settings.

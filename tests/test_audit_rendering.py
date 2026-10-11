@@ -10,7 +10,7 @@ class AuditRenderingTests(unittest.TestCase):
         # Simulate startup having synchronized and loaded the managed atlas.
         result.lcd._atlas_synced = True
         result.lcd._atlas_virtual_areas_loaded = True
-        result.lcd._virtual_area_pictures = {0: 14}
+        result.lcd._virtual_area_pictures = {0: 5}
         return result
 
     def test_mcu_headings_copy_chip_from_atlas_including_unavailable_heading(self):

@@ -22,7 +22,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         opcodes = [f[1] for f in v.lcd.serial.frames]
         self.assertEqual(v._mmu_page, 'gates')
         self.assertEqual(opcodes.count(0x3D), 1)
-        self.assertEqual(v.lcd._virtual_area_pictures, {0: 14})
+        self.assertEqual(v.lcd._virtual_area_pictures, {0: 5})
         self.assertFalse(set(opcodes) & {0x22, 0x25, 0x31, 0x32, 0x33})
         v.pd.subscription.request.assert_not_called()
 
@@ -67,7 +67,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         self.assertIn(0x27, opcodes)
         self.assertEqual(opcodes.count(0x25), 0)  # No second atlas is loaded.
         self.assertFalse(set(opcodes) & {0x31, 0x32, 0x33})
-        self.assertEqual(restored._virtual_area_pictures, {0: 14})
+        self.assertEqual(restored._virtual_area_pictures, {0: 5})
         self.assertEqual(v.pd.subscription.request.call_count, 1)
         self.assertIsNotNone(v.pd.mmu_session.pending)
 

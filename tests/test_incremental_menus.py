@@ -66,10 +66,10 @@ class IncrementalMenuTests(unittest.TestCase):
         v.lcd = driver()
         v.lcd._atlas_synced = True
         v.lcd._atlas_virtual_areas_loaded = True
-        v.lcd._virtual_area_pictures = {0: 14}
+        v.lcd._virtual_area_pictures = {0: 5}
         model = Framebuffer(PanelAssets())
         v.lcd._packet_observer = model
-        v.lcd.show_jpeg(14)
+        v.lcd.show_jpeg(5)
         entries = self.entries()
         v._draw_list_menu('List', entries, 5)
         for selection in (6, 7, 6, 5, 1, 0):

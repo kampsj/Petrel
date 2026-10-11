@@ -11,7 +11,7 @@ def driver():
     lcd._atlas_specs, lcd._atlas_icons = lcd._build_atlas_config()
     lcd._atlas_synced = True
     lcd._atlas_virtual_areas_loaded = True
-    lcd._virtual_area_pictures = {0: 14, 1: 15}
+    lcd._virtual_area_pictures = {0: 5, 1: 6}
     return lcd
 
 
@@ -59,7 +59,7 @@ class PopupRenderingTests(unittest.TestCase):
         assets.icon = Mock(side_effect=AssertionError("stock icon must not be used"))
         model = Framebuffer(assets)
         view.lcd._packet_observer = model
-        view.lcd.show_jpeg(14)
+        view.lcd.show_jpeg(5)
         view.Popup_Window_Home()
         view.lcd.update()
         image, _ = model.snapshot()

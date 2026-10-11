@@ -135,7 +135,7 @@ class T5UIC1Display:
 
     def __init__(self, port, baudrate=115200, handshake_timeout=1.0,
                  handshake_attempts=3, wake_delay=0.750, startup_progress=None,
-                 packet_observer=None):
+                 packet_observer=None, force_atlases=False):
         if not isinstance(baudrate, int) or baudrate <= 0:
             raise ValueError("baudrate must be positive")
         if not math.isfinite(handshake_timeout) or handshake_timeout <= 0:
@@ -181,7 +181,10 @@ class T5UIC1Display:
             # Failure is non-fatal to the normal LCD UI and automatic retry is
             # blocked for this connection/process to protect Flash endurance.
             # Virtual areas are still populated lazily by draw_atlas_icon().
-            self._startup_sync_atlases()
+            if force_atlases:
+                self._startup_sync_atlases(force=True)
+            else:
+                self._startup_sync_atlases()
             if self._atlas_synced:
                 self.load_atlases(preserve_boot_splash=True)
                 if startup_progress is not None:
@@ -811,6 +814,7 @@ class T5UIC1Display:
         Coordinates are in the portrait virtual-area coordinate space after
         the panel's runtime orientation has been applied.
         """
+        stock_layout = atlas_files is None
         if atlas_files is None:
             atlas_files = lcd_atlas.ATLAS_FILES
         if icon_coordinates is None:
@@ -831,6 +835,8 @@ class T5UIC1Display:
                 raise ValueError("atlas JPEG path must be non-empty")
             if not isinstance(picture_id, int) or not 0 <= picture_id <= 15:
                 raise ValueError("atlas Picture Flash ID must be 0..15")
+            if stock_layout and picture_id in lcd_atlas.STOCK_RESERVED_PICTURE_IDS:
+                raise ValueError("atlas Picture Flash ID overlaps stock JPEG/icon resources")
             if picture_id in picture_ids:
                 raise ValueError("atlas Picture Flash IDs must be unique")
             picture_ids.add(picture_id)
@@ -969,13 +975,15 @@ class T5UIC1Display:
         logging.info("Atlas metadata: Data Flash update verified")
         return verified
 
-    def _startup_sync_atlases(self):
+    def _startup_sync_atlases(self, *, force=False):
         """Perform the single automatic atlas-sync attempt for this connection.
 
         Atlas persistence is optional to the base LCD transport. A metadata or
         picture programming error must not turn the normal 5-second UART
         reconnect path into a Flash-write loop.
         """
+        if force:
+            return self.sync_atlases(force=True)
         try:
             result = self.sync_atlases(allow_missing=True, automatic=True)
         except Exception:
@@ -986,7 +994,7 @@ class T5UIC1Display:
             return False
         return result
 
-    def sync_atlases(self, *, allow_missing=False, automatic=False):
+    def sync_atlases(self, *, allow_missing=False, automatic=False, force=False):
         """Synchronize changed host atlas JPEGs into reserved Picture Flash.
 
         The metadata is checkpointed after every successful Picture Flash
@@ -997,6 +1005,9 @@ class T5UIC1Display:
         most once per host-process lifetime. This guards the UART reconnect
         path against rapid repeated Flash programming. Manual/explicit calls
         may bypass that guard deliberately.
+
+        force=True rewrites all active atlas images after a panel resource reload,
+        even if persistent metadata still matches. Display settings are untouched.
 
         allow_missing is used only by startup to tolerate a repository update
         where the manifest has landed before its binary JPEG assets.
@@ -1045,7 +1056,7 @@ class T5UIC1Display:
 
         changed = [
             area for area in sorted(desired)
-            if current.get(area) != desired[area]
+            if force or current.get(area) != desired[area]
         ]
         changed_set = set(changed)
         for area in sorted(desired):
@@ -1058,7 +1069,7 @@ class T5UIC1Display:
         # manifest. Each successful picture write is checkpointed immediately.
         committed = {
             area: entry for area, entry in current.items()
-            if area in desired
+            if area in desired and not (force and area in changed_set)
         }
 
         for area in changed:

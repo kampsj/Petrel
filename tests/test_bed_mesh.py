@@ -629,7 +629,7 @@ class MeshPacketTests(unittest.TestCase):
         driver=make_driver();driver._needs_update=False
         driver._atlas_synced=True
         driver._atlas_virtual_areas_loaded=True
-        driver._virtual_area_pictures={0:14}
+        driver._virtual_area_pictures={0:5}
         view.lcd=driver
         view.pd.bed_mesh.status=payload()['status']['bed_mesh']
         view.pd.bed_mesh.mesh=MeshData.current(view.pd.bed_mesh.status)

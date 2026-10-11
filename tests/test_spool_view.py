@@ -118,10 +118,10 @@ class SpoolViewTests(unittest.TestCase):
             with self.subTest(width=width):
                 lcd = driver()
                 lcd._atlas_synced = lcd._atlas_virtual_areas_loaded = True
-                lcd._virtual_area_pictures = {0: 14, 1: 15}
+                lcd._virtual_area_pictures = {0: 5, 1: 6}
                 model = Framebuffer(assets)
                 lcd._packet_observer = model
-                lcd.show_jpeg(14)
+                lcd.show_jpeg(5)
                 spool = SpoolView(lcd, 80, 60, width, remaining_percent=100,
                                   color=0xF800, label_width=max(28, width))
                 for percent, color in ((100, 0xF800), (99, 0xF800), (25, 0xF800),

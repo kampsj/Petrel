@@ -7,7 +7,7 @@
 | Dosya | Amaç |
 |---|---|
 | `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç, Display, homing penceresi ve ortak boş makara |
-| `klipperdwin_atlas_1.jpg` | Ortak makara ikonunun dar boyutları |
+| `klipperdwin_atlas_1.jpg` | Boş yedek atlas; şu anda hiçbir ikon kullanmıyor |
 | `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
 | `spool-empty.png` | Ortak 42×52 boş makara sprite’ı: ahşap kenarlar ve ince gri merkez |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |
@@ -31,3 +31,15 @@ Repo kökünden çalıştırın. **Ayrı çıktı adı** kullanın; araç kaynak
 ## Ekran görüntüleri
 
 Kullanıcı arayüzü ekran görüntüleri bu görsel klasörüne değil `docs/assets/screens/` içine aittir. [Görüntü alma rehberini](../docs/ui-emulator_TR.md) izleyin ve özgün 272×480 PNG çıktısını koruyun.
+
+## Panel kaynaklarını yeniden yükledikten sonra
+
+Atlaslar Picture Flash 5 ve 6 konumlarını kullanır. İkinci atlas boş olduğu sürece yüklenmez. Panel kaynaklarını yeniden yükledikten sonra eski atlas sürüm kaydı hâlâ durabilir. SSH üzerinden servis kullanıcısı olarak şu komutları çalıştırın:
+
+```bash
+sudo systemctl stop KlipperDWIN.service
+~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_atlases.py --force
+sudo systemctl start KlipperDWIN.service
+```
+
+Araç UART aygıtını `~/.config/KlipperDWIN/KlipperDWIN.env` dosyasından okur; gerekirse `--serial-port /dev/ttyS0` ile belirtin. Yalnız aktif atlasları yeniden yazar ve sürüm kayıtlarını günceller; ekran ayarlarını korur.

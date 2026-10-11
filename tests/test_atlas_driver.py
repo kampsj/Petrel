@@ -37,6 +37,15 @@ def configured_driver(directory, data_a=JPEG_A, data_b=JPEG_B):
 
 
 class AtlasDriverTests(unittest.TestCase):
+    def test_default_atlas_slots_cannot_overwrite_stock_icon_library(self):
+        from unittest.mock import patch
+        with patch.dict(lcd_atlas.ATLAS_FILES, {0: ("assets/klipperdwin_atlas_0.jpg", 15)}):
+            with self.assertRaisesRegex(ValueError, "overlaps stock"):
+                T5UIC1Display._build_atlas_config()
+        slots = {spec[1] for spec in lcd_atlas.ATLAS_FILES.values()}
+        self.assertEqual(slots, {5, 6})
+        self.assertFalse(slots & lcd_atlas.STOCK_RESERVED_PICTURE_IDS)
+
     def test_shipped_info_atlas_is_baseline_and_has_visible_icons(self):
         from PIL import Image
 
@@ -142,8 +151,8 @@ class AtlasDriverTests(unittest.TestCase):
         self.assertEqual(
             lcd_atlas.ATLAS_FILES,
             {
-                0: ("assets/klipperdwin_atlas_0.jpg", 14),
-                1: ("assets/klipperdwin_atlas_1.jpg", 15),
+                0: ("assets/klipperdwin_atlas_0.jpg", 5),
+                1: ("assets/klipperdwin_atlas_1.jpg", 6),
             },
         )
 
@@ -312,6 +321,30 @@ class AtlasDriverTests(unittest.TestCase):
         lcd.write_sram.assert_not_called()
         lcd.store_sram_as_picture.assert_not_called()
         lcd._commit_atlas_metadata.assert_not_called()
+
+    def test_force_reloads_matching_versions_without_erasing_display_settings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lcd, _, _ = configured_driver(tmp)
+            _, desired = lcd._atlas_payloads()
+            lcd.read_flash = Mock(return_value=lcd._pack_atlas_metadata(desired))
+            lcd.write_sram = Mock()
+            lcd.store_sram_as_picture = Mock()
+            lcd.write_flash = Mock()
+            lcd._commit_atlas_metadata = Mock(side_effect=lambda data: data)
+            self.assertTrue(lcd.sync_atlases(force=True))
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [14, 15])
+            first = lcd._unpack_atlas_metadata(lcd._commit_atlas_metadata.call_args_list[0].args[0])
+            self.assertEqual(set(first), {0})
+            self.assertTrue(lcd._atlas_synced)
+            lcd.write_flash.assert_not_called()
+
+    def test_explicit_force_startup_propagates_upload_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lcd, _, _ = configured_driver(tmp)
+            lcd.sync_atlases = Mock(side_effect=RuntimeError('upload failed'))
+            with self.assertRaisesRegex(RuntimeError, 'upload failed'):
+                lcd._startup_sync_atlases(force=True)
+            lcd.sync_atlases.assert_called_once_with(force=True)
 
     def test_only_the_changed_atlas_is_rewritten(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -24,10 +24,14 @@ ICON_DISPLAY = 0x0108
 ICON_HOMING = 0x0109
 ICON_SPOOL_EMPTY = 0x010A
 
+# JPEGs and ICO libraries share 32 KiB Picture Flash blocks.
+# Stock pictures occupy 0..2; 9.ICO spans the upper blocks, including 14/15.
+STOCK_RESERVED_PICTURE_IDS = frozenset((0, 1, 2, *range(9, 16)))
+
 # virtual_area: (repo-relative JPEG path, reserved Picture Flash ID)
 ATLAS_FILES = {
-    0: ("assets/klipperdwin_atlas_0.jpg", 14),
-    1: ("assets/klipperdwin_atlas_1.jpg", 15),
+    0: ("assets/klipperdwin_atlas_0.jpg", 5),
+    1: ("assets/klipperdwin_atlas_1.jpg", 6),
 }
 
 # icon_id: (virtual_area, source_x, source_y, width, height)

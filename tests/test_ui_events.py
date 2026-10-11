@@ -335,7 +335,7 @@ class DisplayIntegrationTests(unittest.TestCase):
                 self._atlas_synced = True
                 self._atlas_virtual_areas_loaded = True
                 self._atlas_sync_blocked = False
-                self._virtual_area_pictures = {0: 14}
+                self._virtual_area_pictures = {0: 5}
 
         encoder = Mock()
         encoder.getValue.return_value = 0

@@ -95,8 +95,8 @@ class EmulatorRenderingTests(unittest.TestCase):
         view = display(snapshot()); view.lcd = self.lcd; view.checkkey = view.MainMenu
         self.lcd._atlas_synced = True
         self.lcd._atlas_virtual_areas_loaded = True
-        self.lcd._virtual_area_pictures = {0: 14}
-        self.lcd.show_jpeg(14)
+        self.lcd._virtual_area_pictures = {0: 5}
+        self.lcd.show_jpeg(5)
         view._draw_home_page(); view.Draw_Status_Area(False); self.lcd.update()
         home, _ = self.model.snapshot()
         # Atlas MMU is at source (0,0), fourth home tile at (145,246).
@@ -117,13 +117,13 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertNotEqual(self.model.snapshot()[0].tobytes(), home.tobytes())
 
     def test_atlas_rotation_and_both_cache_areas(self):
-        self.lcd.show_jpeg(14)
-        self.lcd.cache_jpeg(15, 1)
+        self.lcd.show_jpeg(5)
+        self.lcd.cache_jpeg(6, 1)
         self.lcd.clear(0x001F)
         self.lcd.copy_cache(0, 224, 32, 243, 51, 10, 20, background=True)
         self.lcd.copy_cache1(0, 0, 9, 9, 40, 50)
         self.lcd.update(); image, _ = self.model.snapshot()
-        atlas = self.assets.picture(14).transpose(Image.Transpose.ROTATE_270)
+        atlas = self.assets.picture(5).transpose(Image.Transpose.ROTATE_270)
         self.assertEqual(image.crop((10, 20, 30, 40)).tobytes(), atlas.crop((224, 32, 244, 52)).tobytes())
         self.assertEqual(image.crop((40, 50, 50, 60)).tobytes(), self.model.areas[1].crop((0, 0, 10, 10)).tobytes())
         self.assertEqual(image.getpixel((0, 0)), (0, 0, 255))
