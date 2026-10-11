@@ -108,7 +108,7 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 
 1. XYZ home edin ve **Prepare → Move** ile nozulu uygun kalibrasyon XY noktasına götürün.
 2. **Control → Probe calibration → Start at current XY** açın.
-3. Normal kağıt testi yönteminizi kullanarak **Raise/Lower 0.1** ve **Raise/Lower 0.01** ile kontrollü Z ayarları yapın.
+3. Z yüksekliğini izleyerek kağıt testi için işaretli **Z adımlarından** 0.005, 0.01, 0.05, 0.1 veya 1 mm seçin. Düğmeyi çevirerek **Accept/Abort** seçeneklerine kaydırın. `-- / - / + / ++` seçenekleri Klipper'ın arama adımlarını kullanır.
 4. Uygunsa **Accept**, oturumu iptal etmek için **Abort** seçin.
 5. Accept sonrası kalıcı kayıt için **Save: restart Klipper**, kaydetmeden çıkmak için **Leave unsaved** seçin.
 
