@@ -37,7 +37,8 @@ class ProbeWizard:
     def _submit(self, action, script, dispatch_guard=None):
         guard = motion_dispatch_guard(self.printer, owner='probe_wizard',
                                       manual_active=action in ('step', 'accept', 'abort'), position=action == 'step')
-        future = self.printer.sendGCode(script, dispatch_guard=dispatch_guard or guard)
+        future = self.printer.subscription.request('printer.gcode.script', {'script': script},
+                                                   guard=dispatch_guard or guard)
         self.pending = (action, future, time.monotonic())
         self.message = 'Waiting for ' + action
         return future
@@ -49,8 +50,6 @@ class ProbeWizard:
             raise ValueError('Another calibration is running')
         if self.active():
             raise ValueError('Another manual probe is active')
-        if self.printer.state.status['configfile'].get('save_config_pending'):
-            raise ValueError('Resolve existing config changes first')
         if not all(axis in self.printer.state.status['toolhead'].get('homed_axes', '') for axis in 'xyz'):
             raise ValueError('Home XYZ before calibration')
         settings = self.printer.state.settings
@@ -58,17 +57,22 @@ class ProbeWizard:
         if self.section is None:
             raise ValueError('Probe configuration is unidentified')
         self.epoch = self.printer.state.epoch
+        self.accepted_offset = None
         self.phase = 'starting'
         return self._submit('start', 'PROBE_CALIBRATE')
 
     def testz(self, distance):
         self._guard()
-        distance = float(distance)
+        if distance in ('--', '-', '+', '++'):
+            step = distance
+        else:
+            distance = float(distance)
+            if not math.isfinite(distance) or abs(distance) not in (.005, .01, .05, .1, 1):
+                raise ValueError('Use a supported TESTZ step')
+            step = '{:g}'.format(distance)
         if self.phase != 'active' or not self.active():
             raise ValueError('Owned manual probe is not active')
-        if not math.isfinite(distance) or distance not in (-.1, -.01, .01, .1):
-            raise ValueError('Use a supported TESTZ step')
-        return self._submit('step', 'TESTZ Z={:g}'.format(distance))
+        return self._submit('step', 'TESTZ Z=' + step)
 
     def accept(self):
         self._guard()
@@ -108,6 +112,7 @@ class ProbeWizard:
                 self.message = 'Manual probe ended externally'
             return
         action, future, started = self.pending
+        timeout = 180 if action == 'start' else 30
         if future.done():
             if future.cancelled() or future.exception():
                 self.pending = None
@@ -128,17 +133,17 @@ class ProbeWizard:
                     self.accepted_offset = items[self.section]['z_offset']
                     self.phase, self.message = 'accepted', 'Offset accepted; save separately'
                 else:
-                    if time.monotonic() - started <= 30:
+                    if time.monotonic() - started <= timeout:
                         return
                     self.phase, self.message = 'error', 'Accept failed; no probe offset'
             elif action == 'save':
                 self.phase, self.message = 'saved', 'Save requested; Klipper restarts'
             else:
-                if time.monotonic() - started <= 30:
+                if time.monotonic() - started <= timeout:
                     return
                 self.phase, self.message = 'interrupted', 'Result unconfirmed; check printer'
             self.pending = None
-        elif time.monotonic() - started > 30:
+        elif time.monotonic() - started > timeout:
             future.cancel()
             self.pending = None
             self.phase, self.message = 'interrupted', 'Command unconfirmed; check printer'

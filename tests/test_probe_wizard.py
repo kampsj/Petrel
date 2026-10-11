@@ -1,6 +1,6 @@
 from concurrent.futures import Future
 import unittest
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 
 import probe_wizard
 from test_capabilities import snapshot, printer, display
@@ -17,7 +17,7 @@ def data():
 class ProbeTests(unittest.TestCase):
     def printer(self):
         result = printer(data())
-        result.sendGCode.side_effect = lambda *a, **k: Future()
+        result.subscription.request.side_effect = lambda *a, **k: Future()
         return result
 
     def status(self, result, active, pending=None):
@@ -39,7 +39,7 @@ class ProbeTests(unittest.TestCase):
     def test_start_requires_homing_and_never_auto_homes_or_moves_z_zero(self):
         result = self.printer()
         future = result.probe_wizard.start()
-        result.sendGCode.assert_called_once_with('PROBE_CALIBRATE', dispatch_guard=ANY)
+        result.subscription.request.assert_called_once_with('printer.gcode.script', {'script': 'PROBE_CALIBRATE'}, guard=ANY)
         self.assertEqual(result.probe_wizard.phase, 'starting')
         future.set_result('ok')
         result.probe_wizard.update()
@@ -54,7 +54,7 @@ class ProbeTests(unittest.TestCase):
         blocked.update_variable()
         with self.assertRaises(ValueError):
             blocked.probe_wizard.start()
-        blocked.sendGCode.assert_not_called()
+        blocked.subscription.request.assert_not_called()
 
     def test_testz_requires_owned_session_and_serializes_steps(self):
         result = self.printer()
@@ -62,7 +62,7 @@ class ProbeTests(unittest.TestCase):
             result.probe_wizard.testz(-.01)
         result = self.started()
         future = result.probe_wizard.testz(-.01)
-        self.assertEqual(result.sendGCode.call_args.args[0], 'TESTZ Z=-0.01')
+        self.assertEqual(result.subscription.request.call_args.args[1]['script'], 'TESTZ Z=-0.01')
         with self.assertRaises(ValueError):
             result.probe_wizard.testz(-.1)
         future.set_result('ok')
@@ -77,9 +77,9 @@ class ProbeTests(unittest.TestCase):
         self.status(result, False, {'bltouch': {'z_offset': '2.100'}})
         result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'accepted')
-        self.assertNotIn('SAVE_CONFIG', [call.args[0] for call in result.sendGCode.call_args_list])
+        self.assertNotIn('SAVE_CONFIG', [call.args[1]['script'] for call in result.subscription.request.call_args_list])
         result.probe_wizard.save()
-        self.assertEqual(result.sendGCode.call_args.args[0], 'SAVE_CONFIG')
+        self.assertEqual(result.subscription.request.call_args.args[1]['script'], 'SAVE_CONFIG')
 
     def test_unsuccessful_accept_response_does_not_allow_save(self):
         result = self.started()
@@ -100,10 +100,10 @@ class ProbeTests(unittest.TestCase):
         self.status(result, False)
         result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'idle')
-        self.assertEqual(result.sendGCode.call_args.args[0], 'ABORT')
+        self.assertEqual(result.subscription.request.call_args.args[1]['script'], 'ABORT')
 
     def test_external_session_existing_changes_and_print_block_start(self):
-        for active, pending, state in ((True, {}, 'standby'), (False, {'extruder': {'pid_kp': '1'}}, 'standby'), (False, {}, 'printing')):
+        for active, pending, state in ((True, {}, 'standby'), (False, {}, 'printing')):
             result = self.printer()
             source = data()
             source['status']['manual_probe']['is_active'] = active
@@ -113,7 +113,7 @@ class ProbeTests(unittest.TestCase):
             result.update_variable()
             with self.assertRaises(ValueError):
                 result.probe_wizard.start()
-            result.sendGCode.assert_not_called()
+            result.subscription.request.assert_not_called()
 
     def test_epoch_change_does_not_replay_commands(self):
         result = self.started()
@@ -123,7 +123,7 @@ class ProbeTests(unittest.TestCase):
         result.update_variable()
         result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'interrupted')
-        result.sendGCode.assert_called_once()
+        result.subscription.request.assert_called_once()
         with self.assertRaises(ValueError):
             result.probe_wizard.testz(.1)
 
@@ -145,4 +145,62 @@ class ProbeTests(unittest.TestCase):
             self.status(result, False, pending)
             with self.assertRaises(ValueError):
                 result.probe_wizard.save()
-            self.assertNotIn('SAVE_CONFIG', [call.args[0] for call in result.sendGCode.call_args_list])
+            self.assertNotIn('SAVE_CONFIG', [call.args[1]['script'] for call in result.subscription.request.call_args_list])
+
+
+class ProbeRegressionTests(unittest.TestCase):
+    printer = ProbeTests.printer
+    status = ProbeTests.status
+    started = ProbeTests.started
+    def test_pending_mesh_does_not_block_start_or_trigger_save(self):
+        result = self.printer()
+        self.status(result, False, {'bed_mesh default': {'points': 'old'}})
+        result.probe_wizard.start()
+        result.subscription.request.assert_called_once_with('printer.gcode.script',
+            {'script': 'PROBE_CALIBRATE'}, guard=ANY)
+        result.sendGCode.assert_not_called()
+
+    def test_long_probe_start_is_not_failed_after_http_timeout(self):
+        result = self.printer()
+        future = result.probe_wizard.start()
+        started = result.probe_wizard.pending[2]
+        with patch.object(probe_wizard.time, 'monotonic', return_value=started+45):
+            result.probe_wizard.update()
+            self.assertEqual(result.probe_wizard.phase, 'starting')
+            future.set_result('ok')
+            self.status(result, True)
+            result.probe_wizard.update()
+        self.assertEqual(result.probe_wizard.phase, 'active')
+
+    def test_all_small_and_bracket_steps_dispatch_once(self):
+        result = self.started()
+        for step in (-.005, .005, -.01, .01, -.05, .05, -.1, .1, -1, 1, '--', '-', '+', '++'):
+            before = result.subscription.request.call_count
+            future = result.probe_wizard.testz(step)
+            token = step if isinstance(step, str) else '{:g}'.format(step)
+            self.assertEqual(result.subscription.request.call_args.args[1], {'script': 'TESTZ Z='+token})
+            self.assertEqual(result.subscription.request.call_count, before+1)
+            future.set_result('ok')
+            result.probe_wizard.update()
+
+    def test_ui_keeps_feedback_separate_and_scrolls_to_accept_abort(self):
+        view = display(data())
+        view.pd = self.started()
+        source = data()
+        source['status']['manual_probe'] = {'is_active': True, 'z_position': 5.982}
+        view.pd.subscription.snapshot.return_value = source
+        view.pd.update_variable()
+        view.checkkey = view.ProbeWizardID
+        options = view._probe_options()
+        self.assertEqual([label for label, _ in options][-2:], ['Accept', 'Abort'])
+        view._probe_selection = len(options)-1
+        view.pd.probe_wizard.message = 'Command failed; check printer and calibration point'
+        view.Draw_Probe_Wizard()
+        texts = [c.args for c in view.lcd.draw_text.call_args_list]
+        self.assertIn('Z: 5.982 mm', [a[-1] for a in texts])
+        self.assertIn('Abort', [a[-1] for a in texts])
+        self.assertTrue(all(0 <= a[5] and a[5]+len(a[-1])* (6 if a[6] in (60,74) else 8) <= 272 for a in texts))
+        self.assertTrue(all(a[6] < 90 or 100 <= a[6] <= 314 for a in texts))
+        view.lcd.reset_mock()
+        view.Draw_Probe_Wizard()
+        view.lcd.update.assert_not_called()

@@ -1392,6 +1392,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.Draw_Motion_Menu()
             if self.select_control.now == self.CONTROL_CASE_PROBE:
                 self.checkkey = self.ProbeWizardID
+                self._drawn_probe_wizard = None
                 self._probe_selection = 0
                 self.Draw_Probe_Wizard()
             if self.select_control.now == self.CONTROL_CASE_RECOVERY:
@@ -2130,11 +2131,11 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if wizard.pending:
             return ()
         if wizard.phase == 'active':
-            return (('Raise 0.1', lambda: wizard.testz(.1)),
-                    ('Lower 0.1', lambda: wizard.testz(-.1)),
-                    ('Raise 0.01', lambda: wizard.testz(.01)),
-                    ('Lower 0.01', lambda: wizard.testz(-.01)),
-                    ('Accept', wizard.accept), ('Abort', wizard.abort))
+            moves = tuple(('TESTZ ' + step, lambda step=step: wizard.testz(step))
+                          for step in ('--', '-', '+', '++'))
+            moves += tuple(('Z {:+g} mm'.format(step), lambda step=step: wizard.testz(step))
+                           for step in (-.005, .005, -.01, .01, -.05, .05, -.1, .1, -1, 1))
+            return moves + (('Accept', wizard.accept), ('Abort', wizard.abort))
         if wizard.phase == 'accepted':
             return (('Save: restart Klipper', wizard.save), ('Leave unsaved', self._leave_probe))
         if wizard.phase in ('error', 'interrupted', 'saved'):
@@ -2142,21 +2143,42 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         return (('Start at current XY', wizard.start), ('Back', self._leave_probe))
 
     def _leave_probe(self):
+        self._drawn_probe_wizard = None
         self.checkkey = self.Control
         self.Draw_Control_Menu()
 
     def Draw_Probe_Wizard(self):
+        wizard = self.pd.probe_wizard
+        manual = self.pd.state.status.get('manual_probe', {})
+        signature = (wizard.phase, bool(wizard.pending), wizard.message,
+                     repr(manual), getattr(self, '_probe_selection', 0))
+        if signature == getattr(self, '_drawn_probe_wizard', None):
+            return
         self.Clear_Main_Window()
         self.Draw_Title('Probe calibration')
-        wizard = self.pd.probe_wizard
-        self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
-                             self.lcd.Color_Bg_Black, 8, 35, wizard.message[:42])
+        z = manual.get('z_position')
+        position = 'Z: {:.3f} mm'.format(z) if isinstance(z, (int, float)) else 'Z: ---'
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Black, 12, 38, position)
+        # Keep feedback above the controls, wrapping within the panel width.
+        import textwrap
+        message = T5UIC1Display._panel_text(wizard.message)
+        for line, text in enumerate(textwrap.wrap(message, 40)[:2]):
+            self.lcd.draw_text(False, False, self.lcd.font6x12, self.lcd.Color_White,
+                               self.lcd.Color_Bg_Black, 12, 60+line*14, text)
         options = self._probe_options()
-        self._probe_selection = max(0, min(getattr(self, '_probe_selection', 0), max(0, len(options) - 1)))
-        for row, (label, _) in enumerate(options):
-            self.Draw_Menu_Line(row, self.ICON_Zoffset, label)
-            if row == self._probe_selection:
-                self.Draw_Menu_Cursor(row)
+        selected = max(0, min(getattr(self, '_probe_selection', 0), max(0, len(options)-1)))
+        self._probe_selection = selected
+        first = max(0, selected-5)
+        for row, index in enumerate(range(first, min(len(options), first+6))):
+            y = 100+row*41
+            chosen = index == selected
+            background = self.lcd.Select_Color if chosen else self.lcd.Color_Bg_Black
+            self.lcd.draw_rectangle(1, background, 8, y, 263, y+35)
+            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                               background, 16, y+9, options[index][0])
+        self._drawn_probe_wizard = (wizard.phase, bool(wizard.pending), wizard.message,
+                                    repr(manual), selected)
         self.lcd.update()
 
     def HMI_Probe_Wizard(self):
@@ -2980,6 +3002,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             return
         self._poll_screws_tilt()
         self._poll_bed_mesh()
+        self.pd.probe_wizard.update()
         if self.pd.connection_error and self.checkkey in (self.BedMeshScreen, self.MeshProfiles):
             self._offline = True
             return
