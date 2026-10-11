@@ -1,4 +1,6 @@
-# KlipperDWIN
+<p align="center">
+  <img src="assets/klipperdwin-readme.png" width="600" alt="KlipperDWIN — Printer Display">
+</p>
 
 **Klipper yazıcınızı DWIN ekranı ve döner encoder ile kontrol edin.**
 

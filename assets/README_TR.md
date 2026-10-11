@@ -10,6 +10,7 @@
 | `klipperdwin_atlas_1.jpg` | Ayrılmış ikinci atlas |
 | `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |
+| `klipperdwin-readme.png` | Açılış görselinden uyarlanan README logo ve yazı başlığı |
 | [emulator/](emulator/README_TR.md) | Ekran görüntüleri için bilgisayar tarafı stok ikon ve font girdileri |
 
 Atlas dosya adları değişmemelidir. Atlas JPEG'leri fiziksel panel için **480×272 baseline JPEG**'dir; ikon konumları dikey **272×480** düzenindedir. Açılış görseli burada sağlanır; klasöre koymak tek başına panelin mevcut açılış görselini değiştirmez.

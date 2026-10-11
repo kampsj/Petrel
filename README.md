@@ -1,4 +1,6 @@
-# KlipperDWIN
+<p align="center">
+  <img src="assets/klipperdwin-readme.png" width="600" alt="KlipperDWIN — Printer Display">
+</p>
 
 **Control your Klipper printer from a DWIN display and rotary encoder.**
 

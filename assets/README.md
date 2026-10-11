@@ -10,6 +10,7 @@
 | `klipperdwin_atlas_1.jpg` | Reserved second atlas |
 | `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
 | `display-settings.png` | Original transparent Display icon sprite |
+| `klipperdwin-readme.png` | README logo and wordmark header adapted from the boot artwork |
 | [emulator/](emulator/README.md) | Host-side stock icon and font inputs for screenshots |
 
 Atlas filenames must stay unchanged. Atlas JPEGs are **480×272 baseline JPEGs** for the physical panel; icon positions are in the portrait **272×480** layout. The boot artwork is supplied here; placing it in this folder alone does not replace the panel's existing boot image.
