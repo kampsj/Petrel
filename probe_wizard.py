@@ -37,6 +37,12 @@ class ProbeWizard:
     def _submit(self, action, script, dispatch_guard=None):
         guard = motion_dispatch_guard(self.printer, owner='probe_wizard',
                                       manual_active=action in ('step', 'accept', 'abort'))
+        if action == 'start':
+            motion_guard = guard
+            def guard():
+                live = self.printer.subscription.snapshot()['status']['toolhead']
+                return (motion_guard() and all(a in live.get('homed_axes', '') for a in 'xyz')
+                        and all(abs(live['position'][a]-self.center[a]) <= .05 for a in (0,1)))
         future = self.printer.subscription.request('printer.gcode.script', {'script': script},
                                                    guard=dispatch_guard or guard)
         self.pending = (action, future, time.monotonic())
@@ -44,14 +50,14 @@ class ProbeWizard:
         return future
 
     def start(self):
+        if self.phase in ('error', 'interrupted') and not self.pending and not self.active():
+            self.epoch = None
         self._guard()
         if (self.printer.bed_mesh.pending or self.printer.screws_tilt.pending
                 or getattr(getattr(self.printer, 'mmu_session', None), 'pending', None)):
             raise ValueError('Another calibration is running')
         if self.active():
             raise ValueError('Another manual probe is active')
-        if not all(axis in self.printer.state.status['toolhead'].get('homed_axes', '') for axis in 'xyz'):
-            raise ValueError('Home XYZ before calibration')
         settings = self.printer.state.settings
         self.section = 'bltouch' if 'bltouch' in settings else 'probe' if 'probe' in settings else None
         if self.section is None:
@@ -59,7 +65,43 @@ class ProbeWizard:
         self.epoch = self.printer.state.epoch
         self.accepted_offset = None
         self.phase = 'starting'
-        return self._submit('start', 'PROBE_CALIBRATE')
+        if not all(a in self.printer.state.status['toolhead'].get('homed_axes', '') for a in 'xyz'):
+            return self._submit('home', 'G28')
+        script, self.center = self._center_script()
+        return self._submit('center', script)
+
+    def _center_script(self):
+        p = self.printer
+        settings, status = p.state.settings, p.state.status
+        low, high = p.capabilities.axis_minimum, p.capabilities.axis_maximum
+        cfg = settings.get('bed_mesh', {})
+        def pair(value):
+            return tuple(map(float, value.split(',') if isinstance(value, str) else value))
+        if 'mesh_radius' in cfg:
+            bed_center = pair(cfg.get('mesh_origin', (0, 0)))
+        elif 'mesh_min' in cfg and 'mesh_max' in cfg:
+            mesh_low, mesh_high = pair(cfg['mesh_min']), pair(cfg['mesh_max'])
+            bed_center = tuple((a+b)/2 for a,b in zip(mesh_low, mesh_high))
+        else:
+            bed_center = tuple((max(0, low[a])+high[a])/2 for a in (0, 1))
+        probe = settings[self.section]
+        center = tuple(bed_center[a]-float(probe.get(('x_offset','y_offset')[a], 0)) for a in (0, 1))
+        if (len(center) != 2 or any(not math.isfinite(v) or not low[a] <= v <= high[a]
+                                  for a,v in enumerate(center))):
+            raise ValueError('Probe cannot reach bed center; check offsets')
+        homed = status['toolhead'].get('homed_axes', '')
+        lift = max(5.0, float(status['toolhead']['position'][2])) if 'z' in homed else 5.0
+        if not math.isfinite(lift) or not low[2] <= lift <= high[2]:
+            raise ValueError('Insufficient Z clearance for calibration')
+        gm = status['gcode_move']
+        origin = gm.get('homing_origin', (0,0,0))
+        if 'gcode_position' in gm:
+            origin = tuple(gm['position'][a]-gm['gcode_position'][a] for a in range(3))
+        xyz = (center[0]-origin[0], center[1]-origin[1], lift-origin[2])
+        script = ('SAVE_GCODE_STATE NAME=LCD_PROBE_CENTER\nG90\n'
+                   'G1 Z{:.3f} F600\nG1 X{:.3f} Y{:.3f} F3000\n'
+                   'RESTORE_GCODE_STATE NAME=LCD_PROBE_CENTER MOVE=0\nM400').format(xyz[2],xyz[0],xyz[1])
+        return script, center
 
     def testz(self, distance):
         self._guard()
@@ -112,7 +154,7 @@ class ProbeWizard:
                 self.message = 'Manual probe ended externally'
             return
         action, future, started = self.pending
-        timeout = 180 if action == 'start' else 30
+        timeout = 180 if action in ('home', 'center', 'start') else 30
         if future.done():
             if future.cancelled() or future.exception():
                 self.pending = None
@@ -120,6 +162,33 @@ class ProbeWizard:
                 # Keep the controls available without replaying the failed step.
                 self.phase = 'active' if action == 'step' and self.active() else 'error'
                 self.message = 'Step not applied' if self.phase == 'active' else 'Command failed; check printer'
+                return
+            if action == 'home':
+                if not all(a in state.status['toolhead'].get('homed_axes', '') for a in 'xyz'):
+                    if time.monotonic()-started <= timeout: return
+                    self.pending = None
+                    self.phase, self.message = 'error', 'Homing not confirmed'
+                    return
+                self.pending = None
+                script, self.center = self._center_script()
+                self._submit('center', script)
+                return
+            if action == 'center':
+                live = self.printer.subscription.snapshot()
+                toolhead = live['status']['toolhead']
+                if (live['state'] != 'ready' or live['epoch'] != self.epoch
+                        or not all(a in toolhead.get('homed_axes', '') for a in 'xyz')):
+                    if time.monotonic()-started <= timeout: return
+                    self.pending = None
+                    self.phase, self.message = 'error', 'Homing not confirmed'
+                    return
+                if any(abs(toolhead['position'][a]-self.center[a]) > .05 for a in (0, 1)):
+                    if time.monotonic()-started <= timeout: return
+                    self.pending = None
+                    self.phase, self.message = 'error', 'Center position not confirmed'
+                    return
+                self.pending = None
+                self._submit('start', 'PROBE_CALIBRATE')
                 return
             if action == 'start' and self.active():
                 self.phase, self.message = 'active', 'Adjust with TESTZ; then Accept'

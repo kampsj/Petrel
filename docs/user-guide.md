@@ -106,8 +106,8 @@ Open **Home → Leveling**. With a configured probe, **Bed Mesh Calibrate** home
 
 ## Probe-offset calibration
 
-1. Home XYZ and position the nozzle at an appropriate calibration XY point using **Prepare → Move**.
-2. Open **Control → Probe calibration → Start at current XY**.
+1. Ensure the bed is clear for calibration. The screen homes XYZ when needed, raises Z for clearance and moves the probe to the configured bed center before probing.
+2. Open **Control → Probe calibration → Start**.
 3. Watch the live Z height between the lower and upper tested positions. Turn the knob to select one of the four **-- / - / + / ++** buttons and press it to move using Klipper's search steps.
 4. Select **Accept** when satisfied, or **Cancel** to cancel the session.
 5. After Accept, choose **Save** to persist the offset and restart Klipper, or **Continue** to leave it unsaved.

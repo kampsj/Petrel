@@ -2134,7 +2134,11 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                          for step in ('--', '-', '+', '++')) + (('Cancel', wizard.abort), ('Accept', wizard.accept))
         if wizard.phase == 'accepted':
             return (('Save', wizard.save), ('Continue', self._leave_probe))
-        if wizard.phase in ('error', 'interrupted', 'saved'):
+        if wizard.phase in ('error', 'interrupted'):
+            if self.pd.state.ready and not self.pd.connection_error and not wizard.active():
+                return (('Retry', wizard.start), ('Back', self._leave_probe))
+            return (('Back', self._leave_probe),)
+        if wizard.phase == 'saved':
             return (('Back', self._leave_probe),)
         return (('Start', wizard.start), ('Back', self._leave_probe))
 

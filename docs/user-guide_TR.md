@@ -107,7 +107,7 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 ## Probe offset kalibrasyonu
 
 1. XYZ home edin ve **Prepare → Move** ile nozulu uygun kalibrasyon XY noktasına götürün.
-2. **Control → Probe calibration → Start at current XY** açın.
+2. **Control → Probe calibration → Start** açın.
 3. Alt ve üst denenmiş konumların arasında canlı Z yüksekliğini izleyin. Düğmeyi çevirerek dört **-- / - / + / ++** butonundan birini seçin ve basarak Klipper'ın arama adımlarıyla hareket edin.
 4. Uygunsa **Accept**, oturumu iptal etmek için **Cancel** seçin.
 5. Accept sonrası kalıcı kayıt ve Klipper'ı yeniden başlatmak için **Save**, kaydetmeden çıkmak için **Continue** seçin.

@@ -23,6 +23,8 @@ class ProbeTests(unittest.TestCase):
     def status(self, result, active, pending=None):
         source = data()
         source['status']['manual_probe']['is_active'] = active
+        if hasattr(result.probe_wizard, 'center'):
+            source['status']['toolhead']['position'][:2] = result.probe_wizard.center
         if pending is not None:
             source['status']['configfile'] = dict(save_config_pending=bool(pending), save_config_pending_items=pending)
         result.subscription.snapshot.return_value = source
@@ -32,29 +34,35 @@ class ProbeTests(unittest.TestCase):
         result = self.printer()
         future = result.probe_wizard.start()
         future.set_result('ok')
+        self.status(result, False)
+        result.probe_wizard.update()
+        result.probe_wizard.pending[1].set_result('ok')
         self.status(result, True)
         result.probe_wizard.update()
         return result
 
-    def test_start_requires_homing_and_never_auto_homes_or_moves_z_zero(self):
+    def test_start_centers_probe_before_calibration_and_homes_when_needed(self):
         result = self.printer()
         future = result.probe_wizard.start()
-        result.subscription.request.assert_called_once_with('printer.gcode.script', {'script': 'PROBE_CALIBRATE'}, guard=ANY)
-        self.assertEqual(result.probe_wizard.phase, 'starting')
+        script = result.subscription.request.call_args.args[1]['script']
+        self.assertIn('G1 X125.000 Y130.000', script)
+        self.assertLess(script.index('G1 Z5.000'), script.index('G1 X'))
+        self.assertNotIn('PROBE_CALIBRATE', script)
         future.set_result('ok')
         result.probe_wizard.update()
-        self.assertEqual(result.probe_wizard.phase, 'starting')
+        self.assertEqual(result.subscription.request.call_count, 1)
+        self.status(result, False)
+        result.probe_wizard.update()
+        result.subscription.request.assert_called_with('printer.gcode.script', {'script':'PROBE_CALIBRATE'}, guard=ANY)
+        result.probe_wizard.pending[1].set_result('ok')
         self.status(result, True)
         result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'active')
-        blocked = self.printer()
-        source = data()
-        source['status']['toolhead']['homed_axes'] = 'xy'
-        blocked.subscription.snapshot.return_value = source
-        blocked.update_variable()
-        with self.assertRaises(ValueError):
-            blocked.probe_wizard.start()
-        blocked.subscription.request.assert_not_called()
+        unhomed = self.printer()
+        source = data(); source['status']['toolhead']['homed_axes'] = 'xy'
+        unhomed.subscription.snapshot.return_value = source; unhomed.update_variable()
+        unhomed.probe_wizard.start()
+        self.assertEqual(unhomed.subscription.request.call_args.args[1], {'script':'G28'})
 
     def test_testz_requires_owned_session_and_serializes_steps(self):
         result = self.printer()
@@ -107,6 +115,8 @@ class ProbeTests(unittest.TestCase):
             result = self.printer()
             source = data()
             source['status']['manual_probe']['is_active'] = active
+        if hasattr(result.probe_wizard, 'center'):
+            source['status']['toolhead']['position'][:2] = result.probe_wizard.center
             source['status']['configfile']['save_config_pending'] = bool(pending)
             source['status']['print_stats']['state'] = state
             result.subscription.snapshot.return_value = source
@@ -123,7 +133,7 @@ class ProbeTests(unittest.TestCase):
         result.update_variable()
         result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'interrupted')
-        result.subscription.request.assert_called_once()
+        self.assertEqual(result.subscription.request.call_count, 2)
         with self.assertRaises(ValueError):
             result.probe_wizard.testz(.1)
 
@@ -156,8 +166,7 @@ class ProbeRegressionTests(unittest.TestCase):
         result = self.printer()
         self.status(result, False, {'bed_mesh default': {'points': 'old'}})
         result.probe_wizard.start()
-        result.subscription.request.assert_called_once_with('printer.gcode.script',
-            {'script': 'PROBE_CALIBRATE'}, guard=ANY)
+        self.assertIn('G1 X125.000 Y130.000', result.subscription.request.call_args.args[1]['script'])
         result.sendGCode.assert_not_called()
 
     def test_long_probe_start_is_not_failed_after_http_timeout(self):
@@ -168,6 +177,9 @@ class ProbeRegressionTests(unittest.TestCase):
             result.probe_wizard.update()
             self.assertEqual(result.probe_wizard.phase, 'starting')
             future.set_result('ok')
+            self.status(result, False)
+            result.probe_wizard.update()
+            result.probe_wizard.pending[1].set_result('ok')
             self.status(result, True)
             result.probe_wizard.update()
         self.assertEqual(result.probe_wizard.phase, 'active')
@@ -254,9 +266,68 @@ class RepeatedProbeStepTests(unittest.TestCase):
             result.probe_wizard.update()
             self.assertEqual(result.probe_wizard.phase, 'active' if active else 'error')
             self.assertIsNone(result.probe_wizard.pending)
-            self.assertEqual(result.subscription.request.call_count, 2)
+            self.assertEqual(result.subscription.request.call_count, 3)
             if active:
                 result.probe_wizard.update()
-                self.assertEqual(result.subscription.request.call_count, 2)
-                result.probe_wizard.testz('-')
                 self.assertEqual(result.subscription.request.call_count, 3)
+                result.probe_wizard.testz('-')
+                self.assertEqual(result.subscription.request.call_count, 4)
+
+
+class ProbeCenterSafetyTests(unittest.TestCase):
+    printer = ProbeTests.printer
+    status = ProbeTests.status
+
+    def test_center_accounts_for_probe_offsets_and_dispatch_rechecks_position(self):
+        result = self.printer()
+        source = data()
+        source['settings']['bed_mesh'] = {'mesh_min':[10,20], 'mesh_max':[210,220]}
+        source['settings']['bltouch'].update(x_offset=-40, y_offset=-10)
+        result.subscription.snapshot.return_value = source; result.update_variable()
+        future = result.probe_wizard.start()
+        self.assertEqual(result.probe_wizard.center, (150,130))
+        self.assertIn('G1 X150.000 Y130.000', result.subscription.request.call_args.args[1]['script'])
+        future.set_result('ok')
+        result.probe_wizard.update()
+        self.assertEqual(result.subscription.request.call_count, 1)
+        source['status']['toolhead']['position'][:2] = (150,130)
+        result.update_variable(); result.probe_wizard.update()
+        guard = result.subscription.request.call_args.kwargs['guard']
+        self.assertTrue(guard())
+        source['status']['toolhead']['position'][0] = 250
+        self.assertFalse(guard())
+
+    def test_unreachable_center_sends_no_motion(self):
+        result = self.printer(); source = data()
+        source['settings']['bltouch']['x_offset'] = -1000
+        result.subscription.snapshot.return_value = source; result.update_variable()
+        with self.assertRaises(ValueError): result.probe_wizard.start()
+        result.subscription.request.assert_not_called()
+
+    def test_failed_homing_never_probes_and_ready_printer_can_retry(self):
+        from moonraker_client import MoonrakerError
+        result = self.printer(); source = data()
+        source['status']['toolhead']['homed_axes'] = ''
+        result.subscription.snapshot.return_value = source; result.update_variable()
+        result.probe_wizard.start().set_exception(MoonrakerError('homing failed'))
+        result.probe_wizard.update()
+        self.assertEqual(result.probe_wizard.phase, 'error')
+        self.assertEqual(result.subscription.request.call_count, 1)
+        result.probe_wizard.start()
+        self.assertEqual(result.subscription.request.call_args.args[1], {'script':'G28'})
+        view = display(data()); view.pd = result
+        result.probe_wizard.pending = None; result.probe_wizard.phase = 'error'
+        self.assertEqual([label for label,_ in view._probe_options()], ['Retry','Back'])
+
+    def test_homing_completion_requires_referenced_axes_before_center_move(self):
+        result = self.printer(); source = data()
+        source['status']['toolhead']['homed_axes'] = ''
+        result.subscription.snapshot.return_value = source; result.update_variable()
+        result.probe_wizard.start().set_result('ok')
+        result.probe_wizard.update()
+        self.assertEqual(result.subscription.request.call_count, 1)
+        source['status']['toolhead']['homed_axes'] = 'xyz'
+        result.update_variable(); result.probe_wizard.update()
+        self.assertEqual(result.subscription.request.call_count, 2)
+        self.assertIn('G1 X125.000 Y130.000',result.subscription.request.call_args.args[1]['script'])
+        self.assertNotIn('PROBE_CALIBRATE',result.subscription.request.call_args.args[1]['script'])
