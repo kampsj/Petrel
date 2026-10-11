@@ -24,7 +24,7 @@ class HomePageTests(unittest.TestCase):
             self.assertEqual(view.select_page.now,index)
         view.lcd.reset_mock();view._draw_home_page()
         icons=[c.args[1:] for c in view.lcd.show_icon.call_args_list]
-        self.assertEqual(icons,[(view.ICON_Info,62,271)])
+        self.assertEqual(icons,[(view.ICON_Info_0,17,246)])
         self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,5)
         self.step(view,view.ENCODER_DIFF_CW)
@@ -47,7 +47,7 @@ class HomePageTests(unittest.TestCase):
         for _ in range(8):self.step(view,view.ENCODER_DIFF_CW)
         self.assertEqual(view.select_page.now,5)
         view.lcd.reset_mock();view._draw_home_page()
-        self.assertIn((view.ICON_Info,190,155),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        self.assertIn((view.ICON_Info_1,145,130),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
         self.assertFalse(any(c.args[-1]=='1/1' for c in view.lcd.draw_text.call_args_list))
 
     def test_home_info_enter_returns_to_same_page(self):
@@ -59,7 +59,7 @@ class HomePageTests(unittest.TestCase):
         view.HMI_Info()
         self.assertEqual(view.checkkey,view.MainMenu)
         self.assertEqual(view.select_page.now,6)
-        self.assertIn((view.ICON_Info,62,271),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        self.assertIn((view.ICON_Info_1,17,246),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
 
     def test_control_info_returns_to_control(self):
         view=self.make();view.checkkey=view.Control
@@ -119,7 +119,7 @@ class HomePageTests(unittest.TestCase):
         view.pd.subscription.snapshot.return_value=source
         view.pd.update_variable()
         view._draw_home_page();self.assertEqual(view.select_page.now,5)
-        self.assertIn((view.ICON_Info,190,155),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
+        self.assertIn((view.ICON_Info_1,145,130),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
 
     def test_mmu_entry_and_back_preserve_home_selection(self):
         for mesh in (True, False):

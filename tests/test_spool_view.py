@@ -9,15 +9,6 @@ from dwin_emulator.framebuffer import Framebuffer
 
 
 class SpoolViewTests(unittest.TestCase):
-    def test_info_home_tile_uses_available_info_icon(self):
-        from test_capabilities import display
-        view = display({})
-        index = next(i for i, entry in enumerate(view._home_entries()) if entry[0] == 'INFO')
-        view.select_page.set(index)
-        view._draw_home_page()
-        self.assertTrue(any(call.args[1] == view.ICON_Info
-                            for call in view.lcd.show_icon.call_args_list))
-
     def test_color_and_percentage_belong_to_each_instance(self):
         lcd = Mock()
         a = SpoolView(lcd, 10, 10, color=0xF800, remaining_percent=50)
