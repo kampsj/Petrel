@@ -55,27 +55,32 @@ class BootSplashTests(unittest.TestCase):
         self.assertFalse(animation[-1][6] & 0x80)
         self.assertFalse(v._boot_active)
 
-    def test_boot_text_changes_do_not_move_restart_or_erase_animation(self):
+    def test_boot_animation_stops_before_erasing_and_restarts_at_centered_position(self):
         v = self.view()
         v._draw_boot_progress(40)
-        start = next(f for f in v.lcd.serial.frames if f[1] == 0x28)
-        self.assertEqual(int.from_bytes(start[2:4], 'big'), 16)
+        old_x = v._boot_animation_x
         for message in ('Preparing menus', 'Waiting for printer data'):
             v.lcd.serial.frames.clear()
             v._draw_boot_progress(80, message=message)
-            self.assertFalse(any(f[1] == 0x28 for f in v.lcd.serial.frames))
-            text = next(f for f in v.lcd.serial.frames if f[1] == 0x11)
-            self.assertEqual(int.from_bytes(text[7:9], 'big'), 40)
-            for f in v.lcd.serial.frames:
-                if f[1] == 0x05 and int.from_bytes(f[7:9], 'big') == 320:
-                    self.assertEqual(int.from_bytes(f[5:7], 'big'), 40)
+            frames = v.lcd.serial.frames
+            animations = [(i,f) for i,f in enumerate(frames) if f[1] == 0x28]
+            self.assertEqual(len(animations), 2)
+            stop_i, stop = animations[0]
+            start_i, start = animations[1]
+            self.assertFalse(stop[6] & 0x80)
+            self.assertEqual(int.from_bytes(stop[2:4], 'big'), old_x)
+            clear_i = next(i for i,f in enumerate(frames)
+                           if f[1] == 0x05 and int.from_bytes(f[7:9], 'big') == 320)
+            self.assertLess(stop_i, clear_i)
+            self.assertLess(clear_i, start_i)
+            old_x = (272-(len(message)*8+24))//2
+            self.assertEqual(int.from_bytes(start[2:4], 'big'), old_x)
+            self.assertTrue(start[6] & 0x80)
         v.lcd.serial.frames.clear()
         v._draw_boot_progress(100)
-        opcodes = [f[1] for f in v.lcd.serial.frames]
-        stop = opcodes.index(0x28)
-        clear = next(i for i,f in enumerate(v.lcd.serial.frames)
-                     if f[1] == 0x05 and int.from_bytes(f[7:9], 'big') == 320)
-        self.assertLess(stop, clear)
+        animations = [f for f in v.lcd.serial.frames if f[1] == 0x28]
+        self.assertEqual(len(animations), 1)
+        self.assertFalse(animations[0][6] & 0x80)
 
     def test_unchanged_wait_does_not_repaint_or_fake_completion(self):
         v = self.view()
