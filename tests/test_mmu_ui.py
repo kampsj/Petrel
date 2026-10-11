@@ -653,6 +653,38 @@ class MMUUITests(unittest.TestCase):
         self.assertEqual(v._mmu_page, 'home')
         v.pd.subscription.request.assert_not_called()
 
+    def test_scrolling_uses_panel_move_and_preserves_row_pixels(self):
+        from test_t5uic1_driver import driver
+        from dwin_emulator.assets import PanelAssets
+        from dwin_emulator.framebuffer import Framebuffer
+        count = 12
+        v, _ = self.make(num_gates=count, gate_status=[1]*count,
+                         gate_color_rgb=[[1,0,0]]*count, ttg_map=list(range(count)))
+        v.lcd = driver()
+        v.lcd._atlas_synced = True
+        v.lcd._atlas_virtual_areas_loaded = True
+        v.lcd._virtual_area_pictures = {0: 14}
+        model = Framebuffer(PanelAssets())
+        v.lcd._packet_observer = model
+        v.lcd.show_jpeg(14)
+        v._mmu_canvas_page = None
+        v._mmu_page = 'gates'
+        v._mmu_selection = 8
+        v.Draw_MMU_Menu()
+        for selection in (9, 10, 9, 2, 1):
+            with self.subTest(selection=selection):
+                previous_start = v._mmu_list_window[3]
+                v.lcd.serial.frames.clear()
+                v._mmu_selection = selection
+                v.Draw_MMU_Menu()
+                if v._mmu_list_window[3] != previous_start:
+                    self.assertTrue(any(f[1] == 0x09 for f in v.lcd.serial.frames))
+                image = model.snapshot()[0].tobytes()
+                for row in range(8):
+                    v._mmu_render.pop('row%d' % row, None)
+                v.Draw_MMU_Menu()
+                self.assertEqual(image, model.snapshot()[0].tobytes())
+
     def test_scroll_all_gates_and_operation_rows(self):
         count = 12
         v, _ = self.make(num_gates=count, gate_status=[1]*count,

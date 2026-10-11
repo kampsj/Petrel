@@ -514,6 +514,8 @@ class MMUViewMixin:
         page = self._mmu_page
         m = self.pd.mmu_session.state
         if getattr(self, '_mmu_canvas_page', None) != page:
+            self._list_render = None
+            self._mmu_list_window = None
             self.lcd.draw_rectangle(1, 0x0000, 0, 0, 271, 479)
             self.lcd.draw_rectangle(1, 0x1105, 0, 0, 271, 29)
             self._mmu_canvas_page, self._mmu_render = page, {}
@@ -725,7 +727,31 @@ class MMUViewMixin:
                               self._mmu_selection == i + 1, enabled)
             first_y = None
         if first_y is not None:
-            start = max(0, self._mmu_selection - visible)
+            window = getattr(self, '_mmu_list_window', None)
+            keys = tuple(item[0] for item in items)
+            same = window is not None and window[:3] == (page, first_y, visible) and window[4] == keys
+            start = window[3] if same else 0
+            start = max(0, min(start, max(0, self._mmu_selection - 1)), self._mmu_selection - visible)
+            delta = start - window[3] if same else 0
+            if delta and abs(delta) < visible:
+                # Remove the old highlight before moving the LCD pixels.
+                for row in range(visible):
+                    sig = self._mmu_render.get('row%d' % row)
+                    if sig and sig[2]:
+                        self._mmu_row('row%d' % row, sig[0], sig[1], sig[4], sig[5], sig[6], False, sig[3])
+                self.lcd.move_area(1,
+                    self.DWIN_SCROLL_UP if delta > 0 else self.DWIN_SCROLL_DOWN,
+                    abs(delta) * 43, 0x0000, 8, first_y, 263, first_y + visible * 43 - 1)
+                shifted = {}
+                for row in range(visible):
+                    sig = self._mmu_render.pop('row%d' % row, None)
+                    target = row - delta
+                    if sig is not None and 0 <= target < visible:
+                        sig = list(sig)
+                        sig[5] -= delta * 43
+                        shifted['row%d' % target] = tuple(sig)
+                self._mmu_render.update(shifted)
+            self._mmu_list_window = (page, first_y, visible, start, keys)
             for row in range(visible):
                 i = start + row
                 if i < len(items):
