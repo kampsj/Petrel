@@ -1,6 +1,8 @@
-# MMU / master LCD driver integration
+# Historical MMU / master LCD driver integration
 
-Date: 2026-10-08. Branch: `feature/mmu-menu`.
+Date: 2026-10-08. Branch at the time: `feature/mmu-menu`.
+
+This is a historical integration record, not the current usage guide. For current MMU controls, see [English](mmu-guide.md) or [Türkçe](mmu-guide_TR.md).
 
 ## Compared revisions
 
@@ -43,5 +45,5 @@ were redesigned by this integration. The earlier A01–A06/A08 audit fixes remai
 
 The tests cover actual driver packet generation with fake UART/network/GPIO;
 they do not run on a physical LCD/Pi or execute printer movement. Follow the
-[physical test checklist](../tests/README.md#mmu-with-the-complete-t5uic1-driver)
+[physical test checklist](../tests/README.md#hardware-validation)
 on the integrated branch before merging the MMU feature into master.

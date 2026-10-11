@@ -1,5 +1,9 @@
 # T5UIC1 LCD configuration and protocol reference
 
+[Documentation index](README.md) · [Türkçe dizin](README_TR.md)
+
+Optional technical reference for panel firmware and resource work. For installation and everyday controls, start with the [user guides](README.md#user-guides).
+
 KlipperDWIN targets the DWIN **T5UIC1** command-driven display used by the
 Ender 3 V2 family. This document covers the complete LCD-side configuration
 surface used by this project: kernel firmware, `T5UIC1.CFG` hardware

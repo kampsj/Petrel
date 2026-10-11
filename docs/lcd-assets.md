@@ -1,50 +1,23 @@
-# LCD compatibility and asset inventory
+# LCD compatibility
 
-KlipperDWIN targets the **272×480 DWIN T5UIC1** display layout. A matching
-icon library and English bitmap sheet must already be installed on the panel.
-The installer does not flash LCD firmware or install display assets.
+[English](lcd-assets.md) · [Türkçe](lcd-assets_TR.md) · [Documentation](README.md)
 
-## Required layout
+## Supported display
 
-- Icon library **9** (`9.ICO`).
-- Display direction **1**, giving a 272×480 coordinate space.
-- Stock icon library **9** remains panel-resident; KlipperDWIN custom icons are
-  managed separately in persistent Picture Flash atlases.
-- Virtual areas **0** and **1** are owned exclusively by the managed atlas
-  driver. Upper UI code must not populate or copy legacy language JPEG caches.
+KlipperDWIN targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable.
 
-The audited English JPEG is stored as 480×272; clockwise rotation yields the
-portrait coordinate space. Its raw landscape dimensions alone do not indicate
-incompatibility. A replacement icon library does not establish bitmap-sheet
-compatibility. DWIN, DACAI and TJC packages are not interchangeable.
+The physical panel needs the matching stock icon library **9 (`9.ICO`)**, fonts and English bitmap resources. Display direction is **1**. Custom KlipperDWIN artwork is supplied separately with the application; see the [artwork guide](../assets/README.md).
 
-## Inventory and verification
+## Before installing or replacing a panel
 
-[lcd-assets.json](lcd-assets.json) records the audited stock file SHA-256 hashes,
-icon dimensions and the historical audited source regions. The inventory covers 91 stock icon IDs;
-regression tests keep the current stock icon constants compatible with that inventory.
-This does not identify the exact files installed on an individual panel.
+Check the controller family and installed resource pack, not just the screen size. The application installer does not flash LCD kernel firmware or install the stock font/icon pack. For panel firmware work, use the optional [T5UIC1 reference](t5uic1-reference.md).
 
-Dynamic text is sanitized/transliterated for the stock ASCII fonts. Coordinates,
-string payloads and numeric fields are bounded; numeric overflow draws markers
-instead of silently changing the value. UART recovery redraws the screen without
-replaying printer commands.
+After setup, inspect menu labels/icons, colors, preview images and encoder navigation on the physical display. A working emulator screenshot does not guarantee that a different panel/resource pack renders the same way.
 
-## Print-preview images
+## Print previews
 
-Preview images do not require a new asset pack. Moonraker thumbnails are converted
-to baseline **128×128 JPEG**, preserving aspect ratio on black. The driver uploads
-JPEG bytes through command **0x31** in chunks of at most **128 bytes**, then displays
-them from SRAM using **0x24**.
+Previews come from Moonraker and do not need a new panel asset pack. Missing thumbnails do not prevent starting a print. Images are prepared again after restarting or reconnecting; they do not replace installed icons.
 
-The cache allocator manages **32 KiB (32768 bytes)** of volatile SRAM. Images are
-published only after their complete upload; entries are discarded after a panel
-or backend reconnection. No flash writes or installed-icon replacement occur.
-Direct JPEG display and preview caching have been exercised on the user's panel;
-other kernel/asset combinations still need physical verification.
+## Resource identification
 
-## Physical checks
-
-Verify menu icons, bitmap labels, text bounds, colors and JPEG display on the
-actual panel. Passing mocked UART packet tests validates framing and routing,
-not screen-side rendering or compatibility with every panel firmware.
+The [stock inventory](lcd-assets.json) records the resources previously audited for this project. It does not identify the files installed on your own panel. Contributor artwork and emulator font-selection instructions are linked from the [documentation index](README.md).
