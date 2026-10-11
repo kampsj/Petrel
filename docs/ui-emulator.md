@@ -63,8 +63,8 @@ an error instead of claiming a valid capture. Screenshots survive service exits.
 | `DWIN_SCREENSHOT_DIRECTORY` | `--screenshot-directory` | Output directory |
 | `DWIN_EMULATOR_FONT` | `--emulator-font` | HZK font matching the physical LCD |
 
-The socket defaults to `$XDG_RUNTIME_DIR/KlipperDWIN-emulator/control.sock`, or
-`~/.cache/KlipperDWIN-emulator/control.sock` if XDG_RUNTIME_DIR is unset. Its
+The socket always defaults to `~/.cache/KlipperDWIN-emulator/control.sock`,
+independent of XDG_RUNTIME_DIR, so systemd and SSH sessions agree. Its
 directory must be owned by the service user with permissions 0700; the socket
 uses 0600. Pass the same custom path to `screenshot.py --socket PATH`.
 Only local screenshot requests are accepted; there is no TCP port or browser.

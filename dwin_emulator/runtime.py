@@ -12,8 +12,8 @@ from uuid import uuid4
 
 
 def default_socket():
-    base = Path(os.environ.get('XDG_RUNTIME_DIR', Path.home() / '.cache'))
-    return base / 'KlipperDWIN-emulator' / 'control.sock'
+    # SSH login sessions and systemd services often have different XDG values.
+    return Path.home() / '.cache' / 'KlipperDWIN-emulator' / 'control.sock'
 
 
 class Emulator:

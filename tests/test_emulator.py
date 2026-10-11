@@ -235,3 +235,16 @@ class EmulatorLifecycleTests(unittest.TestCase):
             path.write_text('keep')
             with self.assertRaises(ValueError): ScreenshotServer(Emulator(), path)
             self.assertEqual(path.read_text(), 'keep')
+
+
+class EmulatorSocketPathTests(unittest.TestCase):
+    def test_systemd_and_ssh_use_same_default_socket(self):
+        from dwin_emulator.runtime import default_socket
+        import os
+        with patch.dict(os.environ, {'XDG_RUNTIME_DIR': '/run/user/1000'}):
+            ssh = default_socket()
+        with patch.dict(os.environ, {}, clear=True):
+            with patch('dwin_emulator.runtime.Path.home', return_value=Path.home()):
+                service = default_socket()
+        self.assertEqual(ssh, service)
+        self.assertEqual(ssh, Path.home() / '.cache/KlipperDWIN-emulator/control.sock')
