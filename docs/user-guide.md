@@ -96,7 +96,7 @@ The screws are adjusted by you; the screen measures and gives instructions. This
   <img src="assets/screens/mesh-pei.png" width="240" alt="Mesh height map">
 </p>
 
-Open **Home → Leveling**. With a configured probe, **Bed Mesh Calibrate** homes missing axes and measures the bed. After measurement, inspect the colored height map and minimum/maximum Z values.
+Open **Home → Leveling → Bed Mesh**. With a configured probe, **Calibrate** homes missing axes and measures the bed. After measurement, inspect the colored height map and minimum/maximum Z values.
 
 - **Continue** returns to the menu and keeps the measured mesh for the current session.
 - **Save** asks you to confirm the profile and restart. The measured mesh is saved as a generated `lcd_mesh_N` profile; Klipper restarts. Unrelated pending configuration changes can block saving.
