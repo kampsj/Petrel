@@ -1,6 +1,7 @@
 from concurrent.futures import Future
 from dataclasses import replace
-from threading import Event
+from threading import Event, Thread
+import json
 from unittest.mock import Mock, patch
 import unittest
 from test_capabilities import snapshot, display
@@ -154,6 +155,45 @@ class BuzzerMenuTests(unittest.TestCase):
 
 
 class SoundWorkerTests(unittest.TestCase):
+    def test_tick_stops_while_subscription_receiver_is_blocked(self):
+        from moonraker_subscription import MoonrakerSubscription
+        source = data()
+        client = MoonrakerSubscription('http://localhost:7125', autostart=False)
+        self.addCleanup(client.close)
+        entered, release, off = Event(), Event(), Event()
+        commands = []
+        connection = Mock()
+        def receive(control_frame=True):
+            entered.set()
+            release.wait(2)
+            return 10, b''
+        def send(raw):
+            command = json.loads(raw)['params']['script']
+            commands.append(command)
+            if command.endswith('VALUE=0'):
+                off.set()
+        connection.recv_data.side_effect = receive
+        connection.send.side_effect = send
+        client._socket = connection
+        client._state = 'ready'
+        client._settings = source['settings']
+        client._objects = source['objects']
+        receiver = Thread(target=client._receive)
+        receiver.start()
+        player = Player(client)
+        try:
+            self.assertTrue(entered.wait(1))
+            self.assertTrue(player.play(Settings('Buzzer'), 'rotate'))
+            self.assertTrue(off.wait(.5), 'Off must not wait for the one-second receive timeout')
+            self.assertTrue(receiver.is_alive())
+            self.assertEqual(commands, ['SET_PIN PIN=Buzzer VALUE=0.25 CYCLE_TIME=0.00055556',
+                                        'SET_PIN PIN=Buzzer VALUE=0'])
+            self.assertTrue(client._outbound.empty())
+        finally:
+            release.set()
+            receiver.join(2)
+            player.close()
+
     def subscription(self):
         source = data(); subscription = Mock()
         subscription.snapshot.side_effect = lambda: source
@@ -170,7 +210,7 @@ class SoundWorkerTests(unittest.TestCase):
                 (off if params['script'].endswith('VALUE=0') else sent).set()
                 future.set_result(None)
             return future
-        subscription.notify.side_effect = notify
+        subscription.notify_immediate.side_effect = notify
         with patch('buzzer_control.PATTERNS', ((), (), ((1000, 10),))):
             player = Player(subscription); self.addCleanup(player.close)
             self.assertTrue(player.play(Settings('buzzer', 100), 'press'))
@@ -188,7 +228,7 @@ class SoundWorkerTests(unittest.TestCase):
             self.assertFalse(player.play(value, 'press'))
         source['state'] = 'disconnected'
         self.assertFalse(player.play(Settings('Buzzer'), 'press'))
-        subscription.notify.assert_not_called()
+        subscription.notify_immediate.assert_not_called()
 
     def test_epoch_change_prevents_stop_from_touching_new_session(self):
         subscription, source = self.subscription()
@@ -199,7 +239,7 @@ class SoundWorkerTests(unittest.TestCase):
                 commands.append(params['script']); sent.set(); future.set_result(None)
             else: future.set_exception(ValueError('stale'))
             return future
-        subscription.notify.side_effect = notify
+        subscription.notify_immediate.side_effect = notify
         with patch('buzzer_control.PATTERNS', ((), (), ((1000, 10),))):
             player = Player(subscription); self.addCleanup(player.close)
             player.play(Settings('Buzzer'), 'press'); self.assertTrue(sent.wait(1))

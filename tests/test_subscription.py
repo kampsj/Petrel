@@ -57,6 +57,24 @@ class FakeSocket:
 
 
 class SubscriptionTests(unittest.TestCase):
+    def test_immediate_dispatch_rejects_invalid_guard_and_changed_connection(self):
+        client = self.subscription()
+        connection = FakeSocket()
+        client._socket = connection
+        client._state = 'ready'
+        with self.assertRaises(MoonrakerError):
+            client.notify_immediate('printer.gcode.script', {'script': 'SET_PIN PIN=Buzzer VALUE=0'},
+                                    guard=lambda: False).result()
+        def reconnect():
+            client._epoch += 1
+            client._socket = FakeSocket()
+            return True
+        with self.assertRaises(MoonrakerError):
+            client.notify_immediate('printer.gcode.script', {'script': 'SET_PIN PIN=Buzzer VALUE=0'},
+                                    guard=reconnect).result()
+        self.assertEqual(connection.sent, [])
+        self.assertEqual(client._socket.sent, [])
+
     def subscription(self, **kwargs):
         client = MoonrakerSubscription('http://localhost:7125', autostart=False, **kwargs)
         self.addCleanup(client.close)

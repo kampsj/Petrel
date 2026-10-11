@@ -106,7 +106,7 @@ class Player:
         def ready():
             snapshot = self.subscription.snapshot()
             return snapshot['state'] == 'ready' and snapshot['epoch'] == epoch and (guard is None or guard())
-        self.subscription.notify('printer.gcode.script', {'script': script}, guard=ready).result(timeout=1)
+        self.subscription.notify_immediate('printer.gcode.script', {'script': script}, guard=ready).result(timeout=1)
 
     def _run(self):
         while True:

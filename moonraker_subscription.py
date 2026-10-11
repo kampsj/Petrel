@@ -27,7 +27,7 @@ def connect(url, timeout, headers):
     import websocket
     try:
         return websocket.create_connection(url, timeout=timeout, header=headers,
-                                           redirect_limit=0)
+                                           redirect_limit=0, enable_multithread=True)
     except websocket.WebSocketException as exc:
         raise MoonrakerError('WebSocket connection failed') from exc
 
@@ -267,6 +267,34 @@ class MoonrakerSubscription:
             if not future.done():
                 future.set_exception(MoonrakerError(message))
             self._outbound.task_done()
+
+    def notify_immediate(self, method, params=None, guard=None):
+        """Dispatch from a worker without waiting for the receive loop.
+
+        Socket writes can block: never call this from the UI thread. The WebSocket
+        send lock serializes frames with queued commands and heartbeat frames.
+        """
+        future = Future()
+        try:
+            with self._lock:
+                connection, epoch = self._socket, self._epoch
+                if self._stop.is_set() or self._state != 'ready' or connection is None:
+                    raise MoonrakerError('Moonraker subscription is not ready')
+            if guard is not None and not guard():
+                raise MoonrakerError('Printer state changed before command dispatch')
+            with self._lock:
+                if (self._stop.is_set() or self._state != 'ready' or
+                        self._epoch != epoch or self._socket is not connection):
+                    raise MoonrakerError('Printer connection changed before command dispatch')
+            # Keep the state lock free during network I/O; use the captured socket
+            # so a reconnect cannot redirect an old sound into the new session.
+            connection.send(json.dumps({'jsonrpc': '2.0', 'method': method,
+                                        'params': params or {}}))
+            future.set_result(None)
+        except Exception as exc:
+            future.set_exception(exc if isinstance(exc, MoonrakerError)
+                                 else MoonrakerError('WebSocket command dispatch failed'))
+        return future
 
     def _drain_outbound(self):
         with self._lock:
