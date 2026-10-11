@@ -29,7 +29,7 @@ class RequirementPinTests(unittest.TestCase):
         }
         self.assertEqual(
             names,
-            {'gpiozero', 'lgpio', 'pyserial', 'websocket-client', 'pillow'},
+            {'gpiozero', 'lgpio', 'pyserial', 'websocket-client', 'pillow', 'qrcode'},
         )
 
 

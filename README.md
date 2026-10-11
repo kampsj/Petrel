@@ -310,6 +310,7 @@ Installed services read `~/.config/KlipperDWIN/KlipperDWIN.env`. This is a syste
 | `DWIN_SETTINGS_FILE` | `--settings-file` | `~/.config/KlipperDWIN/presets.json` | `$XDG_CONFIG_HOME/dwin-lcd/presets.json` or `~/.config/dwin-lcd/presets.json` |
 | `DWIN_POWER_DEVICE` | `--power-device` | `Printer` | `Printer` |
 | `DWIN_POWER_ON_HOLD_MS` | `--power-on-hold-ms` | `2000` | `2000` |
+| `DWIN_EMULATOR` | `--emulator` / `--no-emulator` | `0` | `0` |
 
 Bare defaults apply when no environment file or CLI value is supplied. For manual debugging, stop the service first so only one process owns UART/GPIO. This example explicitly uses the installer’s pins/device:
 
@@ -420,3 +421,7 @@ The Display menu provides **Brightness (0–100%)** and **Idle dim (Off or 1–6
 Idle dim uses your configured Dim brightness, capped at the normal brightness; the first encoder turn or press restores the configured brightness without activating a menu action. Off disables dimming. A 0% setting turns the backlight off; while editing, turn clockwise to raise it again. Settings survive panel power cycles. Brightness maps linearly to the driver's 0–255 range.
 
 Display settings use a versioned, CRC-protected 16-byte LCD Data Flash record at **0x0100–0x010F**. Atlas metadata retains **0x0000–0x003F**; neither region overlaps. Invalid/blank settings default to 100%, Off, and 10% dim brightness. Existing records preserve brightness and timeout and use 10% until you change the dim level. The menu uses existing 9.ICO sun (205) and clock (15) icons; atlas assets are unchanged.
+
+### Developer screenshots
+
+An optional framebuffer emulator mirrors the real LCD's UART packets without a live viewer. Enable `DWIN_EMULATOR=1` in the external service environment to capture timestamped, lossless 272x480 PNG/BMP files over SSH. It is disabled by default. See [setup, capture commands and fidelity limits](docs/ui-emulator.md). Dependencies are included in the normal installation; the environment file defaults to `DWIN_EMULATOR=0`. Change it to `1` to enable.

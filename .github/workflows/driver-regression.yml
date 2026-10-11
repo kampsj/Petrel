@@ -7,6 +7,7 @@ on:
       - refactor/t5uic1-complete-driver
       - feature/global-power-button
       - feature/mmu-menu
+      - feature/ui-emulator
 
 permissions:
   contents: read
@@ -22,7 +23,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install test dependencies
-        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3
+        run: python -m pip install pyserial==3.5 websocket-client==1.9.2 Pillow==12.3.0 gpiozero==2.0.1.post3 qrcode==8.2
       - name: Compile Python sources
         run: python -m compileall -q .
       - name: Run regression suite

@@ -66,6 +66,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
     sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh"
 else
     echo "Keeping existing configuration: $ENV_FILE"
+    sudo -u "$INSTALL_USER" "$VENV_DIR/bin/python" "$REPO_DIR/tools/env_defaults.py" "$ENV_FILE"
 fi
 
 supp_groups=()

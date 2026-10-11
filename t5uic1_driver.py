@@ -134,7 +134,8 @@ class T5UIC1Display:
     }
 
     def __init__(self, port, baudrate=115200, handshake_timeout=1.0,
-                 handshake_attempts=3, wake_delay=0.750, startup_progress=None):
+                 handshake_attempts=3, wake_delay=0.750, startup_progress=None,
+                 packet_observer=None):
         if not isinstance(baudrate, int) or baudrate <= 0:
             raise ValueError("baudrate must be positive")
         if not math.isfinite(handshake_timeout) or handshake_timeout <= 0:
@@ -160,8 +161,11 @@ class T5UIC1Display:
         self._atlas_synced = False
         self._atlas_virtual_areas_loaded = False
         self._atlas_sync_blocked = False
+        self._packet_observer = packet_observer
 
         try:
+            if packet_observer is not None:
+                packet_observer.reset_panel()
             time.sleep(wake_delay)
             for _ in range(handshake_attempts):
                 if self.handshake(handshake_timeout):
@@ -191,6 +195,9 @@ class T5UIC1Display:
         if not getattr(self, "_closed", False):
             self._closed = True
             self.serial.close()
+            observer = getattr(self, '_packet_observer', None)
+            if observer is not None:
+                observer.disconnect_panel()
 
     @staticmethod
     def _u8(value, name="value"):
@@ -237,6 +244,13 @@ class T5UIC1Display:
         if written != len(frame):
             self.close()
             raise IOError("Incomplete LCD frame write")
+        observer = getattr(self, '_packet_observer', None)
+        if observer is not None:
+            try:
+                observer.feed(frame)
+            except Exception:
+                # A developer observer must never interrupt the physical LCD.
+                logging.exception('LCD packet observer failed')
         self._needs_update = True
         time.sleep(0.001)
         return frame
