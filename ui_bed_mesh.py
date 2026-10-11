@@ -3,10 +3,9 @@ import math
 from t5uic1_driver import T5UIC1Display
 
 
-# Mainsail's default Portland palette and unscaled heightmap range.
+# Mainsail's HSV palette and unscaled heightmap range.
 # https://github.com/mainsail-crew/mainsail/blob/develop/src/store/gui/heightmap/getters.ts
-MESH_PALETTE = ('313695', '4575b4', '74add1', 'abd9e9', 'e0f3f8', 'ffffbf',
-                'fee090', 'fdae61', 'f46d43', 'd73027', 'a50026')
+MESH_PALETTE = ('0000ff', '00ffff', '00ff00', 'ffff00', 'ff0000')
 
 
 def mesh_color(z, minimum=-.1, maximum=.1):

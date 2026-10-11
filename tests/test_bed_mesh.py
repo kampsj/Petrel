@@ -414,9 +414,9 @@ class MeshViewTests(unittest.TestCase):
     def test_mesh_orientation_colors_radius_and_text_bounds(self):
         functions=self.make()._draw_mesh_grid.__globals__
         point_style,point_label=functions['point_style'],functions['point_label']
-        self.assertEqual(point_style(-.2,5)[0], 0x31B2)
-        self.assertEqual(point_style(0,5)[0], 0xFFF7)
-        self.assertEqual(point_style(.2,5)[0], 0xA004)
+        self.assertEqual(point_style(-.2,5)[0], 0x001F)
+        self.assertEqual(point_style(0,5)[0], 0x07E0)
+        self.assertEqual(point_style(.2,5)[0], 0xF800)
         self.assertLess(point_style(-.2,5)[1],point_style(.2,5)[1])
         view=self.make()
         view._draw_mesh_grid(3,3,{(0,0):-.12,(2,2):.12})
@@ -444,18 +444,17 @@ class MeshViewTests(unittest.TestCase):
                 self.assertGreaterEqual(y1,31);self.assertLessEqual(y2,300)
         self.assertEqual(point_label(123,5),'######')
 
-    def test_mainsail_portland_palette_stops_and_interpolation(self):
+    def test_mainsail_hsv_palette_stops_and_interpolation(self):
         from ui_bed_mesh import mesh_color
-        rgb = ('313695', '4575b4', '74add1', 'abd9e9', 'e0f3f8', 'ffffbf',
-               'fee090', 'fdae61', 'f46d43', 'd73027', 'a50026')
+        rgb = ('0000ff', '00ffff', '00ff00', 'ffff00', 'ff0000')
         for i, hex_color in enumerate(rgb):
             value = int(hex_color, 16)
             expected = (((value >> 19) & 31) << 11
                         | ((value >> 10) & 63) << 5 | ((value >> 3) & 31))
-            self.assertEqual(mesh_color(-.1+i*.02), expected)
+            self.assertEqual(mesh_color(-.1+i*.05), expected)
         self.assertEqual(mesh_color(-10), mesh_color(-.1))
         self.assertEqual(mesh_color(10), mesh_color(.1))
-        self.assertEqual(mesh_color(-.09), 0x3AB4)  # midpoint RGB 59,86,165
+        self.assertEqual(mesh_color(-.075), 0x041F)  # midpoint RGB 0,128,255
         self.assertNotEqual(mesh_color(-.005), mesh_color(0))
 
     def test_final_and_saved_mesh_colors_use_own_extrema(self):
