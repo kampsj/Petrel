@@ -354,6 +354,34 @@ class MeshViewTests(unittest.TestCase):
         view.pd.subscription.request.assert_called_with('printer.emergency_stop',{})
         self.assertEqual(view.pd.bed_mesh.phase,'stopping')
 
+    def test_button_navigation_preserves_mesh_and_only_moves_selection_border(self):
+        view = self.make()
+        view._start_bed_mesh(view.BedMeshMenu)
+        self.complete(view)
+        view.Draw_Bed_Mesh = Mock()
+        view._draw_mesh_grid = Mock()
+        for confirmation in (None, 'save', 'cancel'):
+            view._mesh_confirmation = confirmation
+            view._mesh_button_selection = 0
+            for event, selected in ((view.ENCODER_DIFF_CW, 1), (view.ENCODER_DIFF_CCW, 0)):
+                view.lcd.reset_mock()
+                self.event(view, event)
+                self.assertEqual(view._mesh_button_selection, selected)
+                view.Draw_Bed_Mesh.assert_not_called()
+                view._draw_mesh_grid.assert_not_called()
+                view.lcd.draw_text.assert_not_called()
+                view.lcd.draw_line.assert_not_called()
+                self.assertEqual(view.lcd.draw_rectangle.call_count, 2)
+                for call in view.lcd.draw_rectangle.call_args_list:
+                    mode, _, _, top, _, bottom = call.args
+                    self.assertEqual(mode, 0)
+                    self.assertEqual((top, bottom), (303, 345))
+                view.lcd.update.assert_called_once()
+            view.lcd.reset_mock()
+            self.event(view, view.ENCODER_DIFF_CCW)
+            view.lcd.draw_rectangle.assert_not_called()
+            view.lcd.update.assert_not_called()
+
     def test_save_confirmation_has_profile_and_restart_warning(self):
         view=self.make();view._start_bed_mesh(view.Prepare);self.complete(view)
         self.event(view,view.ENCODER_DIFF_ENTER)

@@ -265,8 +265,16 @@ class BedMeshMixin:
         confirmation = getattr(self, '_mesh_confirmation', None)
         two_buttons = bool(confirmation) or session.phase == 'complete'
         if two_buttons and event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
-            self._mesh_button_selection = 1 if event == self.ENCODER_DIFF_CW else 0
-            self.Draw_Bed_Mesh()
+            previous = getattr(self, '_mesh_button_selection', 0)
+            selected = 1 if event == self.ENCODER_DIFF_CW else 0
+            if selected != previous:
+                self._mesh_button_selection = selected
+                old_x, new_x = (26, 146)[previous], (26, 146)[selected]
+                self.lcd.draw_rectangle(0, self.lcd.Color_Bg_Black,
+                                        old_x-2, 303, old_x+101, 345)
+                self.lcd.draw_rectangle(0, self.lcd.Color_White,
+                                        new_x-2, 303, new_x+101, 345)
+                self.lcd.update()
             return
         if event != self.ENCODER_DIFF_ENTER:
             return
