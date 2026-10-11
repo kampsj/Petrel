@@ -1373,7 +1373,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self._probe_selection = 0
                 self.Draw_Probe_Wizard()
             if self.select_control.now == self.CONTROL_CASE_RECOVERY:
-                self._action('Restore jog state', self.pd.restore_jog_state)
+                self._action('Restore jog state', self.pd.restore_jog_state, silent=True)
             if self.select_control.now == self.CONTROL_CASE_LIGHT:
                 self.checkkey = self.CaseLight
                 self.select_light.reset()
@@ -1629,7 +1629,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
             self.checkkey = self.Tune
             self.encoderRate = True
-            self._action("Print speed", lambda: self.pd.set_feedrate(self.pd.HMI_ValueStruct.print_speed))
+            self._action("Print speed", lambda: self.pd.set_feedrate(self.pd.HMI_ValueStruct.print_speed), silent=True)
 
         self.lcd.draw_integer_text(
             True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black,
@@ -1922,7 +1922,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if event == self.ENCODER_DIFF_ENTER:
             value = self.pd.HMI_ValueStruct.Fan_speed
             if mode != -2:
-                self._action("Fan speed", lambda: self.pd.setFanSpeed(value))
+                self._action("Fan speed", lambda: self.pd.setFanSpeed(value), silent=True)
                 self.checkkey = self.TemperatureID if mode == -1 else self.Tune
                 self.Draw_Temperature_Menu() if mode == -1 else self.Draw_Tune_Menu()
         elif event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
@@ -1970,7 +1970,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                     3, 216, self.MBASE(temp_line),
                     self.pd.HMI_ValueStruct.E_Temp
                 )
-            self._action("Hotend target", lambda: self.pd.setExtTemp(self.pd.HMI_ValueStruct.E_Temp))
+            self._action("Hotend target", lambda: self.pd.setExtTemp(self.pd.HMI_ValueStruct.E_Temp), silent=True)
             return
 
         elif (encoder_diffState == self.ENCODER_DIFF_CW):
@@ -2031,7 +2031,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                     3, 216, self.MBASE(bed_line),
                     self.pd.HMI_ValueStruct.Bed_Temp
                 )
-            self._action("Bed target", lambda: self.pd.setBedTemp(self.pd.HMI_ValueStruct.Bed_Temp))
+            self._action("Bed target", lambda: self.pd.setBedTemp(self.pd.HMI_ValueStruct.Bed_Temp), silent=True)
             return
 
         elif (encoder_diffState == self.ENCODER_DIFF_CW):
@@ -2174,7 +2174,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             zoff_line = self.TUNE_CASE_ZOFF + self.MROWS - self.index_tune
 
         if (encoder_diffState == self.ENCODER_DIFF_ENTER): #if (applyencoder(encoder_diffstate, offset_value))
-            self._action("Runtime Z offset", lambda: self.pd.setZOffset(self._zoffset_target / 100.0))
+            self._action("Runtime Z offset", lambda: self.pd.setZOffset(self._zoffset_target / 100.0), silent=True)
 
             self.checkkey = self.Prepare if self.pd.HMI_ValueStruct.show_mode == -4 else self.Tune
             self.lcd.draw_signed_scaled_float_text(
