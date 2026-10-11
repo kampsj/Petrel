@@ -55,6 +55,28 @@ class BootSplashTests(unittest.TestCase):
         self.assertFalse(animation[-1][6] & 0x80)
         self.assertFalse(v._boot_active)
 
+    def test_boot_text_changes_do_not_move_restart_or_erase_animation(self):
+        v = self.view()
+        v._draw_boot_progress(40)
+        start = next(f for f in v.lcd.serial.frames if f[1] == 0x28)
+        self.assertEqual(int.from_bytes(start[2:4], 'big'), 16)
+        for message in ('Preparing menus', 'Waiting for printer data'):
+            v.lcd.serial.frames.clear()
+            v._draw_boot_progress(80, message=message)
+            self.assertFalse(any(f[1] == 0x28 for f in v.lcd.serial.frames))
+            text = next(f for f in v.lcd.serial.frames if f[1] == 0x11)
+            self.assertEqual(int.from_bytes(text[7:9], 'big'), 40)
+            for f in v.lcd.serial.frames:
+                if f[1] == 0x05 and int.from_bytes(f[7:9], 'big') == 320:
+                    self.assertEqual(int.from_bytes(f[5:7], 'big'), 40)
+        v.lcd.serial.frames.clear()
+        v._draw_boot_progress(100)
+        opcodes = [f[1] for f in v.lcd.serial.frames]
+        stop = opcodes.index(0x28)
+        clear = next(i for i,f in enumerate(v.lcd.serial.frames)
+                     if f[1] == 0x05 and int.from_bytes(f[7:9], 'big') == 320)
+        self.assertLess(stop, clear)
+
     def test_unchanged_wait_does_not_repaint_or_fake_completion(self):
         v = self.view()
         v.pd.subscription.snapshot.return_value['state'] = 'disconnected'

@@ -540,12 +540,19 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         lcd.draw_rectangle(0, 0xFFFF, 16, 290, 255, 309)
         if value:
             lcd.draw_rectangle(1, 0x07E0, 18, 292, 18 + 235 * value // 100, 307)
-        lcd.draw_rectangle(1, 0x0000, 16, 320, 255, 339)
-        x = (272 - (len(message)*8 + 24)) // 2
+        new_panel = lcd is not getattr(self, '_boot_animation_lcd', None)
+        if value >= 100 and getattr(self, '_boot_animation_running', False):
+            lcd.configure_animation(0, False, 9, 250, 253, 16, 320, 10)
+            self._boot_animation_running = False
+        # Keep animation pixels separate from the changing text rectangle.
+        lcd.draw_rectangle(1, 0x0000, 16 if new_panel or value >= 100 else 40, 320, 255, 339)
+        x = 16
         lcd.draw_text(False, False, lcd.font8x16, 0xFFFF, 0x0000,
                       x+24, 322, message)
         # The panel cycles stock frames; the host sends no per-frame updates.
-        lcd.configure_animation(0, value < 100, 9, 250, 253, x, 320, 10)
+        if value < 100 and (new_panel or not getattr(self, '_boot_animation_running', False)):
+            lcd.configure_animation(0, True, 9, 250, 253, x, 320, 10)
+            self._boot_animation_running = True
         self._boot_animation_lcd = lcd
         lcd.update()
 
