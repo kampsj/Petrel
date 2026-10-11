@@ -6,7 +6,7 @@
 
 | Dosya | Amaç |
 |---|---|
-| `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç ve Display |
+| `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç, Display ve homing penceresi |
 | `klipperdwin_atlas_1.jpg` | Ayrılmış ikinci atlas |
 | `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |
