@@ -422,3 +422,7 @@ Display menüsü **Parlaklık (%0–100)** ve **Boşta kısma (Off veya 1–60 d
 Boşta kısma seçtiğiniz kısılmış parlaklığı uygular; normal parlaklığı aşmaz. İlk enkoder hareketi veya tıklama menü işlemi yapmadan ayarlanan parlaklığı geri getirir. Off kısmayı kapatır. %0 arka ışığı kapatır; düzenlerken saat yönünde çevirerek tekrar artırabilirsiniz. Ayarlar ekranın güç döngüsünde korunur. Yüzde değeri sürücünün 0–255 aralığına doğrusal eşlenir.
 
 Ayarlar LCD Data Flash içinde sürümlü, CRC korumalı 16 baytlık **0x0100–0x010F** kaydında tutulur. Atlas metadata alanı **0x0000–0x003F** olarak korunur; alanlar çakışmaz. Boş/geçersiz kayıtta varsayılan %100, Off ve kısılmış parlaklık %10'dur. Eski kayıtlardaki parlaklık ve süre korunur; kısılmış parlaklık siz değiştirene kadar %10 olur. Mevcut 9.ICO güneş (205) ve saat (15) ikonları kullanılır; atlas dosyaları değişmez.
+
+### Geliştirici ekran görüntüleri
+
+İsteğe bağlı framebuffer emülatörü, canlı görüntü sunmadan gerçek LCD'nin UART paketlerini işler. Harici servis ortamında `DWIN_EMULATOR=1` ile etkinleştirildiğinde SSH üzerinden timestamp içeren, kayıpsız 272x480 PNG/BMP görüntüler alınabilir. Varsayılan kapalıdır. [Kurulum, görüntü alma komutları ve doğruluk sınırları](docs/ui-emulator.md).

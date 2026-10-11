@@ -19,6 +19,12 @@ def build_parser():
     parser.add_argument('--power-on-hold-ms', type=int,
                         default=os.environ.get('DWIN_POWER_ON_HOLD_MS', '2000'),
                         help='Encoder-button hold time for power-on in milliseconds; 0 powers on immediately')
+    parser.add_argument('--emulator', action=argparse.BooleanOptionalAction,
+                        default=os.environ.get('DWIN_EMULATOR', '0').lower() in ('1', 'true', 'yes', 'on'),
+                        help='Enable the developer framebuffer mirror (default: off)')
+    parser.add_argument('--emulator-socket', default=os.environ.get('DWIN_EMULATOR_SOCKET'))
+    parser.add_argument('--emulator-font', default=os.environ.get('DWIN_EMULATOR_FONT'))
+    parser.add_argument('--screenshot-directory', default=os.environ.get('DWIN_SCREENSHOT_DIRECTORY'))
     return parser
 
 
@@ -51,7 +57,9 @@ def main():
              os.environ.get('MOONRAKER_API_KEY', ''),
              moonraker_url=args.moonraker_url, request_timeout=args.request_timeout,
              settings_path=args.settings_file, power_device=args.power_device,
-             power_on_hold_ms=args.power_on_hold_ms)
+             power_on_hold_ms=args.power_on_hold_ms, emulator=args.emulator,
+             emulator_socket=args.emulator_socket, screenshot_directory=args.screenshot_directory,
+             emulator_font=args.emulator_font)
     signal.signal(signal.SIGTERM, lambda *_: display.lcdExit())
     try:
         display.wait()

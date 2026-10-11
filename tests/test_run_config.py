@@ -38,3 +38,15 @@ class ConfigTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as error:
                     run.parse_args([])
                 self.assertEqual(error.exception.code, 2)
+
+
+class EmulatorConfigTests(unittest.TestCase):
+    def test_emulator_defaults_off_and_cli_overrides_environment(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(run.parse_args([]).emulator)
+        with patch.dict(os.environ, {'DWIN_EMULATOR': '1'}, clear=True):
+            self.assertTrue(run.parse_args([]).emulator)
+            self.assertFalse(run.parse_args(['--no-emulator']).emulator)
+        args = run.parse_args(['--emulator', '--emulator-font', '/tmp/font.hzk'])
+        self.assertTrue(args.emulator)
+        self.assertEqual(args.emulator_font, '/tmp/font.hzk')

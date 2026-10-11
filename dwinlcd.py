@@ -298,7 +298,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
     # DWIN screen uses serial port 1 to send
     def __init__(self, USARTx, encoder_pins, button_pin, octoPrint_API_Key,
                  moonraker_url='http://127.0.0.1:7125', request_timeout=5.0, settings_path=None,
-                 power_device='Printer', power_on_hold_ms=2000):
+                 power_device='Printer', power_on_hold_ms=2000,
+                 emulator=False, emulator_socket=None, screenshot_directory=None, emulator_font=None):
         self._closed = False
         self._uart_epoch = 0
         self._uart_online = False
@@ -309,6 +310,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._boot_files_started = (None, 0)
         self._boot_progress = -1
         self.encoder = self.button = self.lcd = self.pd = None
+        self._emulator_options = (emulator, emulator_socket, screenshot_directory, emulator_font)
         self._settings = (USARTx, encoder_pins, button_pin, octoPrint_API_Key,
                           moonraker_url, request_timeout, settings_path, power_device, power_on_hold_ms)
         self._input_lock = Lock()
@@ -329,6 +331,11 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         self._loop.start()
 
     def _initialize(self):
+        enabled, socket_path, output, font = self._emulator_options
+        if enabled:
+            from dwin_emulator.runtime import Emulator, ScreenshotServer
+            self._emulator = Emulator(enabled=True, font_path=font)
+            self._screenshot_server = ScreenshotServer(self._emulator, socket_path, output)
         USARTx, encoder_pins, button_pin, api_key, url, timeout, settings_path, power_device, power_on_hold_ms = self._settings
         Device.pin_factory = LGPIOFactory()
         for name in self.SELECTIONS:
@@ -458,6 +465,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             return False
         try:
             options = {}
+            if getattr(self, '_emulator', None) is not None:
+                options['packet_observer'] = self._emulator
             if getattr(self, '_boot_active', False):
                 options['startup_progress'] = lambda lcd, value: self._draw_boot_progress(value, lcd)
             self.lcd = T5UIC1Display(self._settings[0], handshake_timeout=1.0,
@@ -818,7 +827,9 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
         if self._closed:
             return
         self._closed = True
-        for resource in (getattr(self, '_power_monitor', None), self.button, self.encoder, self.pd):
+        for resource in (getattr(self, '_screenshot_server', None),
+                         getattr(self, '_emulator', None),
+                         getattr(self, '_power_monitor', None), self.button, self.encoder, self.pd):
             if resource is not None:
                 try:
                     resource.close()

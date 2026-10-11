@@ -1,0 +1,2 @@
+# Optional developer dependency; the normal service does not import it.
+qrcode==8.2
