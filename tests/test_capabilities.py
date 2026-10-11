@@ -350,7 +350,7 @@ class CapabilityTests(unittest.TestCase):
         result.lcd.draw_text.reset_mock()
         result.Draw_MMU_Status()
         labels = [call.args for call in result.lcd.draw_text.call_args_list
-                  if call.args[-1] in ('1', '2')]
+                  if call.args[-1] in ('0', '1')]
         self.assertEqual(len(labels), 2)
         self.assertEqual(labels[0][3], 0x0000)
         self.assertEqual(labels[1][3], result.lcd.Color_White)
