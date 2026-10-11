@@ -1325,7 +1325,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self._screws_selection = 0
                 self.Draw_Screws_Menu()
             elif self.select_prepare.now == self.PREPARE_CASE_DISA:  # Disable steppers
-                self._action("Disable steppers", lambda: self.pd.sendGCode("M84"))
+                self._action("Disable steppers", lambda: self.pd.sendGCode("M84"), silent=True)
             elif self.select_prepare.now == self.PREPARE_CASE_HOME:  # Homing
                 self.checkkey = self.Last_Prepare
                 self.index_prepare = self.MROWS
@@ -1333,7 +1333,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.pd.HMI_flag.home_flag = True
                 self.Popup_Window_Home()
                 self._action("Home", lambda: self.pd.sendGCodeObserved("G28"),
-                             self.pd.ishomed, confirmation_timeout=600)
+                             self.pd.ishomed, confirmation_timeout=600, silent=True,
+                             on_accept=self._restore_action_screen)
             elif self.select_prepare.now == self.PREPARE_CASE_ZOFF:  # Z-offset
                 self._open_zoffset(-4, self.PREPARE_CASE_ZOFF + self.MROWS - self.index_prepare)
 
@@ -2736,9 +2737,6 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
                 (272 - 8 * (10)) / 2, 230, "Homing XYZ")
 
-        self.lcd.draw_text(
-            False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
-            (272 - 8 * 23) / 2, 260, "Please wait until done.")
 
     def Popup_Window_ETempTooLow(self):
         self.Clear_Main_Window()

@@ -247,3 +247,19 @@ class SilentPresetFeedbackTests(unittest.TestCase):
         view.pd.save_settings = Mock(return_value=Future())
         view._preset_hmi()
         self.assertTrue(view._action_silent)
+
+    def test_silent_homing_returns_to_prepare_after_confirmation(self):
+        view = display(snapshot()); future = Future()
+        view.checkkey = view.Last_Prepare
+        view.pd.ishomed = Mock(return_value=False)
+        view.Draw_Prepare_Menu = Mock(); view._show_message = Mock()
+        view._action('Home', lambda: future, view.pd.ishomed, silent=True,
+                     on_accept=view._restore_action_screen)
+        future.set_result(None)
+        self.assertFalse(view._poll_action())
+        self.assertEqual(view.checkkey, view.Last_Prepare)
+        view._show_message.assert_not_called()
+        view.pd.ishomed.return_value = True
+        self.assertFalse(view._poll_action())
+        self.assertEqual(view.checkkey, view.Prepare)
+        view.Draw_Prepare_Menu.assert_called_once()
