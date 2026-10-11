@@ -630,12 +630,12 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
             elif getattr(self, 'checkkey', None) == self.SelectFile:
                 self._poll_thumbnail_preload()
                 if hasattr(self, '_loop'):
-                    self._loop.set_interval(.02 if self._thumbnail_cache.has_work() else 2.0)
+                    self._loop.set_interval(.02 if self._thumbnail_cache.has_work() else .5)
                 if time.monotonic() < getattr(self, '_file_status_at', 0):
                     return
                 self._file_status_at = time.monotonic() + 2.0
             elif hasattr(self, '_loop'):
-                self._loop.set_interval(2.0)
+                self._loop.set_interval(.5)
             self._display_idle_tick()
             self.EachMomentUpdate()
         except OSError:
