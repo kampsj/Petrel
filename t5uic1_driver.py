@@ -1182,6 +1182,22 @@ class T5UIC1Display:
                 for active_area in self._active_atlas_areas()
             )
 
+    def draw_atlas_icon_strip(self, icon_id, offset, width, x, y):
+        """Copy a vertical strip from an existing icon without allocating artwork."""
+        _, icons = self._atlas_runtime_config()
+        area, sx, sy, source_width, height = icons[icon_id]
+        if not 0 <= offset < source_width or not 1 <= width <= source_width - offset:
+            raise ValueError("atlas strip exceeds source icon")
+        self._u16(x, "x")
+        self._u16(y, "y")
+        if x + width > self.WIDTH or y + height > self.HEIGHT:
+            raise ValueError("atlas strip destination exceeds display bounds")
+        if not getattr(self, "_atlas_synced", False):
+            raise T5UIC1ProtocolError("custom atlases are not synchronized")
+        self._ensure_atlas_area(area)
+        self.copy_cache(area, sx + offset, sy, sx + offset + width - 1,
+                        sy + height - 1, x, y)
+
     def draw_atlas_icon(self, icon_id, x, y):
         """Draw one custom icon by ID without exposing atlas layout to the UI."""
         self._u16(x, "x")

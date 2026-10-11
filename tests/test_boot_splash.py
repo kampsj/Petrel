@@ -172,7 +172,7 @@ class BootSplashTests(unittest.TestCase):
         self.assertNotIn(0x01, opcodes)
         self.assertIn(0x11, opcodes)
         self.assertIn(0x25, opcodes)
-        self.assertEqual(lcd._virtual_area_pictures, {0: 14, 1: 15})
+        self.assertEqual(lcd._virtual_area_pictures, {0: 14})
 
     def test_progress_resets_on_power_cycle_and_uart_retry(self):
         v = self.view()
@@ -211,7 +211,7 @@ class BootSplashTests(unittest.TestCase):
         self.assertIn(0x22, opcodes)
         self.assertIn(0x26, opcodes)
         self.assertNotIn(0x3D, opcodes[opcodes.index(0x22):opcodes.index(0x26)])
-        self.assertEqual(lcd._virtual_area_pictures, {0: 14, 1: 15})
+        self.assertEqual(lcd._virtual_area_pictures, {0: 14})
 
     def test_initial_on_observation_does_not_restart_completed_boot(self):
         v = self.view()

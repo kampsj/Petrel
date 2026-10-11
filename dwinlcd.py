@@ -1223,6 +1223,8 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
                 self.lcd.draw_atlas_icon(ICON_DISPLAY, x + 29, y + 4)
             elif key == 'MMU':
                 self.Draw_MMU_Home_Icon(x, y, active)
+            elif key == 'INFO':
+                self.lcd.show_icon(self.ICON, self.ICON_Info, x + 45, y + 25)
             else:
                 self.lcd.show_icon(self.ICON, selected if active else normal, x, y)
             if active:

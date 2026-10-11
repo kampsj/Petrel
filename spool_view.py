@@ -1,6 +1,6 @@
 """Shared atlas-backed spool with independently changing filament and percentage."""
 
-from lcd_atlas import SPOOL_EMPTY_ICONS
+from lcd_atlas import ICON_SPOOL_EMPTY
 
 
 class SpoolView:
@@ -13,7 +13,7 @@ class SpoolView:
                  remaining_percent=None, background=0x0000, label_width=None):
         self.lcd = lcd
         self.x, self.y = x, y
-        self.width = max(w for w in SPOOL_EMPTY_ICONS if w <= max(1, min(42, width)))
+        self.width = max(1, min(42, width))
         self.color = color
         self.remaining_percent = remaining_percent
         self.background = background
@@ -43,7 +43,18 @@ class SpoolView:
         frame = (id(self.lcd), self.x, self.y, self.width, self.background, self.label_width)
         painted = (height, color, text if self.label_width >= 28 else None)
         if frame != self._frame:
-            self.lcd.draw_atlas_icon(SPOOL_EMPTY_ICONS[self.width], self.x, self.y)
+            if self.width == 42:
+                self.lcd.draw_atlas_icon(ICON_SPOOL_EMPTY, self.x, self.y)
+            else:
+                # Reuse strips from the single source, without additional atlas images.
+                flange = min(max(1, round(self.width / 6)), max(0, (self.width - 1) // 2))
+                self.lcd.draw_rectangle(1, self.background, self.x, self.y,
+                                        self.x + self.width - 1, self.y + self.HEIGHT - 1)
+                if flange:
+                    self.lcd.draw_atlas_icon_strip(ICON_SPOOL_EMPTY, 0, flange,
+                                                   self.x, self.y)
+                    self.lcd.draw_atlas_icon_strip(ICON_SPOOL_EMPTY, 42 - flange, flange,
+                                                   self.x + self.width - flange, self.y)
             self._frame = frame
             self._painted = None
         if painted == self._painted:

@@ -9,6 +9,15 @@ from dwin_emulator.framebuffer import Framebuffer
 
 
 class SpoolViewTests(unittest.TestCase):
+    def test_info_home_tile_uses_available_info_icon(self):
+        from test_capabilities import display
+        view = display({})
+        index = next(i for i, entry in enumerate(view._home_entries()) if entry[0] == 'INFO')
+        view.select_page.set(index)
+        view._draw_home_page()
+        self.assertTrue(any(call.args[1] == view.ICON_Info
+                            for call in view.lcd.show_icon.call_args_list))
+
     def test_color_and_percentage_belong_to_each_instance(self):
         lcd = Mock()
         a = SpoolView(lcd, 10, 10, color=0xF800, remaining_percent=50)
@@ -68,8 +77,8 @@ class SpoolViewTests(unittest.TestCase):
             gap = 5 if count <= 4 else 2 if count <= 8 else 1 if count <= 32 else 0
             slot = max(1, min(60, (256 - gap * (count - 1)) // count))
             width = min(max(8, int(slot * .70)), max(1, slot - 2))
-            self.assertIn(width, SPOOL_EMPTY_ICONS)
-            self.assertEqual(ICON_COORDINATES[SPOOL_EMPTY_ICONS[width]][3:], (width, 52))
+            self.assertEqual(SpoolView(Mock(), 0, 0, width).width, width)
+        self.assertEqual(SPOOL_EMPTY_ICONS, {42: 0x010A})
 
     def test_both_screens_use_shared_instances_and_one_change_does_not_redraw_others(self):
         from test_capabilities import display
@@ -114,7 +123,7 @@ class SpoolViewTests(unittest.TestCase):
 
     def test_partial_updates_match_fresh_render_pixels_for_all_sizes(self):
         assets = PanelAssets()
-        for width in SPOOL_EMPTY_ICONS:
+        for width in (42, 34, 28, 23, 8, 2, 1):
             with self.subTest(width=width):
                 lcd = driver()
                 lcd._atlas_synced = lcd._atlas_virtual_areas_loaded = True

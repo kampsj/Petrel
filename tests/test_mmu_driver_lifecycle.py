@@ -65,9 +65,9 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         opcodes = [f[1] for f in restored.serial.frames]
         self.assertEqual(opcodes.count(0x22), 1)
         self.assertIn(0x27, opcodes)
-        self.assertEqual(opcodes.count(0x25), 1)  # Compact spool atlas loaded only on reconnect.
+        self.assertEqual(opcodes.count(0x25), 0)  # No second atlas is loaded.
         self.assertFalse(set(opcodes) & {0x31, 0x32, 0x33})
-        self.assertEqual(restored._virtual_area_pictures, {0: 14, 1: 15})
+        self.assertEqual(restored._virtual_area_pictures, {0: 14})
         self.assertEqual(v.pd.subscription.request.call_count, 1)
         self.assertIsNotNone(v.pd.mmu_session.pending)
 

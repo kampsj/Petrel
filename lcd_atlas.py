@@ -33,7 +33,7 @@ ATLAS_FILES = {
 # icon_id: (virtual_area, source_x, source_y, width, height)
 #
 # Coordinates are in the runtime 272x480 virtual-area orientation.
-# Atlas 1 holds compact sizes of the shared empty spool.
+# Atlas 1 is reserved for future artwork.
 ICON_COORDINATES = {
     ICON_MMU_HOME_NORMAL: (0, 0, 0, 77, 47),
     ICON_MMU_HOME_SELECTED: (0, 80, 0, 77, 47),
@@ -48,48 +48,5 @@ ICON_COORDINATES = {
     ICON_SPOOL_EMPTY: (0, 144, 64, 42, 52),
 }
 
-# Native LCD copies do not scale: compact lanes use pre-sized copies of the same spool.
-SPOOL_EMPTY_ICONS = {42: ICON_SPOOL_EMPTY,
-    34: 0x0222,
-    28: 0x021C,
-    23: 0x0217,
-    21: 0x0215,
-    18: 0x0212,
-    16: 0x0210,
-    15: 0x020F,
-    14: 0x020E,
-    12: 0x020C,
-    11: 0x020B,
-    10: 0x020A,
-    9: 0x0209,
-    8: 0x0208,
-    7: 0x0207,
-    6: 0x0206,
-    5: 0x0205,
-    4: 0x0204,
-    3: 0x0203,
-    2: 0x0202,
-    1: 0x0201,
-}
-ICON_COORDINATES.update({
-    0x0222: (1, 0, 0, 34, 52),
-    0x021C: (1, 42, 0, 28, 52),
-    0x0217: (1, 78, 0, 23, 52),
-    0x0215: (1, 109, 0, 21, 52),
-    0x0212: (1, 138, 0, 18, 52),
-    0x0210: (1, 164, 0, 16, 52),
-    0x020F: (1, 188, 0, 15, 52),
-    0x020E: (1, 211, 0, 14, 52),
-    0x020C: (1, 233, 0, 12, 52),
-    0x020B: (1, 253, 0, 11, 52),
-    0x020A: (1, 0, 64, 10, 52),
-    0x0209: (1, 18, 64, 9, 52),
-    0x0208: (1, 35, 64, 8, 52),
-    0x0207: (1, 51, 64, 7, 52),
-    0x0206: (1, 66, 64, 6, 52),
-    0x0205: (1, 80, 64, 5, 52),
-    0x0204: (1, 93, 64, 4, 52),
-    0x0203: (1, 105, 64, 3, 52),
-    0x0202: (1, 116, 64, 2, 52),
-    0x0201: (1, 126, 64, 1, 52),
-})
+# Only one shared spool source; narrower views copy its existing flange strips.
+SPOOL_EMPTY_ICONS = {42: ICON_SPOOL_EMPTY}
