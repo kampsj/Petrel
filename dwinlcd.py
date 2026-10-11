@@ -21,7 +21,7 @@ from gpiozero import Button, Device
 from gpiozero.pins.lgpio import LGPIOFactory
 from printerInterface import PrinterData
 from t5uic1_driver import T5UIC1Display, T5UIC1ProtocolError
-from lcd_atlas import ICON_FOLDER, ICON_MCU, ICON_MACHINE, ICON_HOST, ICON_SOFTWARE, ICON_POWER, ICON_DISPLAY
+from lcd_atlas import ICON_FOLDER, ICON_MCU, ICON_MACHINE, ICON_HOST, ICON_SOFTWARE, ICON_POWER, ICON_DISPLAY, ICON_HOMING
 
 def _MAX(lhs, rhs):
     if lhs > rhs:
@@ -2750,7 +2750,7 @@ class DWIN_LCD(MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, File
     def Popup_Window_Home(self, parking=False):
         self.Clear_Main_Window()
         self.Draw_Popup_Bkgd_60()
-        self.lcd.show_icon(self.ICON, self.ICON_BLTouch, 101, 105)
+        self.lcd.draw_atlas_icon(ICON_HOMING, 101, 105)
         if parking:
             self.lcd.draw_text(
                 False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,

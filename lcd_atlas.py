@@ -2,7 +2,8 @@
 
 The UI must not depend on atlas coordinates or virtual-area selection. Add or
 move custom static icons only by updating ICON_COORDINATES and the corresponding
-JPEG file. Stock icons already present in 9.ICO do not belong here.
+JPEG file. Required popup artwork is also managed here so it remains available
+when a panel ships with a different stock 9.ICO library.
 
 T5UIC1 JPEG files are stored at the physical 480x272 panel resolution, while
 source rectangles below use the runtime portrait virtual-area coordinate space
@@ -20,6 +21,7 @@ ICON_HOST = 0x0105
 ICON_SOFTWARE = 0x0106
 ICON_POWER = 0x0107
 ICON_DISPLAY = 0x0108
+ICON_HOMING = 0x0109
 
 # virtual_area: (repo-relative JPEG path, reserved Picture Flash ID)
 ATLAS_FILES = {
@@ -41,4 +43,5 @@ ICON_COORDINATES = {
     ICON_SOFTWARE: (0, 192, 32, 20, 20),
     ICON_POWER: (0, 224, 32, 20, 20),
     ICON_DISPLAY: (0, 0, 48, 52, 64),
+    ICON_HOMING: (0, 64, 48, 73, 66),
 }

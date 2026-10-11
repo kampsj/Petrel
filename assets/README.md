@@ -6,7 +6,7 @@
 
 | File | Purpose |
 |---|---|
-| `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power and Display |
+| `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power, Display and the homing popup |
 | `klipperdwin_atlas_1.jpg` | Reserved second atlas |
 | `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
 | `display-settings.png` | Original transparent Display icon sprite |

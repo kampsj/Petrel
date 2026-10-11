@@ -3,7 +3,16 @@ import unittest
 from unittest.mock import Mock
 
 from test_capabilities import display, snapshot
-from test_t5uic1_driver import driver
+from test_t5uic1_driver import driver as raw_driver
+
+
+def driver():
+    lcd = raw_driver()
+    lcd._atlas_specs, lcd._atlas_icons = lcd._build_atlas_config()
+    lcd._atlas_synced = True
+    lcd._atlas_virtual_areas_loaded = True
+    lcd._virtual_area_pictures = {0: 14, 1: 15}
+    return lcd
 
 
 class HomingPopupTests(unittest.TestCase):
@@ -46,11 +55,16 @@ class PopupRenderingTests(unittest.TestCase):
         from dwin_emulator.framebuffer import Framebuffer
         view = display(snapshot())
         view.lcd = driver()
-        model = Framebuffer(PanelAssets())
+        assets = PanelAssets()
+        assets.icon = Mock(side_effect=AssertionError("stock icon must not be used"))
+        model = Framebuffer(assets)
         view.lcd._packet_observer = model
+        view.lcd.show_jpeg(14)
         view.Popup_Window_Home()
         view.lcd.update()
         image, _ = model.snapshot()
+        assets.icon.assert_not_called()
+        self.assertTrue(any(frame[1] == 0x27 for frame in view.lcd.serial.frames))
         background = rgb565(view.lcd.Color_Bg_Window)
         self.assertEqual(image.getpixel((20, 70)), background)
         self.assertTrue(any(low != high for low, high in image.crop((101, 105, 171, 175)).getextrema()))
