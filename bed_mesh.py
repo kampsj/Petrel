@@ -151,9 +151,10 @@ class BedMeshSession:
         self._guard(motion=True)
         config = self.printer.state.status.get('configfile', {})
         has_pending = config.get('save_config_pending') or config.get('save_config_pending_items')
-        if has_pending and (self.epoch != self.printer.state.epoch
-                or not self._owned_pending(config, self._calibrated_mesh)):
-            raise ValueError('Resolve existing config changes first')
+        reuse_profile = (has_pending and self.epoch == self.printer.state.epoch
+                         and self._owned_pending(config, self._calibrated_mesh))
+        # Measuring does not run SAVE_CONFIG. Pending changes only constrain saving.
+        # Reuse our confirmed profile; otherwise choose a fresh session name.
         try:
             self.layout = self._configured_layout()
         except (KeyError, TypeError, ValueError, OverflowError) as error:
@@ -163,7 +164,7 @@ class BedMeshSession:
         index = 1
         while 'lcd_mesh_' + str(index) in profiles:
             index += 1
-        if not has_pending:
+        if not reuse_profile:
             self.profile_name = 'lcd_mesh_' + str(index)
         self.mesh, self.status, self.progress = None, {}, {}
         self._reported_profile = None

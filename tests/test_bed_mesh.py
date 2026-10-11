@@ -60,7 +60,7 @@ class MeshTests(unittest.TestCase):
         self.assertTrue(p.subscription.request.call_args.args[1]['script'].startswith('G28\n'))
 
     def test_start_guards_and_duplicate_submission(self):
-        for case in ('printing', 'paused', 'manual', 'probe_missing', 'mesh_missing', 'recovery', 'screws', 'probe_busy', 'pending', 'invalid_grid', 'offline', 'epoch'):
+        for case in ('printing', 'paused', 'manual', 'probe_missing', 'mesh_missing', 'recovery', 'screws', 'probe_busy', 'invalid_grid', 'offline', 'epoch'):
             source = data()
             if case in ('printing', 'paused'):source['status']['print_stats']['state'] = case
             if case == 'manual':source['status']['manual_probe'] = {'is_active': True}
@@ -426,6 +426,31 @@ class MeshSaveRegressionTests(unittest.TestCase):
         session.start();self.assertEqual(session.profile_name,name)
         self.complete(session)
         self.assertEqual(session.phase,'complete')
+
+    def test_pending_changes_allow_calibration_after_application_restart(self):
+        for section in ('bed_mesh default', 'probe'):
+            with self.subTest(section=section):
+                source = data()
+                pending = dict(save_config_pending=True,
+                               save_config_pending_items={section: {'points': 'old'}})
+                source['status']['configfile'] = copy.deepcopy(pending)
+                p, session = self.make(source)
+                session.start()
+                self.assertEqual(session.phase, 'measuring')
+                self.assertEqual(session.profile_name, 'lcd_mesh_2')
+                self.assertEqual(p.state.status['configfile'], pending)
+                script = p.subscription.request.call_args.args[1]['script']
+                self.assertIn('BED_MESH_CALIBRATE PROFILE=lcd_mesh_2', script)
+                self.assertNotIn('SAVE_CONFIG', script)
+                self.complete(session)
+                session.save()
+                result = payload(session.profile_name)
+                result['status']['configfile'] = copy.deepcopy(pending)
+                session.pending.set_result(result)
+                session.update()
+                self.assertEqual(session.phase, 'error')
+                self.assertNotIn({'script': 'SAVE_CONFIG'},
+                                 [c.args[1] for c in p.subscription.request.call_args_list])
 
     def test_modified_pending_points_or_settings_cannot_be_persisted(self):
         for case in ('points','limits','version','missing','foreign','active_changed','profile_changed'):
