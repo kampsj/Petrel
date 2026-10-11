@@ -70,6 +70,7 @@ class IncrementalDashboardTests(unittest.TestCase):
             mmu['remaining_percent'][1] = 99
             v.Draw_MMU_Status()
         self.assertEqual(len(v.lcd.method_calls), 2)
+        v.lcd.draw_atlas_icon.assert_not_called()
         self.assertEqual(v.lcd.draw_text.call_args.args[-1], '99%')
         v.lcd.draw_line.assert_not_called()
 
@@ -89,4 +90,4 @@ class IncrementalDashboardTests(unittest.TestCase):
         v.lcd.reset_mock()
         v.Clear_Main_Window()
         v.Draw_MMU_Status()
-        self.assertGreater(v.lcd.draw_line.call_count, 0)
+        self.assertGreaterEqual(v.lcd.draw_atlas_icon.call_count, 4)

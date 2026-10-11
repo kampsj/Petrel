@@ -1,3 +1,4 @@
+import lcd_atlas
 from read_fixture import ImmediateReadWorker
 import copy
 from concurrent.futures import Future
@@ -302,13 +303,11 @@ class CapabilityTests(unittest.TestCase):
         fills = [call.args[1] for call in rectangles if call.args[0] == 1]
         self.assertIn(result._rgb565((0.0, 1.0, 0.2)), fills)
         self.assertIn(0x8410, fills)
-        self.assertIn(0x9B46, fills)
-        self.assertTrue(any(call.args[0] == 0 and call.args[1] == 0xD58A
-                            for call in rectangles))
-        wood_fills = [call.args for call in rectangles
-                      if call.args[0] == 1 and call.args[1] == 0x9B46]
-        self.assertTrue(all(args[5] - args[3] == 51 for args in wood_fills))
-        self.assertGreater(result.lcd.draw_line.call_count, 0)
+        spool_copies = [call for call in result.lcd.draw_atlas_icon.call_args_list
+                        if call.args[0] in lcd_atlas.SPOOL_EMPTY_ICONS.values()]
+        self.assertEqual(len(spool_copies), 4)
+        self.assertTrue(all(call.args[2] == 46 for call in spool_copies))
+        result.lcd.draw_line.assert_not_called()
         result.lcd.fill_circle.assert_not_called()
         result.lcd.draw_circle.assert_not_called()
 

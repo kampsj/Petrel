@@ -7,7 +7,7 @@
 | File | Purpose |
 |---|---|
 | `klipperdwin_atlas_0.jpg` | Custom static icons: MMU, folders, machine/host/MCU/software, power, Display, the homing popup and the shared empty spool |
-| `klipperdwin_atlas_1.jpg` | Reserved second atlas |
+| `klipperdwin_atlas_1.jpg` | Compact sizes of the shared spool icon |
 | `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
 | `spool-empty.png` | Shared 42×52 empty spool sprite: wooden flanges and a thin gray hub |
 | `display-settings.png` | Original transparent Display icon sprite |

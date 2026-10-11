@@ -1,6 +1,7 @@
 """MMU menu and Happy Hare home-screen rendering mixin."""
 
 from lcd_atlas import ICON_MMU_HOME_NORMAL, ICON_MMU_HOME_SELECTED
+from spool_view import SpoolView
 
 class MMUViewMixin:
     def Draw_MMU_Home_Icon(self, x, y, selected):
@@ -34,6 +35,7 @@ class MMUViewMixin:
             self._home_mmu_layout = layout
             self._home_mmu_title = None
             self._home_mmu_gates = {}
+            self._home_spool_views = {}
         title = str(mmu.get('name') or 'MMU')[:22]
         title_x = max(4, (self.lcd.DWIN_WIDTH - 6 * len(title)) // 2)
         if title != self._home_mmu_title:
@@ -49,52 +51,20 @@ class MMUViewMixin:
             status = mmu['gate_status'][gate]
             color = self._rgb565(mmu['gate_color_rgb'][gate]) if status > 0 else 0x8410
             cx = x + slot // 2
-            flange = 0x9B46
-            flange_edge = 0xD58A
-            # Keep lane spacing unchanged, but narrow the reel itself so its
-            # height-to-width ratio resembles a physical filament spool.
             reel_w = min(max(8, int(slot * 0.70)), max(1, slot - 2))
             reel_x = x + (slot - reel_w) // 2
-            flange_w = max(1, min(max(2, reel_w // 9), max(1, (reel_w - 2) // 2)))
-            body_left = reel_x + flange_w
-            body_right = reel_x + reel_w - flange_w - 1
-            y0, y1 = top + 13, top + 52
-
-            winding = self.lcd.Color_White if sum(mmu['gate_color_rgb'][gate]) < 0.7 else flange
-            cache = self._home_mmu_gates.setdefault(gate, {})
-            reel = (color, winding)
-            reel_changed = cache.get('reel') != reel
-            if reel_changed:
-                cache['reel'] = reel
-                # Warm cardboard/wood flanges stand out against the black UI.
-                self.lcd.draw_rectangle(1, flange, reel_x + 1, top + 7,
-                                        reel_x + flange_w, top + 58)
-                self.lcd.draw_rectangle(0, flange_edge, reel_x + 1, top + 7,
-                                        reel_x + flange_w, top + 58)
-                self.lcd.draw_rectangle(1, flange, reel_x + reel_w - flange_w - 1, top + 7,
-                                        reel_x + reel_w - 2, top + 58)
-                self.lcd.draw_rectangle(0, flange_edge, reel_x + reel_w - flange_w - 1, top + 7,
-                                        reel_x + reel_w - 2, top + 58)
-                self.lcd.draw_rectangle(1, color, body_left, y0, body_right, y1)
-
-                for line_x in range(body_left + 5, body_right, 7):
-                    self.lcd.draw_line(winding, line_x, y0, line_x, y1)
-
             percent = percentages[gate] if gate < len(percentages) else None
-            # Percent text needs enough horizontal room. Compact high-gate
-            # layouts prioritize distinct lanes over overlapping text.
-            if slot >= 28:
-                pct = '--' if percent is None else '%d%%' % percent
-                if reel_changed or cache.get('percent') != pct:
-                    cache['percent'] = pct
-                    # Black backing keeps the percentage readable on white/yellow filament.
-                    pct_w = 28
-                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                                            cx - pct_w // 2, top + 27,
-                                            cx + pct_w // 2, top + 41)
-                    self.lcd.draw_text(False, True, self.lcd.font6x12,
-                                         self.lcd.Color_White, self.lcd.Color_Bg_Black,
-                                         cx - 3 * len(pct), top + 28, pct)
+            if status == 0:
+                percent = 0
+            cache = self._home_mmu_gates.setdefault(gate, {})
+            spool = self._home_spool_views.get(gate)
+            if spool is None:
+                spool = self._home_spool_views[gate] = SpoolView(
+                    self.lcd, reel_x, top + 7, reel_w,
+                    background=self.lcd.Color_Bg_Black, label_width=slot)
+            spool.color = color
+            spool.remaining_percent = percent
+            spool.draw()
 
             label = str(gate + 1)
             label_w = max(1, min(38, slot - 2 if slot > 2 else slot))
@@ -452,31 +422,40 @@ class MMUViewMixin:
         start = (max(0, m.gate) // 4) * 4 if m.gate is not None and m.gate >= 0 else 0
         start = min(start, ((m.num_gates - 1) // 4) * 4)
         home = self.pd.mmu or {}
-        colors = home.get('gate_color_rgb', ())
-        signature = (start, m.gate, m.gate_status, m.ttg_map, colors, home.get('remaining_percent', ()))
-        if self._mmu_render.get('spools') == signature:
-            return
-        self._mmu_render['spools'] = signature
-        self.lcd.draw_rectangle(1, 0x0000, 8, 59, 263, 164)
+        colors, percentages = home.get('gate_color_rgb', ()), home.get('remaining_percent', ())
+        page = (id(self.lcd), start, count)
+        if page != getattr(self, '_mmu_spool_page', None):
+            self._mmu_spool_page = page
+            self._mmu_spool_views = {}
+            self.lcd.draw_rectangle(1, 0x0000, 8, 59, 263, 164)
+            for key in list(self._mmu_render):
+                if key.startswith('spool'):
+                    self._mmu_render.pop(key)
         for slot, gate in enumerate(range(start, min(m.num_gates, start + count))):
             x = 14 + slot * 66
             rgb = colors[gate] if gate < len(colors) else (0.5, 0.5, 0.5)
             color = self._rgb565(rgb) if m.gate_status[gate] in (1, 2) else 0x8410
             tools = m.tools_for_gate(gate)
             label = 'T%d' % tools[0] if len(tools) == 1 else 'T*' if tools else '--'
-            self.lcd.draw_text(False, False, self.lcd.font6x12, 0xFFFF, 0x0000, x + 6, 61, label)
-            self.lcd.draw_rectangle(1, color, x + 6, 85, x + 35, 123)
-            for fx in (x, x + 36):
-                self.lcd.draw_rectangle(1, 0x9B46, fx, 79, fx + 5, 129)
-            percent = self._mmu_percent(gate)
-            self.lcd.draw_rectangle(1, 0x0000, x + 3, 99, x + 38, 113)
-            self.lcd.draw_text(False, False, self.lcd.font6x12, 0xFFFF, 0x0000, x + 6, 100, percent)
+            self._mmu_text('spooltool%d' % slot, label, x + 6, 61, 5, small=True, color=0xFFFF)
+            spool = self._mmu_spool_views.get(gate)
+            if spool is None:
+                spool = self._mmu_spool_views[gate] = SpoolView(self.lcd, x, 79)
+            spool.color = color
+            spool.remaining_percent = (0 if m.gate_status[gate] == 0 else
+                percentages[gate] if gate < len(percentages) else None)
+            spool.draw()
+            # Gate/LED indicators remain outside the shared spool component.
             bg = 0x07E0 if gate == m.gate else 0x18E4
-            self.lcd.draw_rectangle(1, bg, x, 138, x + 41, 158)
-            self.lcd.draw_text(False, False, self.lcd.font6x12, 0x0000 if bg == 0x07E0 else 0xFFFF,
-                                 bg, x + 12, 142, 'G%d' % (gate + 1))
+            key = 'spoolgate%d' % slot
+            marker = (gate, bg)
+            if self._mmu_render.get(key) != marker:
+                self._mmu_render[key] = marker
+                self.lcd.draw_rectangle(1, bg, x, 138, x + 41, 158)
+                self.lcd.draw_text(False, False, self.lcd.font6x12,
+                    0x0000 if bg == 0x07E0 else 0xFFFF,
+                    bg, x + 12, 142, 'G%d' % (gate + 1))
         if m.num_gates > 4:
-            self._mmu_render.pop('gatepage', None)
             self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 165, 8, small=True)
 
     def _mmu_nozzle(self, y):
@@ -516,6 +495,7 @@ class MMUViewMixin:
         if getattr(self, '_mmu_canvas_page', None) != page:
             self._list_render = None
             self._mmu_list_window = None
+            self._mmu_spool_page = None
             self.lcd.draw_rectangle(1, 0x0000, 0, 0, 271, 479)
             self.lcd.draw_rectangle(1, 0x1105, 0, 0, 271, 29)
             self._mmu_canvas_page, self._mmu_render = page, {}

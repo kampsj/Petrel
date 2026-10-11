@@ -7,7 +7,7 @@
 | Dosya | Amaç |
 |---|---|
 | `klipperdwin_atlas_0.jpg` | Özel sabit ikonlar: MMU, klasör, makine/host/MCU/yazılım, güç, Display, homing penceresi ve ortak boş makara |
-| `klipperdwin_atlas_1.jpg` | Ayrılmış ikinci atlas |
+| `klipperdwin_atlas_1.jpg` | Ortak makara ikonunun dar boyutları |
 | `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
 | `spool-empty.png` | Ortak 42×52 boş makara sprite’ı: ahşap kenarlar ve ince gri merkez |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |

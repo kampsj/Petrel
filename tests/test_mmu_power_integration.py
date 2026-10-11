@@ -32,7 +32,8 @@ class MMUPowerIntegrationTests(unittest.TestCase):
                 v._mmu_page, v._mmu_canvas_page = page, None
                 v.lcd.reset_mock()
                 v.Draw_MMU_Menu()
-                v.lcd.draw_atlas_icon.assert_called_once_with(ICON_POWER, 244, 5)
+                power_copies = [c for c in v.lcd.draw_atlas_icon.call_args_list if c.args[0] == ICON_POWER]
+                self.assertEqual([c.args for c in power_copies], [(ICON_POWER, 244, 5)])
                 title = v._mmu_render['title']
                 self.assertLessEqual(title[1] + title[3] * 8, 241)
                 v.lcd.reset_mock()

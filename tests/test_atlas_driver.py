@@ -123,7 +123,8 @@ class AtlasDriverTests(unittest.TestCase):
         self.assertEqual(lcd_atlas.ICON_HOMING, 0x0109)
         self.assertEqual(lcd_atlas.ICON_SPOOL_EMPTY, 0x010A)
         self.assertEqual(
-            lcd_atlas.ICON_COORDINATES,
+            {i: r for i, r in lcd_atlas.ICON_COORDINATES.items()
+             if i not in set(lcd_atlas.SPOOL_EMPTY_ICONS.values()) - {lcd_atlas.ICON_SPOOL_EMPTY}},
             {
                 0x0100: (0, 0, 0, 77, 47),
                 0x0101: (0, 80, 0, 77, 47),
