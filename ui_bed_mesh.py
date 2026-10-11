@@ -3,16 +3,25 @@ import math
 from t5uic1_driver import T5UIC1Display
 
 
+# Mainsail's default Portland palette and unscaled heightmap range.
+# https://github.com/mainsail-crew/mainsail/blob/develop/src/store/gui/heightmap/getters.ts
+MESH_PALETTE = ('313695', '4575b4', '74add1', 'abd9e9', 'e0f3f8', 'ffffbf',
+                'fee090', 'fdae61', 'f46d43', 'd73027', 'a50026')
+
+
+def mesh_color(z):
+    position = max(0.0, min(1.0, (z + .1) / .2)) * (len(MESH_PALETTE)-1)
+    index = min(int(position), len(MESH_PALETTE)-2)
+    fraction = position-index
+    low, high = MESH_PALETTE[index:index+2]
+    rgb = [math.floor(int(low[i:i+2], 16)*(1-fraction)
+                      + int(high[i:i+2], 16)*fraction + .5) for i in (0, 2, 4)]
+    return ((rgb[0] >> 3) << 11) | ((rgb[1] >> 2) << 5) | (rgb[2] >> 3)
+
+
 def point_style(z, columns):
     value = max(-20, min(20, round(z * 100)))
-    n = value / 20
-    if n < 0:
-        red, green, blue = 0, round((1+n)*38), round(-n*28)
-    elif n < .5:
-        red, green, blue = round(28*n*2), 38, 0
-    else:
-        red, green, blue = 28, round(38*(1-n)), 0
-    color = (red << 11) | (green << 5) | blue
+    color = mesh_color(z)
     maximum = min(23, int(111 / (columns - 1)))
     minimum = min(5, maximum)
     radius = round(minimum + (value+20)/40 * (maximum-minimum))
