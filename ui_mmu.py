@@ -1,6 +1,7 @@
 """MMU menu and Happy Hare home-screen rendering mixin."""
 
 from spool_view import SpoolView
+from mmu_filament_view import MMUFilamentView, filament_color
 
 class MMUViewMixin:
     @staticmethod
@@ -107,7 +108,7 @@ class MMUViewMixin:
                   'status': 'MMU STATUS', 'bypass': 'BYPASS', 'recover': 'RECOVER STATE',
                   'manual': 'SET MMU STATE', 'confirm': 'CONFIRM',
                   'endless': 'ENDLESS SPOOL', 'group': 'GROUP MEMBERS', 'spool': 'ASSIGN SPOOL',
-                  'maintenance': 'MAINTENANCE', 'options': 'MMU OPTIONS',
+                  'maintenance': 'MAINTENANCE', 'options': 'MMU OPTIONS', 'more': 'MMU',
                   'leds': 'MMU LEDS', 'units': 'MMU UNITS', 'unit': 'UNIT GATES'}
 
     def Enter_MMU_Menu(self, page='home'):
@@ -151,8 +152,8 @@ class MMUViewMixin:
             self._mmu_notice = ''
             self.Draw_MMU_Menu()
         elif self.pd.mmu_session.pending is not None:
-            self._mmu_page, self._mmu_selection = 'status', 0
-            self._mmu_notice = 'Wait for MMU operation'
+            self._mmu_page, self._mmu_selection = 'home', 0
+            self._mmu_notice = ''
             self.Draw_MMU_Menu()
         else:
             self._mmu_canvas_page = None
@@ -271,6 +272,26 @@ class MMUViewMixin:
             return [(('cancel',), 'Cancel', '', True),
                     (('execute',), 'Confirm', '', self._mmu_confirmation_valid())]
         if page == 'home':
+            tools = []
+            if m:
+                snapshot = self.pd.subscription.snapshot()
+                for tool, gate in enumerate(m.ttg_map):
+                    try:
+                        self.pd.mmu_session.prepare('change', gate=gate, tool=tool, snapshot=snapshot)
+                        enabled = not (m.tool == tool and m.filament == 'loaded')
+                    except ValueError:
+                        enabled = False
+                    tools.append((('tool', tool, gate), 'T%d' % tool, '', enabled))
+            current = m.gate if m else None
+            partial = m and m.filament_pos is not None and 1 <= m.filament_pos <= 9
+            primary = ('unload', 'Unload') if m and (m.filament == 'loaded' or partial) else ('load', 'Load')
+            if m and m.gate == -2:
+                primary = (primary[0] + '_extruder', primary[1])
+            control = (nav('status', 'Recover') if self.pd.mmu_session.phase == 'error' else
+                       nav('recover', 'Recover') if m and m.locked is True else
+                       self._mmu_action_item(*primary, gate=current))
+            return tools + [control, nav('more', 'More')]
+        if page == 'more':
             current = m.gate if m and m.gate is not None and m.gate >= 0 else None
             primary = ('unload', 'Unload') if m and m.filament == 'loaded' else ('load', 'Load')
             return [nav('gates', 'Gates'), self._mmu_action_item(*primary, gate=current),
@@ -414,44 +435,82 @@ class MMUViewMixin:
 
     def _mmu_spools(self, m):
         count = min(4, m.num_gates)
-        start = (max(0, m.gate) // 4) * 4 if m.gate is not None and m.gate >= 0 else 0
-        start = min(start, ((m.num_gates - 1) // 4) * 4)
+        focused = self._mmu_selection - 1
+        selected = focused if 0 <= focused < m.num_gates else m.tool if m.tool is not None and m.tool >= 0 else 0
+        start = min((selected // 4) * 4, ((m.num_gates - 1) // 4) * 4)
         home = self.pd.mmu or {}
         colors, percentages = home.get('gate_color_rgb', ()), home.get('remaining_percent', ())
         page = (id(self.lcd), start, count)
         if page != getattr(self, '_mmu_spool_page', None):
             self._mmu_spool_page = page
             self._mmu_spool_views = {}
-            self.lcd.draw_rectangle(1, 0x0000, 8, 59, 263, 164)
+            self.lcd.draw_rectangle(1, 0x0000, 8, 34, 263, 131)
             for key in list(self._mmu_render):
                 if key.startswith('spool'):
                     self._mmu_render.pop(key)
-        for slot, gate in enumerate(range(start, min(m.num_gates, start + count))):
+        for slot, tool in enumerate(range(start, min(m.num_gates, start + count))):
+            gate = m.ttg_map[tool]
+            valid = gate is not None and 0 <= gate < m.num_gates
             x = 14 + slot * 66
-            rgb = colors[gate] if gate < len(colors) else (0.5, 0.5, 0.5)
-            color = self._rgb565(rgb) if m.gate_status[gate] in (1, 2) else 0x8410
-            tools = m.tools_for_gate(gate)
-            label = 'T%d' % tools[0] if len(tools) == 1 else 'T*' if tools else '--'
-            self._mmu_text('spooltool%d' % slot, label, x + 6, 61, 5, small=True, color=0xFFFF)
-            spool = self._mmu_spool_views.get(gate)
+            rgb = colors[gate] if valid and gate < len(colors) else None
+            color = (self._rgb565(rgb) if rgb is not None else filament_color(m.colors[gate]) if valid else 0x8410)
+            self._mmu_text('spooltool%d' % slot, self._mmu_gate_label(gate), x + 9, 36, 5, small=True)
+            spool = self._mmu_spool_views.get(tool)
             if spool is None:
-                spool = self._mmu_spool_views[gate] = SpoolView(self.lcd, x, 79)
+                spool = self._mmu_spool_views[tool] = SpoolView(self.lcd, x, 51)
             spool.color = color
-            spool.remaining_percent = (0 if m.gate_status[gate] == 0 else
-                percentages[gate] if gate < len(percentages) else None)
+            spool.remaining_percent = (0 if valid and m.gate_status[gate] == 0 else
+                percentages[gate] if valid and gate < len(percentages) else None)
             spool.draw()
             # Gate/LED indicators remain outside the shared spool component.
-            bg = 0x07E0 if gate == m.gate else 0x18E4
+            bg = color
             key = 'spoolgate%d' % slot
-            marker = (gate, bg)
+            marker = (tool, gate, bg, focused == tool, m.tool == tool)
             if self._mmu_render.get(key) != marker:
                 self._mmu_render[key] = marker
-                self.lcd.draw_rectangle(1, bg, x, 138, x + 41, 158)
+                self.lcd.draw_rectangle(1, bg, x, 109, x + 41, 128)
+                border = 0xFFFF if focused == tool else 0x07E0 if m.tool == tool else 0x0000
+                self.lcd.draw_rectangle(0, border, x, 109, x + 41, 128)
                 self.lcd.draw_text(False, False, self.lcd.font6x12,
-                    0x0000 if bg == 0x07E0 else 0xFFFF,
-                    bg, x + 12, 142, 'G%d' % gate)
+                    SpoolView._text_color(bg), bg, x + 12, 113, 'T%d' % tool)
         if m.num_gates > 4:
-            self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 165, 8, small=True)
+            self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 132, 8, small=True)
+
+    def _mmu_draw_overview(self, m, items):
+        if m:
+            self._mmu_spools(m)
+            view = getattr(self, '_mmu_filament_view', None)
+            if view is None:
+                view = self._mmu_filament_view = MMUFilamentView(self.lcd)
+            rgb = (self.pd.mmu or {}).get('gate_color_rgb', ())
+            active_color = self._rgb565(rgb[m.gate]) if m.gate is not None and 0 <= m.gate < len(rgb) else None
+            view.draw(m, active_color=active_color)
+            distance = '--' if m.filament_position is None else '%.1f' % m.filament_position
+            self._mmu_text('distance', 'Filament: %smm' % distance, 40, 147, 32, small=True)
+            self._mmu_text('tool', self._mmu_tool_label(m.tool), 20, 184, 4, bg=view.BLOCK)
+            phase = 'DISABLED' if m.enabled is not True else 'PAUSED' if m.locked else m.action
+            if phase == 'Idle':
+                phase = m.filament.title()
+            for row in range(2):
+                self._mmu_text('phase%d' % row, phase[row * 12:(row + 1) * 12], 160, 177 + row * 16, 12, small=True, color=0x07E0 if m.enabled and not m.locked else 0xFD20)
+            valid = m.gate is not None and 0 <= m.gate < m.num_gates
+            name = (m.names[m.gate] or '--') if valid else 'Bypass' if m.gate == -2 else '--'
+            material = (m.materials[m.gate] or '--') if valid else '--'
+            for row in range(2):
+                self._mmu_text('name%d' % row, name[row * 16:(row + 1) * 16], 160, 231 + row * 15, 16, small=True)
+            self._mmu_text('material', material, 160, 266, 16, small=True)
+            self._mmu_text('mapping', '%s > %s' % (self._mmu_tool_label(m.tool), self._mmu_gate_label(m.gate)), 160, 287, 16, small=True)
+            temps = self.pd.thermalManager['temp_hotend'][0]
+            self._mmu_text('temperature', '%d/%d C' % (temps['celsius'], temps['target']) if self.pd.HAS_HOTEND else '-- C', 26, 396, 18, small=True)
+        else:
+            self._mmu_text('unavailable', 'OFFLINE' if self.pd.connection_error else 'Happy Hare unavailable', 12, 180)
+        offset = m.num_gates if m else 0
+        for i, (_, label, _, enabled) in enumerate(items[offset:]):
+            self._mmu_row('primary%d' % i, label, '', 8 + i * 132, 428, 124,
+                          self._mmu_selection == offset + i + 1, enabled)
+        notice = self._mmu_notice or (self.pd.mmu_session.message if self.pd.mmu_session.phase == 'error' else m.reason if m and m.locked else '')
+        for row in range(2):
+            self._mmu_text('notice%d' % row, notice[row * 16:(row + 1) * 16], 160, 330 + row * 15, 16, small=True, color=0xFD20)
 
     def _mmu_nozzle(self, y):
         temps = self.pd.thermalManager['temp_hotend'][0]
@@ -487,13 +546,17 @@ class MMUViewMixin:
             self._mmu_gate, self._mmu_history, self._mmu_notice = 0, [], ''
         page = self._mmu_page
         m = self.pd.mmu_session.state
-        if getattr(self, '_mmu_canvas_page', None) != page:
+        if (getattr(self, '_mmu_canvas_page', None) != page or
+                page == 'home' and getattr(self, '_mmu_available', None) != (m is not None)):
             self._list_render = None
             self._mmu_list_window = None
             self._mmu_spool_page = None
+            self._mmu_filament_view = None
             self.lcd.draw_rectangle(1, 0x0000, 0, 0, 271, 479)
             self.lcd.draw_rectangle(1, 0x1105, 0, 0, 271, 29)
             self._mmu_canvas_page, self._mmu_render = page, {}
+            self._mmu_available = m is not None
+            self._header_clock_drawn = None
             self._draw_power_icon(getattr(self, '_power_focus', False))
         if page == 'map' and getattr(self, '_mmu_map_draft', None) is None:
             self._mmu_begin_map()
@@ -513,25 +576,16 @@ class MMUViewMixin:
         title = self.MMU_TITLES[page]
         if page in ('gate', 'filament', 'spool'):
             title += ' / ' + self._mmu_gate_label(self._mmu_gate)
-        self._mmu_text('title', title, 34, 5, 25, bg=0x1105)
+        self._mmu_text('title', title, 34, 1, 25, bg=0x1105)
+        self._draw_header_clock()
         connection = 'OFFLINE' if self.pd.connection_error else 'MMU unavailable' if not m else (
             'MMU DISABLED' if m.enabled is not True else m.action.upper())
-        self._mmu_text('connection', connection, 10, 36, 42, small=True,
-                       color=0xFD20 if not m or m.enabled is not True else 0x8410)
+        if page != 'home':
+            self._mmu_text('connection', connection, 10, 36, 42, small=True,
+                           color=0xFD20 if not m or m.enabled is not True else 0x8410)
         first_y, visible = 67, 8
         if page == 'home':
-            if m:
-                self._mmu_spools(m)
-                self._mmu_text('active', '%s > %s  %s' % (self._mmu_tool_label(m.tool), self._mmu_gate_label(m.gate), m.filament.upper()), 12, 182, color=0x07E0)
-                self._mmu_path(m, 209)
-                self._mmu_nozzle(253)
-            else:
-                self._mmu_text('unavailable', 'Happy Hare unavailable', 12, 100)
-                self._mmu_text('hint', 'Check MMU / Moonraker', 12, 126)
-            for i, (_, label, _, enabled) in enumerate(items):
-                self._mmu_row('item%d' % i, label, '', 8 + (i % 2) * 132,
-                              283 + (i // 2) * 54, 124, self._mmu_selection == i + 1, enabled)
-            self._mmu_text('notice', self._mmu_notice, 10, 438, 42, small=True, color=0xFD20)
+            self._mmu_draw_overview(m, items)
             first_y = None
         elif page == 'gate':
             gate = self._mmu_gate
@@ -746,7 +800,8 @@ class MMUViewMixin:
                     self._mmu_render.pop('row%d' % row, None)
             if len(items) > visible:
                 self._mmu_text('pagination', '%d-%d / %d' % (start + 1, min(len(items), start + visible), len(items)), 12, 436, 40, small=True)
-        self._mmu_text('footer', self._mmu_notice or ('Turn: edit   Press: accept' if getattr(self, '_mmu_edit', None) else 'Turn: select   Press: open'), 10, 463, 42, small=True, color=0xFD20 if self._mmu_notice else 0x8410)
+        if page != 'home':
+            self._mmu_text('footer', self._mmu_notice, 10, 463, 42, small=True, color=0xFD20)
         self.lcd.update()
 
     def HMI_MMU_Menu(self):
@@ -803,7 +858,25 @@ class MMUViewMixin:
                 return
             key, _, _, enabled = items[self._mmu_selection - 1]
             if not enabled:
-                self._mmu_notice = 'Unavailable in current state'
+                if self._mmu_page == 'home' and key[0] in ('tool', 'action'):
+                    try:
+                        if key[0] == 'tool':
+                            self.pd.mmu_session.prepare('change', gate=key[2], tool=key[1])
+                        else:
+                            self.pd.mmu_session.prepare(key[1], gate=key[2])
+                    except ValueError as error:
+                        self._mmu_notice = str(error)
+                else:
+                    self._mmu_notice = 'Unavailable in current state'
+            elif self._mmu_page == 'home' and key[0] in ('tool', 'action'):
+                try:
+                    operation = (self.pd.mmu_session.prepare('change', gate=key[2], tool=key[1]) if key[0] == 'tool'
+                                 else self.pd.mmu_session.prepare(key[1], gate=key[2]))
+                    self.pd.mmu_session.start(operation)
+                except ValueError as error:
+                    self._mmu_notice = str(error)
+                else:
+                    self._mmu_notice = ''
             elif key[0] == 'page':
                 if key[1] == 'manual':
                     self._mmu_manual_base = m.fingerprint if m else None
@@ -913,6 +986,6 @@ class MMUViewMixin:
             if self.pd.connection_error and getattr(self, '_power_focus', False):
                 self._power_focus = False
                 self._draw_power_icon(False, clear=True)
-            if was_pending and getattr(self, '_mmu_page', 'home') != 'status' and session.phase == 'error':
+            if was_pending and getattr(self, '_mmu_page', 'home') not in ('home', 'status') and session.phase == 'error':
                 self._mmu_page, self._mmu_selection = 'status', 1
             self.Draw_MMU_Menu()

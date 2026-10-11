@@ -12,6 +12,7 @@ from ui_events import InputEvent
 class MMUDriverLifecycleTests(unittest.TestCase):
     def test_one_encoder_event_has_one_refresh_and_no_flash_or_cache_replacement(self):
         v, _ = fixtures.MMUUITests().make()
+        v._mmu_selection = 6
         v.lcd = packets.lcd()
         v._closed = False
         v._uart_online = True
@@ -20,7 +21,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         v.get_encoder_state = lambda: v._encoder_event
         v._process_input(InputEvent('press', 1, 1, 1))
         opcodes = [f[1] for f in v.lcd.serial.frames]
-        self.assertEqual(v._mmu_page, 'gates')
+        self.assertEqual(v._mmu_page, 'more')
         self.assertEqual(opcodes.count(0x3D), 1)
         self.assertFalse(set(opcodes) & {0x22, 0x25, 0x31, 0x32, 0x33})
         v.pd.subscription.request.assert_not_called()
@@ -28,6 +29,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
     def test_heartbeat_reconnect_restores_mmu_without_replaying_operation(self):
         fixture = fixtures.MMUUITests()
         v, _ = fixture.make()
+        v._mmu_open('more')
         fixture.press(v, 2)
         fixture.press(v, 2)
         v._mmu_page = 'status'
@@ -90,6 +92,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
     def test_panel_loss_cancels_popup_and_preserves_mmu_confirmation(self):
         fixture = power.MMUPowerIntegrationTests()
         v, _ = fixture.view()
+        v._mmu_open('more')
         fixtures.MMUUITests().press(v, 2)
         op = v._mmu_confirmation
         fixture.popup(v)

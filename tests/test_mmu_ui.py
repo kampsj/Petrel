@@ -377,6 +377,8 @@ class MMUUITests(unittest.TestCase):
             v.pd.subscription.request.assert_not_called()
 
     def edit_map(self, v):
+        if v._mmu_page == 'home':
+            self.press(v, len(v._mmu_items(v.pd.mmu_session.state)))
         self.press(v, 3)
         self.press(v, 1)
         v.get_encoder_state.return_value = v.ENCODER_DIFF_CW
@@ -389,7 +391,7 @@ class MMUUITests(unittest.TestCase):
         self.assertEqual(v._mmu_map_draft, [1, 1, 2, 3])
         v.pd.subscription.request.assert_not_called()
         self.press(v, len(v._mmu_items(v.pd.mmu_session.state)))
-        self.assertEqual(v._mmu_page, 'home')
+        self.assertEqual(v._mmu_page, 'more')
         self.press(v, 3)
         self.assertEqual(v._mmu_map_draft, [0, 1, 2, 3])
 
@@ -422,6 +424,7 @@ class MMUUITests(unittest.TestCase):
     def test_map_scroll_and_gate_edit_bounds(self):
         v, _ = self.make(num_gates=12, ttg_map=list(range(12)), gate_status=[1]*12,
                          gate_color_rgb=[[1, 0, 0]]*12)
+        v._mmu_open('more')
         self.press(v, 3)
         self.press(v, 12)
         for _ in range(3):
@@ -436,6 +439,8 @@ class MMUUITests(unittest.TestCase):
         self.assertEqual(v._mmu_map_draft[0], 0)
 
     def open_endless(self, v):
+        if v._mmu_page == 'home':
+            self.press(v, len(v._mmu_items(v.pd.mmu_session.state)))
         self.press(v, 3)
         self.press(v, v.pd.mmu_session.state.num_gates + 1)
         self.assertEqual(v._mmu_page, 'endless')
@@ -594,7 +599,8 @@ class MMUUITests(unittest.TestCase):
     def test_home_uses_full_canvas_but_keeps_original_dashboard_untouched(self):
         v, _ = self.make()
         self.assertIn((1, 0x0000, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
-        self.assertIn('T2 > G2  LOADED', self.strings(v))
+        self.assertIn('T2 > G2', self.strings(v))
+        self.assertIn('Loaded', self.strings(v))
         v.lcd.reset_mock()
         v.Draw_Status_Area(True)
         v.lcd.assert_not_called()
@@ -606,6 +612,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_browse_gates_and_open_details_never_moves(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 1)
         self.assertEqual(v._mmu_page, 'gates')
         self.press(v, 3)
@@ -617,16 +624,18 @@ class MMUUITests(unittest.TestCase):
 
     def test_confirmation_defaults_to_cancel_and_cancel_does_not_send(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 2)
         self.assertEqual(v._mmu_page, 'confirm')
         self.assertEqual(v._mmu_selection, 1)
         self.assertEqual(v._mmu_confirmation.script, 'MMU_UNLOAD')
         self.press(v, 1)
-        self.assertEqual(v._mmu_page, 'home')
+        self.assertEqual(v._mmu_page, 'more')
         v.pd.subscription.request.assert_not_called()
 
     def test_only_explicit_confirm_submits_once_then_live_status(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 2)
         self.press(v, 2)
         self.assertEqual(v._mmu_page, 'status')
@@ -639,6 +648,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_external_target_change_closes_confirm_and_never_dispatches(self):
         v, data = self.make()
+        v._mmu_open('more')
         self.press(v, 2)
         data['status']['mmu']['gate'] = 1
         self.press(v, 2)
@@ -648,7 +658,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_disabled_action_is_visible_but_not_executable(self):
         v, _ = self.make(enabled=False)
-        self.assertIn('MMU DISABLED', self.strings(v))
+        self.assertIn('DISABLED', self.strings(v))
         self.press(v, 2)
         self.assertEqual(v._mmu_page, 'home')
         v.pd.subscription.request.assert_not_called()
@@ -686,6 +696,7 @@ class MMUUITests(unittest.TestCase):
         count = 12
         v, _ = self.make(num_gates=count, gate_status=[1]*count,
                          gate_color_rgb=[[1,0,0]]*count, ttg_map=list(range(count)))
+        v._mmu_open('more')
         self.press(v, 1)
         v._mmu_selection = 12
         v.Draw_MMU_Menu()
@@ -700,11 +711,13 @@ class MMUUITests(unittest.TestCase):
 
     def test_multiple_tools_are_not_misrepresented_on_spool(self):
         v, _ = self.make(ttg_map=[2,2,2,3])
-        self.assertIn('T*', self.strings(v))
-        self.assertIn('--', self.strings(v))
+        for tool in ('T0', 'T1', 'T2'):
+            self.assertIn(tool, self.strings(v))
+        self.assertEqual(self.strings(v).count('G2'), 3)
 
     def test_live_progress_sensors_unknown_and_absent_are_distinct(self):
         v, data = self.make(bowden_progress=68, action='Loading')
+        v._mmu_open('more')
         self.press(v, 6)
         strings = self.strings(v)
         self.assertIn('Bowden: 68%', strings)
@@ -739,6 +752,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_disconnect_in_operation_keeps_error_and_does_not_replay(self):
         v, data = self.make()
+        v._mmu_open('more')
         self.press(v, 2)
         self.press(v, 2)
         data['state'] = 'disconnected'
@@ -767,6 +781,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_bypass_load_is_locked_until_unloaded_and_selected(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 4)
         items = v._mmu_items(v.pd.mmu_session.state)
         self.assertEqual([i[3] for i in items], [True,False,False,False])
@@ -789,6 +804,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_all_page_primitives_stay_inside_lcd(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 2)  # Supplies a confirmation target.
         for page in v.MMU_TITLES:
             v._mmu_page = page
@@ -810,6 +826,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_gate_removal_rejects_stale_enter_instead_of_selecting_new_target(self):
         v, data = self.make()
+        v._mmu_open('more')
         self.press(v, 1)
         v._mmu_selection = 4
         data['status']['mmu']['num_gates'] = 2
@@ -839,19 +856,22 @@ class MMUUITests(unittest.TestCase):
 
     def test_pending_operation_cannot_leave_mmu_and_start_another_ui_action(self):
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 2)
         self.press(v, 2)
         self.press(v, 0)  # Return to MMU home.
+        self.press(v, 0)  # More returns to the MMU overview.
         self.press(v, 0)  # Exit is deferred until MMU completes.
         self.assertEqual(v.checkkey, v.MMUMenu)
-        self.assertEqual(v._mmu_page, 'status')
-        self.assertIn('Wait', v._mmu_notice)
+        self.assertEqual(v._mmu_page, 'home')
+        self.assertEqual(v._mmu_notice, '')
         self.assertEqual(v.pd.subscription.request.call_count, 1)
 
     def test_uart_reconnect_rebuilds_current_page_and_cache(self):
         from test_regressions import ui
         from unittest.mock import patch
         v, _ = self.make()
+        v._mmu_open('more')
         self.press(v, 1)
         v._closed = False
         v._settings = ('/dev/fake',)
@@ -895,6 +915,6 @@ class MMUUITests(unittest.TestCase):
         data['status']['extruder']['temperature'] = 201
         v.EachMomentUpdate()
         self.assertEqual(v.checkkey,v.MMUMenu)
-        self.assertIn('Nozzle 201/205 C', self.strings(v))
+        self.assertIn('201/205 C', self.strings(v))
         self.assertNotIn((1,0x0000,0,0,271,479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
         self.assertFalse(any(c.args[3] == v.STATUS_Y for c in v.lcd.draw_rectangle.call_args_list))

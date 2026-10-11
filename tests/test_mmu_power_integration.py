@@ -26,6 +26,7 @@ class MMUPowerIntegrationTests(unittest.TestCase):
 
     def test_power_icon_on_every_mmu_page_without_repainting_idle_page(self):
         v, _ = self.view()
+        v._mmu_open('more')
         mmu_fixtures.MMUUITests().press(v, 2)
         for page in v.MMU_TITLES:
             with self.subTest(page=page):
@@ -86,6 +87,7 @@ class MMUPowerIntegrationTests(unittest.TestCase):
 
     def test_cancel_power_restores_mmu_confirmation_without_executing_it(self):
         v, _ = self.view()
+        v._mmu_open('more')
         mmu_fixtures.MMUUITests().press(v, 2)
         op = v._mmu_confirmation
         self.popup(v)

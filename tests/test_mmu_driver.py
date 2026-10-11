@@ -19,6 +19,7 @@ class MMUDriverIntegrationTests(unittest.TestCase):
     def test_every_mmu_page_emits_valid_new_driver_packets_without_commands(self):
         fixture = mmu_fixtures.MMUUITests()
         view, _ = fixture.make()
+        view._mmu_open('more')
         fixture.press(view, 2)
         view.lcd = lcd()
         for page in view.MMU_TITLES:
