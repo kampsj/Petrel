@@ -40,6 +40,37 @@ class EmulatorRenderingTests(unittest.TestCase):
         self.assertEqual(current.getpixel((4, 5)), (0, 255, 0))
         self.assertEqual(current.getpixel((3, 5)), (255, 0, 0))
 
+    def test_native_animation_capture_advances_stops_and_moves_without_traces(self):
+        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100):
+            self.lcd.clear(0)
+            self.lcd.configure_animation(0, True, 9, 250, 254, 12, 40, 10)
+            self.lcd.update()
+            first, _ = self.model.snapshot()
+        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=100.11):
+            second, _ = self.model.snapshot()
+            self.assertNotEqual(first.tobytes(), second.tobytes())
+            self.lcd.configure_animation(0, False, 9, 250, 254, 12, 40, 10)
+            self.lcd.clear(0)
+            self.lcd.configure_animation(0, True, 9, 250, 254, 70, 40, 10)
+            self.lcd.update()
+            moved, _ = self.model.snapshot()
+            width, height = self.assets.icon(9, 250).size
+            self.assertIsNone(moved.crop((12, 40, 12+width, 40+height)).getbbox())
+            self.lcd.configure_animation(0, False, 9, 250, 254, 70, 40, 10)
+            self.lcd.update()
+            stopped, _ = self.model.snapshot()
+        with patch('dwin_emulator.framebuffer.time.monotonic', return_value=200):
+            self.assertEqual(stopped.tobytes(), self.model.snapshot()[0].tobytes())
+        self.assertFalse(self.model.errors)
+
+    def test_animation_mask_disables_configured_animation(self):
+        self.lcd.configure_animation(2, True, 9, 250, 254, 10, 10, 10)
+        self.assertIn(2, self.model.animations)
+        self.lcd.set_animation_mask(0)
+        self.assertFalse(self.model.animations)
+        self.lcd.update()
+        self.model.snapshot()
+
     def test_original_hzk_offsets_and_msb_first_rows(self):
         # Native T5UIC1: 128 6x12 glyphs precede the 8x16 bank.
         offset = 128 * 12 + 65 * 16
@@ -193,9 +224,9 @@ class EmulatorLifecycleTests(unittest.TestCase):
 
     def test_unknown_visual_commands_reject_capture_until_panel_reset(self):
         emulator = Emulator(True); emulator.reset_panel()
-        emulator.feed(bytes.fromhex('AA 28 CC 33 C3 3C'))
+        emulator.feed(bytes.fromhex('AA 2A CC 33 C3 3C'))
         emulator.feed(bytes.fromhex('AA 3D CC 33 C3 3C'))
-        with self.assertRaisesRegex(RuntimeError, '0x28'): emulator.snapshot()
+        with self.assertRaisesRegex(RuntimeError, '0x2a'): emulator.snapshot()
         emulator.reset_panel(); emulator.feed(bytes.fromhex('AA 3D CC 33 C3 3C'))
         emulator.snapshot()
 

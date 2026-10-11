@@ -1,6 +1,7 @@
 """T5UIC1 packet interpreter. It never reads or writes the real serial port."""
 from io import BytesIO
 import struct
+import time
 from threading import RLock
 
 from PIL import Image, ImageDraw, ImageChops
@@ -27,6 +28,7 @@ class Framebuffer:
             self.sram = bytearray(32768)
             self.pictures = {}
             self.errors = set()
+            self.animations = {}
             self.presented = None
             self.sequence = 0
 
@@ -36,7 +38,23 @@ class Framebuffer:
                 raise RuntimeError('Incomplete emulation: ' + '; '.join(sorted(self.errors)))
             if self.presented is None:
                 raise RuntimeError('No completed LCD update yet')
-            return self.presented.copy(), self.sequence
+            image = self.presented.copy()
+            self._render_animations(image)
+            return image, self.sequence
+
+    def _render_animations(self, image):
+        now = time.monotonic()
+        for animation in self.animations.values():
+            x, y, mode, library, first, last, interval, started, backing = animation
+            elapsed = int((now - started) / max(.01, interval * .01))
+            step = 1 if last >= first else -1
+            icon = first + step * (elapsed % (abs(last - first) + 1))
+            sprite = self.assets.icon(library, icon)
+            image.paste(backing, (x, y))
+            if mode & 0x80:
+                # Animation icon black pixels are transparent on the panel.
+                maximum = ImageChops.lighter(ImageChops.lighter(*sprite.split()[:2]), sprite.split()[2])
+                image.paste(sprite, (x, y), maximum.point([0] + [255] * 255))
 
     @staticmethod
     def words(data):
@@ -84,6 +102,7 @@ class Framebuffer:
             raise ValueError('Invalid complete T5UIC1 frame')
         opcode, p = frame[1], frame[2:-4]
         with self.lock:
+            self._render_animations(self.image)
             if opcode in self.NONVISUAL:
                 return
             if opcode == 0x3D:
@@ -167,6 +186,23 @@ class Framebuffer:
                 mode = 0x81 if opcode == 0x26 else p[0]
                 x0, y0, x1, y1, x, y = self.words(p if opcode == 0x26 else p[1:])
                 self._paste(self.areas[mode & 1].crop((x0, y0, x1 + 1, y1 + 1)), x, y, mode)
+            elif opcode == 0x28:
+                if len(p) != 9:
+                    raise ValueError('Invalid animation payload')
+                x, y = self.words(p[:4])
+                mode, library, first, last, interval = p[4:]
+                animation_id = mode & 15
+                self.animations.pop(animation_id, None)
+                if mode & 0x80:
+                    sprites = [self.assets.icon(library, i) for i in range(min(first,last), max(first,last)+1)]
+                    width, height = max(i.width for i in sprites), max(i.height for i in sprites)
+                    backing = self.image.crop((x, y, x + width, y + height))
+                    self.animations[animation_id] = (x, y, mode, library, first, last,
+                                                     interval, time.monotonic(), backing)
+                    self._render_animations(self.image)
+            elif opcode == 0x29:
+                mask, = self.words(p)
+                self.animations = {i:a for i,a in self.animations.items() if mask & (1 << i)}
             elif opcode == 0x31:
                 address = self.words(p[1:3])[0]
                 if p[0] == 0x5A:
