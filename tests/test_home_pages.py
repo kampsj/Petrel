@@ -114,7 +114,10 @@ class HomePageTests(unittest.TestCase):
         view.lcd.fill_circle.assert_not_called()
 
     def test_capability_removal_clamps_cursor_to_existing_info(self):
-        view=self.make();view.select_page.set(6);view.pd.HAS_ONESTEP_LEVELING=False
+        view=self.make();view.select_page.set(6)
+        source=snapshot(probe=False)
+        view.pd.subscription.snapshot.return_value=source
+        view.pd.update_variable()
         view._draw_home_page();self.assertEqual(view.select_page.now,5)
         self.assertIn((view.ICON_Info_1,145,130),[c.args[1:] for c in view.lcd.show_icon.call_args_list])
 
