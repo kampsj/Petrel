@@ -297,7 +297,7 @@ class MMUUITests(unittest.TestCase):
         self.press(v, 2)
         self.assertEqual(v._mmu_page, 'confirm')
         self.assertEqual(v._mmu_selection, 1)
-        self.assertIn('Moves ID off: G2', self.strings(v))
+        self.assertIn('Moves ID off: G1', self.strings(v))
         self.press(v, 1)
         self.assertEqual(v._mmu_spool_draft, 102)
         self.press(v, 2)
@@ -313,7 +313,7 @@ class MMUUITests(unittest.TestCase):
         self.press(v, 3)
         self.assertEqual(v._mmu_page, 'confirm')
         self.assertEqual(v._mmu_confirmation.values, (-1,))
-        self.assertIn('Clear spool on G1', self.strings(v))
+        self.assertIn('Clear spool on G0', self.strings(v))
         v.pd.subscription.request.assert_not_called()
         self.press(v, 2)
         self.assertEqual(v.pd.subscription.request.call_args.args[1]['script'],
@@ -399,7 +399,7 @@ class MMUUITests(unittest.TestCase):
         self.press(v, 6)
         self.assertEqual(v._mmu_page, 'confirm')
         self.assertEqual(v._mmu_selection, 1)
-        self.assertIn('T0 > G2', self.strings(v))
+        self.assertIn('T0 > G1', self.strings(v))
         self.press(v, 1)
         self.assertEqual(v._mmu_map_draft, [1, 1, 2, 3])
         self.press(v, 6)
@@ -428,7 +428,7 @@ class MMUUITests(unittest.TestCase):
             v.get_encoder_state.return_value = v.ENCODER_DIFF_CW
             v.HMI_MMU_Menu()
         self.assertEqual(v._mmu_map_draft[11], 11)
-        self.assertIn('[G12]', self.strings(v))
+        self.assertIn('[G11]', self.strings(v))
         self.press(v, 12)
         self.press(v, 1)
         v.get_encoder_state.return_value = v.ENCODER_DIFF_CCW
@@ -473,7 +473,7 @@ class MMUUITests(unittest.TestCase):
         self.save_endless(v)
         self.assertEqual(v._mmu_page, 'confirm')
         self.assertEqual(v._mmu_selection, 1)
-        self.assertIn('G2 > Group 1', self.strings(v))
+        self.assertIn('G1 > Group 1', self.strings(v))
         self.press(v, 1)
         self.assertEqual(v._mmu_endless_draft['groups'], [0, 0, 2, 3])
         self.save_endless(v)
@@ -498,7 +498,7 @@ class MMUUITests(unittest.TestCase):
         self.open_endless(v)
         self.press(v, 2)
         self.assertIn('Mixed material / color', self.strings(v))
-        self.assertIn('G1 PLA ff0000', self.strings(v))
+        self.assertIn('G0 PLA ff0000', self.strings(v))
         v, _ = self.make(endless_spool_groups=[0]*4, gate_material=['PLA']*4,
                          gate_color=['ff0000']*4)
         self.open_endless(v)
@@ -554,11 +554,11 @@ class MMUUITests(unittest.TestCase):
         v, _ = self.make(num_gates=count, ttg_map=list(range(count)), gate_status=[1]*count,
                          gate_color_rgb=[[1, 0, 0]]*count, endless_spool_groups=[0]*count)
         self.open_endless(v)
-        self.assertIn('G1 G2 G3 +13', self.strings(v))
+        self.assertIn('G0 G1 G2 +13', self.strings(v))
         self.press(v, 2)
         v._mmu_selection = count
         v.Draw_MMU_Menu()
-        self.assertTrue(any('G16' in s for s in self.strings(v)))
+        self.assertTrue(any('G15' in s for s in self.strings(v)))
         for c in v.lcd.draw_text.call_args_list:
             x, _, value = c.args[-3:]
             font = c.args[2]
@@ -594,7 +594,7 @@ class MMUUITests(unittest.TestCase):
     def test_home_uses_full_canvas_but_keeps_original_dashboard_untouched(self):
         v, _ = self.make()
         self.assertIn((1, 0x0000, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
-        self.assertIn('T2 > G3  LOADED', self.strings(v))
+        self.assertIn('T2 > G2  LOADED', self.strings(v))
         v.lcd.reset_mock()
         v.Draw_Status_Area(True)
         v.lcd.assert_not_called()
@@ -689,7 +689,7 @@ class MMUUITests(unittest.TestCase):
         self.press(v, 1)
         v._mmu_selection = 12
         v.Draw_MMU_Menu()
-        self.assertIn('G12 --', self.strings(v))
+        self.assertIn('G11 --', self.strings(v))
         self.press(v, 12)
         self.assertEqual(v._mmu_gate, 11)
         v._mmu_selection = 8
@@ -863,7 +863,7 @@ class MMUUITests(unittest.TestCase):
             self.assertTrue(v._ensure_uart())
         self.assertEqual(v._mmu_page, 'gates')
         self.assertIn((1,0x0000,0,0,271,479), [c.args for c in port.draw_rectangle.call_args_list])
-        self.assertIn('G1 PLA', [c.args[-1] for c in port.draw_text.call_args_list])
+        self.assertIn('G0 PLA', [c.args[-1] for c in port.draw_text.call_args_list])
         v.pd.subscription.request.assert_not_called()
 
     def test_offline_encoder_navigation_can_back_out_but_never_sends_motion(self):

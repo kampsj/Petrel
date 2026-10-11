@@ -61,7 +61,7 @@ class MMUViewMixin:
             spool.remaining_percent = percent
             spool.draw()
 
-            label = str(gate + 1)
+            label = str(gate)
             label_w = max(1, min(38, slot - 2 if slot > 2 else slot))
             lx0, lx1 = cx - label_w // 2, cx + label_w // 2
             exit_leds = mmu.get('exit_led_rgb', ())
@@ -197,7 +197,7 @@ class MMUViewMixin:
 
     @staticmethod
     def _mmu_gate_label(gate):
-        return 'Bypass' if gate == -2 else 'G%d' % (gate + 1) if gate is not None and gate >= 0 else 'G?'
+        return 'Bypass' if gate == -2 else 'G%d' % gate if gate is not None and gate >= 0 else 'G?'
 
     @staticmethod
     def _mmu_tool_label(tool):
@@ -325,7 +325,7 @@ class MMUViewMixin:
             return items + [nav('status', 'Sensors / status')]
         if page == 'units':
             return [(('unit', i), 'U%d %s' % (i + 1, unit.name),
-                     'G%d-G%d%s' % (unit.first_gate + 1, unit.first_gate + unit.num_gates,
+                     'G%d-G%d%s' % (unit.first_gate, unit.first_gate + unit.num_gates - 1,
                                      ' ACTIVE' if m.unit == i else ''), True)
                     for i, unit in enumerate(m.units if m else ())]
         if page == 'unit':
@@ -449,7 +449,7 @@ class MMUViewMixin:
                 self.lcd.draw_rectangle(1, bg, x, 138, x + 41, 158)
                 self.lcd.draw_text(False, False, self.lcd.font6x12,
                     0x0000 if bg == 0x07E0 else 0xFFFF,
-                    bg, x + 12, 142, 'G%d' % (gate + 1))
+                    bg, x + 12, 142, 'G%d' % gate)
         if m.num_gates > 4:
             self._mmu_text('gatepage', '%d/%d' % (start // 4 + 1, (m.num_gates + 3) // 4), 218, 165, 8, small=True)
 

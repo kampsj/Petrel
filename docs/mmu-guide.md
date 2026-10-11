@@ -12,7 +12,7 @@ With a configured Happy Hare MMU, select **Home → MMU**. Home also shows gate 
   <img src="assets/screens/mmu-gate-details.png" width="240" alt="Gate actions">
 </p>
 
-Rotate to select; press to open. Browsing gates or details does not move filament. **G1 is Happy Hare gate 0**; logical tools retain T0-based numbering. `T*` means several tools share that gate.
+Rotate to select; press to open. Browsing gates or details does not move filament. **G0 is Happy Hare gate 0**; gates and logical tools both use zero-based numbering. `T*` means several tools share that gate.
 
 Actions open a confirmation showing the target, with **Cancel initially selected**. Routine movement and edits require an idle MMU outside printing/pauses. Unsupported options are hidden; actions may be locked when the printer state is busy, unknown or unsuitable. Check the actual printer before retrying a failed/unconfirmed operation.
 

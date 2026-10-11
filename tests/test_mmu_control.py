@@ -394,7 +394,7 @@ class MMUControlTests(unittest.TestCase):
         self.assertEqual(s.state.active_unit.name, 'Second MMU')
         op = s.prepare('grip')
         self.assertEqual(op.gate, 2)
-        self.assertEqual(op.label, 'Grip G3')
+        self.assertEqual(op.label, 'Grip G2')
         self.assertEqual(op.values[0], 1)
         with self.assertRaises(ValueError): s.prepare('home_selector')
         data['status']['mmu']['gate'] = 0
@@ -538,7 +538,7 @@ class MMUControlTests(unittest.TestCase):
             p, _, s = self.make(spoolman_support=mode)
             op = s.prepare('spool', gate=1, values=(501,))
             self.assertEqual(op.script, 'MMU_GATE_MAP GATE=1 SPOOLID=501 TEMP=210')
-            self.assertIn('G2', op.label)
+            self.assertIn('G1', op.label)
             self.assertEqual(op.expected_spool_ids, (101, 501, 104, -1))
             self.assertEqual(s.prepare('spool', gate=1, values=(-1,)).script,
                              'MMU_GATE_MAP GATE=1 SPOOLID=-1 TEMP=210')
@@ -617,7 +617,7 @@ class MMUControlTests(unittest.TestCase):
             p, _, session = self.make()
             op = session.prepare(action, gate=2)
             self.assertEqual(op.script, script)
-            self.assertIn('G3', op.label)
+            self.assertIn('G2', op.label)
             p.subscription.request.assert_not_called()
 
     def test_empty_filament_actions_and_bypass(self):

@@ -1,6 +1,6 @@
 """Happy Hare state and guarded, completion-tracked MMU operations.
 
-Gate indices stay zero based here; the LCD alone presents G1 for gate 0.
+Gate indices stay zero based in commands and LCD labels, matching Happy Hare.
 Missing telemetry remains unknown and never enables a motion operation.
 """
 from collections.abc import Mapping
@@ -294,7 +294,7 @@ class MMUSession:
         if action in self.GATE_ACTIONS or action == 'spool':
             if integer(gate) is None or not 0 <= gate < m.num_gates:
                 raise ValueError('Invalid gate')
-            target = 'G%d' % (gate + 1)
+            target = 'G%d' % gate
         else:
             target = ''
         if action in ('select', 'load', 'preload', 'check', 'bypass', 'home_selector', 'check_all', 'grip', 'release', 'enable', 'motors_off', 'unit_select') and m.filament != 'unloaded':
@@ -319,7 +319,7 @@ class MMUSession:
             gate = m.units[index].first_gate
             values = (index, m.units)
             script = 'MMU_SELECT GATE=%d' % gate
-            label = 'Select U%d / G%d' % (index + 1, gate + 1)
+            label = 'Select U%d / G%d' % (index + 1, gate)
         elif action in ('led_enable', 'led_animation', 'led_mode'):
             leds = m.leds
             if m.active_unit is None or leds is None or leds.enabled is None or leds.animation is None:
@@ -382,7 +382,7 @@ class MMUSession:
             if integer(tool) is None or integer(gate) is None or not 0 <= tool < m.num_gates or not 0 <= gate < m.num_gates or not isinstance(loaded, bool):
                 raise ValueError('Choose actual tool/gate/state')
             script = 'MMU_RECOVER TOOL=%d GATE=%d LOADED=%d' % (tool, gate, loaded)
-            label = 'Set T%d / G%d %s' % (tool, gate + 1, 'loaded' if loaded else 'unloaded')
+            label = 'Set T%d / G%d %s' % (tool, gate, 'loaded' if loaded else 'unloaded')
         elif action == 'unlock':
             if m.locked is not True:
                 raise ValueError('MMU is not locked')
@@ -447,7 +447,7 @@ class MMUSession:
                 if action == 'release' and unit.always_gripped is not False:
                     raise ValueError('Selector cannot release filament')
                 script = 'MMU_GRIP' if action == 'grip' else 'MMU_RELEASE'
-                label = '%s G%d' % (action.title(), m.gate + 1)
+                label = '%s G%d' % (action.title(), m.gate)
             else:
                 if m.filament != 'loaded' or m.sync_drive is None or unit.always_gripped is None:
                     raise ValueError('Loaded filament and known sync state required')

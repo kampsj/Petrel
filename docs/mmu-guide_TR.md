@@ -12,7 +12,7 @@ Happy Hare MMU yapılandırılmışsa **Home → MMU** seçin. Ana ekran kanal r
   <img src="assets/screens/mmu-gate-details.png" width="240" alt="Kanal işlemleri">
 </p>
 
-Seçmek için çevirin; açmak için basın. Kanallara veya ayrıntılara göz atmak filament hareketi yapmaz. **G1, Happy Hare kanal 0'dır**; mantıksal takımlar T0 tabanlı numaralandırılır. `T*`, birden fazla takımın o kanalı paylaştığını gösterir.
+Seçmek için çevirin; açmak için basın. Kanallara veya ayrıntılara göz atmak filament hareketi yapmaz. **G0, Happy Hare kanal 0'dır**; kanallar ve mantıksal takımlar 0 tabanlı numaralandırılır. `T*`, birden fazla takımın o kanalı paylaştığını gösterir.
 
 İşlemler hedefi gösteren onay açar; **başlangıçta Cancel seçilidir**. Normal hareket ve düzenlemeler baskı/duraklama dışında boşta MMU gerektirir. Desteklenmeyen seçenekler gizlenir; yazıcı durumu meşgul, bilinmiyor veya uygun değilse işlemler kilitlenebilir. Başarısız/doğrulanmamış işlemi tekrarlamadan önce gerçek yazıcıyı kontrol edin.
 
