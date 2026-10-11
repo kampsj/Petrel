@@ -47,6 +47,7 @@ fi
 request_timeout="$(read_value DWIN_REQUEST_TIMEOUT 5)"
 api_key="$(read_value MOONRAKER_API_KEY "")"
 settings_file="$CONFIG_DIR/presets.json"
+emulator="$(read_value DWIN_EMULATOR 0)"
 
 cat > "$ENV_FILE" <<EOF
 # KlipperDWIN runtime configuration.
@@ -60,6 +61,7 @@ DWIN_BUTTON_PIN=$button_pin
 DWIN_SETTINGS_FILE=$settings_file
 DWIN_POWER_DEVICE=$power_device
 DWIN_POWER_ON_HOLD_MS=$power_on_hold_ms
+DWIN_EMULATOR=$emulator
 EOF
 
 chown "$INSTALL_USER:$INSTALL_USER" "$ENV_FILE"

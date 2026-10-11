@@ -310,6 +310,7 @@ Kurulan servisler `~/.config/KlipperDWIN/KlipperDWIN.env` dosyasını okur. Bu b
 | `DWIN_SETTINGS_FILE` | `--settings-file` | `~/.config/KlipperDWIN/presets.json` | `$XDG_CONFIG_HOME/dwin-lcd/presets.json` veya `~/.config/dwin-lcd/presets.json` |
 | `DWIN_POWER_DEVICE` | `--power-device` | `Printer` | `Printer` |
 | `DWIN_POWER_ON_HOLD_MS` | `--power-on-hold-ms` | `2000` | `2000` |
+| `DWIN_EMULATOR` | `--emulator` / `--no-emulator` | `0` | `0` |
 
 Yalın varsayılanlar, ortam dosyası veya CLI değeri verilmediğinde geçerlidir. Manuel hata ayıklamada UART/GPIO’nun tek sahibi olması için önce servisi durdurun. Bu örnek kurulumun pinlerini/aygıtını açıkça belirtir:
 
@@ -425,4 +426,4 @@ Ayarlar LCD Data Flash içinde sürümlü, CRC korumalı 16 baytlık **0x0100–
 
 ### Geliştirici ekran görüntüleri
 
-İsteğe bağlı framebuffer emülatörü, canlı görüntü sunmadan gerçek LCD'nin UART paketlerini işler. Harici servis ortamında `DWIN_EMULATOR=1` ile etkinleştirildiğinde SSH üzerinden timestamp içeren, kayıpsız 272x480 PNG/BMP görüntüler alınabilir. Varsayılan kapalıdır. [Kurulum, görüntü alma komutları ve doğruluk sınırları](docs/ui-emulator.md).
+İsteğe bağlı framebuffer emülatörü, canlı görüntü sunmadan gerçek LCD'nin UART paketlerini işler. Harici servis ortamında `DWIN_EMULATOR=1` ile etkinleştirildiğinde SSH üzerinden timestamp içeren, kayıpsız 272x480 PNG/BMP görüntüler alınabilir. Varsayılan kapalıdır. [Kurulum, görüntü alma komutları ve doğruluk sınırları](docs/ui-emulator.md). Bağımlılıklar normal kurulumla yüklenir; ortam dosyasında varsayılan `DWIN_EMULATOR=0` bulunur. Açmak için `1` yapın.

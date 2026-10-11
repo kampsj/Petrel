@@ -6,14 +6,15 @@ simulate Moonraker, host a live viewer or continuously save pictures.
 
 ## Enable on the Pi
 
-Check out `feature/ui-emulator` and install its optional dependency:
+Emulator dependencies are installed by the normal installer and Moonraker
+Update Manager through `requirements.txt`. For an existing checkout:
 
 ```bash
 cd ~/KlipperDWIN
-~/klipperdwin-env/bin/python -m pip install -r requirements-emulator.txt
+~/klipperdwin-env/bin/python -m pip install -r requirements.txt
 ```
 
-Add this to the external service environment file
+Change the default `DWIN_EMULATOR=0` to `DWIN_EMULATOR=1` in the external service environment file
 `~/.config/KlipperDWIN/KlipperDWIN.env`, then restart:
 
 ```ini
@@ -24,7 +25,8 @@ DWIN_EMULATOR=1
 sudo systemctl restart KlipperDWIN.service
 ```
 
-Normal installations leave this unset or use `DWIN_EMULATOR=0`. No framebuffer,
+The installer/configurator writes `DWIN_EMULATOR=0` by default and preserves an
+existing enabled value. No framebuffer,
 asset loading, socket server or emulator imports occur in the disabled UI path.
 The driver's optional observer check is the only addition to normal sends.
 The LCD remains on the configured UART (the reference installation uses

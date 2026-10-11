@@ -1,2 +1,3 @@
-# Optional developer dependency; the normal service does not import it.
+# Compatibility for earlier emulator setup instructions.
+# Normal requirements.txt now includes this dependency.
 qrcode==8.2

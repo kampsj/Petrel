@@ -310,6 +310,7 @@ Installed services read `~/.config/KlipperDWIN/KlipperDWIN.env`. This is a syste
 | `DWIN_SETTINGS_FILE` | `--settings-file` | `~/.config/KlipperDWIN/presets.json` | `$XDG_CONFIG_HOME/dwin-lcd/presets.json` or `~/.config/dwin-lcd/presets.json` |
 | `DWIN_POWER_DEVICE` | `--power-device` | `Printer` | `Printer` |
 | `DWIN_POWER_ON_HOLD_MS` | `--power-on-hold-ms` | `2000` | `2000` |
+| `DWIN_EMULATOR` | `--emulator` / `--no-emulator` | `0` | `0` |
 
 Bare defaults apply when no environment file or CLI value is supplied. For manual debugging, stop the service first so only one process owns UART/GPIO. This example explicitly uses the installer’s pins/device:
 
@@ -423,4 +424,4 @@ Display settings use a versioned, CRC-protected 16-byte LCD Data Flash record at
 
 ### Developer screenshots
 
-An optional framebuffer emulator mirrors the real LCD's UART packets without a live viewer. Enable `DWIN_EMULATOR=1` in the external service environment to capture timestamped, lossless 272x480 PNG/BMP files over SSH. It is disabled by default. See [setup, capture commands and fidelity limits](docs/ui-emulator.md).
+An optional framebuffer emulator mirrors the real LCD's UART packets without a live viewer. Enable `DWIN_EMULATOR=1` in the external service environment to capture timestamped, lossless 272x480 PNG/BMP files over SSH. It is disabled by default. See [setup, capture commands and fidelity limits](docs/ui-emulator.md). Dependencies are included in the normal installation; the environment file defaults to `DWIN_EMULATOR=0`. Change it to `1` to enable.
