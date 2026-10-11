@@ -9,7 +9,7 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
-  <a href="https://github.com/sezgynus/KlipperDWIN/tree/v2.0.0"><img alt="v2.0.0" src="https://img.shields.io/badge/version-v2.0.0-0969da"></a>
+  <a href="https://github.com/sezgynus/KlipperDWIN/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
   <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
