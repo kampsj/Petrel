@@ -33,8 +33,8 @@ class DispatchTests(unittest.TestCase):
             p.subscription.request.return_value = Future()
             p.subscription.responses_since.return_value = (0, ())
             getattr(p, name).start()
-            call = p.sendGCode.call_args if name == 'probe_wizard' else p.subscription.request.call_args
-            guard = call.kwargs['dispatch_guard' if name == 'probe_wizard' else 'guard']
+            call = p.subscription.request.call_args
+            guard = call.kwargs['guard']
             self.assertTrue(guard())
             source['status']['print_stats']['state'] = 'paused'
             self.assertFalse(guard())

@@ -112,7 +112,7 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 4. Uygunsa **Accept**, oturumu iptal etmek için **Abort** seçin.
 5. Accept sonrası kalıcı kayıt için **Save: restart Klipper**, kaydetmeden çıkmak için **Leave unsaved** seçin.
 
-Baskı durmuş olmalıdır. Başlamadan önce mevcut bekleyen yapılandırma değişikliklerini çözün. Kayıt Klipper'ı yeniden başlatır; bu işlem geçici çalışma zamanı Z offset'ten ayrıdır.
+Baskı durmuş olmalıdır. Bekleyen yapılandırma değişiklikleri kalibrasyonu engellemez. Kayıt yalnızca bekleyen değişiklik kabul edilen prob ofsetinden oluşuyorsa yapılabilir. Kayıt Klipper'ı yeniden başlatır; geçici çalışma Z ofsetinden ayrıdır.
 
 ## Ekran ayarları
 

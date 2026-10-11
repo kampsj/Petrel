@@ -14,13 +14,12 @@ class SaveDispatchTests(unittest.TestCase):
             source = probe_data()
             source['status']['configfile'].update(save_config_pending=True, save_config_pending_items={'bltouch': {'z_offset': 2.1}})
             p = printer(source)
-            p.sendGCode = PrinterData.sendGCode.__get__(p)
-            p.client.post.return_value = Future()
+            p.subscription.request.return_value = Future()
             session = p.probe_wizard
             session.phase, session.section, session.accepted_offset = 'accepted', 'bltouch', 2.1
             session.epoch = p.state.epoch
             session.save()
-            guard = p.client.post.call_args.kwargs['guard']
+            guard = p.subscription.request.call_args.kwargs['guard']
             self.assertTrue(guard())
             items = source['status']['configfile']['save_config_pending_items']
             if change == 'section': items['extruder'] = {'pid_kp': 99}
