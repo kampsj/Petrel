@@ -579,7 +579,11 @@ class MMUSession:
             self._fail('Result unconfirmed; check MMU')
             return
         self._cursor, responses = p.subscription.responses_since(self._cursor)
-        error = next((line for line in responses if line.startswith('!!')), None)
+        # Happy Hare deliberately logs automatic heating on its error channel,
+        # but continues the operation. Only this known advisory is nonfatal.
+        error = next((line for line in responses if line.startswith('!!')
+                      and not line[2:].strip().startswith(
+                          'Alert: Automatically heating extruder to ')), None)
         if error:
             self._fail(error[2:].strip() or 'MMU command failed')
             return

@@ -722,6 +722,37 @@ class MMUControlTests(unittest.TestCase):
         self.assertEqual(s.phase, 'error')
         self.assertIn('unconfirmed', s.message)
 
+    def test_automatic_heating_alert_keeps_first_tool_change_running(self):
+        for source in ('gatemap', 'mmu default'):
+            p, data, s = self.make()
+            s.start(s.prepare('change', gate=0, tool=0))
+            command = s.pending
+            alert = '!! Alert: Automatically heating extruder to %s temp (220.0\u00b0C)' % source
+            p.subscription.responses_since.return_value = (1, (alert,))
+            s.update()
+            self.assertEqual(s.phase, 'running')
+            self.assertIs(s.pending, command)
+            self.assertFalse(command.cancelled())
+            p.subscription.responses_since.return_value = (1, ())
+            status = copy.deepcopy(data['status'])
+            status['mmu'].update(gate=0, tool=0, filament='Loaded', filament_pos=10)
+            self.complete(s, p, status)
+            self.assertEqual(s.phase, 'complete')
+            self.assertEqual(s.prepare('change', gate=1, tool=1).tool, 1)
+            scripts = [call.args[1]['script'] for call in p.subscription.request.call_args_list
+                       if call.args[0] == 'printer.gcode.script']
+            self.assertEqual(scripts, ['MMU_CHANGE_TOOL TOOL=0 STANDALONE=1'])
+
+    def test_heating_advisory_does_not_hide_a_real_error_in_same_batch(self):
+        p, _, s = self.make()
+        s.start(s.prepare('change', gate=0, tool=0))
+        p.subscription.responses_since.return_value = (2, (
+            '!! Alert: Automatically heating extruder to gatemap temp (220.0\u00b0C)',
+            '!! Heater extruder not heating at expected rate'))
+        s.update()
+        self.assertEqual(s.phase, 'error')
+        self.assertEqual(s.message, 'Heater extruder not heating at expected rate')
+
     def test_error_disconnect_timeout_never_replay(self):
         for case in ('error', 'disconnect', 'timeout', 'gcode'):
             p, data, s = self.make()
