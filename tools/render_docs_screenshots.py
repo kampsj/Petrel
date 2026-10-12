@@ -32,6 +32,7 @@ from test_regressions import ui as application_ui
 BuzzerSettings = application_ui.BuzzerSettings
 from preview_metadata import PreviewDetails, Filament
 from thumbnail_cache import ThumbnailCache
+from thumbnail_preview import image_jpeg
 from mmu_filament_view import filament_color
 
 SCENES = []
@@ -219,15 +220,15 @@ def power():
 
 def cube_thumbnail():
     # Representative slicer-style sample model; UI uses the normal SRAM path.
-    image=Image.new('RGB',(128,128),'black'); draw=ImageDraw.Draw(image)
+    image=Image.new('RGBA',(128,128),(0,0,0,0)); draw=ImageDraw.Draw(image)
     draw.polygon([(20,50),(64,25),(108,50),(64,75)],fill='#a2d5ef')
     draw.polygon([(20,50),(64,75),(64,113),(20,88)],fill='#369bd4')
     draw.polygon([(64,75),(108,50),(108,88),(64,113)],fill='#22668a')
     for y in range(58,88,5):
         draw.line([(21,y),(63,y+25)],fill='#2c84b5')
         draw.line([(65,y+25),(107,y)],fill='#185776')
-    stream=BytesIO(); image.save(stream,format='JPEG',quality=92)
-    return stream.getvalue()
+    stream=BytesIO(); image.save(stream,format='PNG')
+    return image_jpeg(stream.getvalue())
 
 
 @scene('print-file', 'printing', 'Folders and G-code files', 'Klasörler ve G-code dosyaları')

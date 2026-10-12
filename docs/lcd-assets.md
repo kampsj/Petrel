@@ -16,7 +16,7 @@ After setup, inspect menu labels/icons, colors, preview images and encoder navig
 
 ## Print previews
 
-Previews come from Moonraker and do not need a new panel asset pack. Missing thumbnails do not prevent starting a print. Images are prepared again after restarting or reconnecting; they do not replace installed icons.
+Previews come from Moonraker and do not need a new panel asset pack. Missing thumbnails do not prevent starting a print. Images are prepared again after restarting or reconnecting; they do not replace installed icons. Transparent thumbnail pixels and letterboxing are composited onto the theme background before baseline 4:2:0 JPEG conversion; opaque black model details are preserved.
 
 ## Resource identification
 

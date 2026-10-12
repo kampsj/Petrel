@@ -18,6 +18,7 @@ from threading import Lock
 import display_settings
 import buzzer_control
 import serial
+from graphite_theme import BACKGROUND_COLOR
 
 
 class T5UIC1ProtocolError(RuntimeError):
@@ -92,7 +93,7 @@ class T5UIC1Display:
     Color_Yellow = 0xFF0F
     Color_Bg_Window = 0x2967
     Color_Bg_Blue = 0x2966
-    Color_Bg_Black = 0x2125
+    Color_Bg_Black = BACKGROUND_COLOR
     Color_Bg_Red = 0xF00F
     Popup_Text_Color = 0xE75E
     Line_Color = 0x39C8

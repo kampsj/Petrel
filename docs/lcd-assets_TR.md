@@ -16,7 +16,7 @@ Kurulumdan sonra fiziksel ekranda menü yazılarını/ikonlarını, renkleri, ö
 
 ## Baskı önizlemeleri
 
-Önizlemeler Moonraker'dan gelir ve yeni panel kaynak paketi gerektirmez. Eksik thumbnail baskı başlatmayı engellemez. Görseller yeniden başlatma veya yeniden bağlantı sonrası tekrar hazırlanır; kurulu ikonların yerine geçmez.
+Önizlemeler Moonraker'dan gelir ve yeni panel kaynak paketi gerektirmez. Eksik thumbnail baskı başlatmayı engellemez. Görseller yeniden başlatma veya yeniden bağlantı sonrası tekrar hazırlanır; kurulu ikonların yerine geçmez. Şeffaf thumbnail pikselleri ve kenar boşlukları baseline 4:2:0 JPEG dönüşümünden önce temanın zemin rengiyle birleştirilir; modelin opak siyah ayrıntıları korunur.
 
 ## Kaynakları tanıma
 

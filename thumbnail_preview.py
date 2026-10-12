@@ -5,17 +5,18 @@ import time
 import logging
 from urllib.parse import quote
 from PIL import Image
+from graphite_theme import BACKGROUND_RGB
 from preview_metadata import PreviewData, details_from_metadata
 
 
 def image_jpeg(data):
-    """Produce a baseline 128x128 JPEG with a black letterbox background."""
+    """Composite alpha/letterboxing on the UI surface before baseline JPEG."""
     with Image.open(BytesIO(data)) as source:
         if source.width * source.height > 4_000_000:
             raise ValueError('Thumbnail too large')
         source.thumbnail((128, 128), Image.Resampling.LANCZOS)
         rgba = source.convert('RGBA')
-        canvas = Image.new('RGB', (128, 128), 'black')
+        canvas = Image.new('RGB', (128, 128), BACKGROUND_RGB)
         canvas.paste(rgba, ((128-rgba.width)//2, (128-rgba.height)//2), rgba)
     output = BytesIO()
     canvas.save(output, format='JPEG', quality=70, subsampling=2,

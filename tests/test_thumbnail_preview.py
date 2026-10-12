@@ -4,6 +4,9 @@ from unittest.mock import Mock, patch
 import unittest
 from PIL import Image
 from thumbnail_preview import image_jpeg, load_thumbnail
+from graphite_theme import BACKGROUND_COLOR, BACKGROUND_RGB
+from t5uic1_driver import T5UIC1Display
+from dwin_emulator.assets import rgb565, panel_colors
 from test_capabilities import display, snapshot
 import test_files
 
@@ -38,12 +41,24 @@ class ThumbnailTests(unittest.TestCase):
             self.assertEqual(image.size,(128,128))
             self.assertEqual(image.mode,'RGB')
             self.assertFalse(image.info.get('progressive',False))
-            self.assertLessEqual(max(image.getpixel((64,0))),2)
+            self.assertEqual(panel_colors(image).getpixel((64,0)), BACKGROUND_RGB)
             self.assertGreater(image.getpixel((64,64))[0],240)
         with Image.open(BytesIO(image_jpeg(png(color=(255,0,0,0))))) as image:
-            self.assertLessEqual(max(image.getpixel((64,64))),2)
+            self.assertEqual(panel_colors(image).getpixel((64,64)), BACKGROUND_RGB)
         for data in (b'corrupt',png((2100,2100))):
             with self.assertRaises(Exception):image_jpeg(data)
+
+    def test_alpha_blending_uses_ui_background_and_preserves_black_model(self):
+        self.assertEqual(T5UIC1Display.Color_Bg_Black, BACKGROUND_COLOR)
+        self.assertEqual(BACKGROUND_RGB, rgb565(T5UIC1Display.Color_Bg_Black))
+        for color in ((255, 0, 0, 128), (0, 0, 0, 255)):
+            with self.subTest(color=color):
+                expected = tuple(round((color[i] * color[3] + BACKGROUND_RGB[i] *
+                                        (255 - color[3])) / 255) for i in range(3))
+                with Image.open(BytesIO(image_jpeg(png(color=color)))) as image:
+                    actual = image.getpixel((64, 64))
+                    self.assertTrue(all(abs(a-b) <= 3 for a,b in zip(actual, expected)),
+                                    (actual, expected))
 
     def make(self):
         view=test_files.FileTests().display(['a.gcode','b.gcode'])
