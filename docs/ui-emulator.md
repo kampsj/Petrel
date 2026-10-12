@@ -72,3 +72,22 @@ For a custom socket, use the same path in the capture command:
 | Dimming is not visible in the image | Captures show screen pixels, not physical backlight brightness |
 
 The emulator mirrors drawing instructions rather than reading the LCD's memory. Fonts, JPEG decoding and QR patterns can differ from a physical panel. For those issues, provide both a screenshot and a photo; a capture alone does not prove physical display accuracy.
+
+## Render documentation screens offline
+
+In a development checkout, regenerate every documentation screen using the real UI drawings. This tool supplies example printer and MMU data, connects to no physical printer and needs no running service or UART connection. Normal installation dependencies are sufficient; the repository’s `tests/` directory must be present.
+
+```bash
+cd ~/Petrel
+~/petrel-env/bin/python tools/render_docs_screenshots.py
+```
+
+Images in `docs/assets/screens/` are replaced only after every screen renders successfully. Preserve existing filenames; forum posts may link to them. For a new screen, add its sample state and captions in both languages to the tool’s scene list. The same list regenerates both galleries.
+
+To review output without changing repository files:
+
+```bash
+~/petrel-env/bin/python tools/render_docs_screenshots.py --output-directory /tmp/petrel-docs-screens
+```
+
+See the [gallery](screenshots.md) for sample values and available screens. When reporting an actual bug, use the live-service capture procedure above.

@@ -4,6 +4,11 @@
 
 ## Navigation and dashboard
 
+<p align="center">
+  <img src="assets/screens/home.png" width="220" alt="Home, first page">
+  <img src="assets/screens/home-page-2.png" width="220" alt="Home, second page">
+</p>
+
 Rotate to move the highlight; press to select. Press a numeric value, rotate to edit it and press again to apply it. **Back** returns to the previous screen. Home shows four icons per page; continue rotating to change pages. Dots indicate the active page. Optional entries depend on your printer's configuration.
 
 The fixed dashboard shows temperatures/targets, fan, speed/flow information, runtime Z offset and XYZ coordinates. Speed and extrusion fields alternate between override percentages and actual speed/volumetric flow. MMU pages use their own status layout.
@@ -27,6 +32,7 @@ Missing thumbnails or metadata do not prevent printing. Up to four used tools ar
 
 <p align="center">
   <img src="assets/screens/printing.png" width="240" alt="Print progress and controls">
+  <img src="assets/screens/printing-paused.png" width="240" alt="Paused print">
   <img src="assets/screens/tune.png" width="240" alt="Tune">
 </p>
 
@@ -44,7 +50,7 @@ Runtime Z offset adjusts the current session. It does not save a permanent probe
 
 **Prepare → Home** homes the printer. **Disable steppers** releases the motors. **Runtime Z offset** changes the current session's offset.
 
-In **Prepare → Move**, select X, Y, Z or Extruder, edit the value and press to apply. With **Live jog [X]** enabled, encoder edits move immediately; with **[ ]**, the movement is applied when confirmed.
+In **Prepare → Move**, select X, Y, Z or Extruder, edit the value and press to apply. With **Live jog** checkbox checked, encoder edits move immediately; with the checkbox empty, the movement is applied when confirmed.
 
 Home the required axes first. Movement is unavailable during printing or pauses, and travel limits are enforced. Heat the nozzle before extrusion. If a failed jog leaves movement locked, check the printer and use **Control → Restore jog state** when offered.
 
@@ -52,6 +58,7 @@ Home the required axes first. Movement is unavailable during printing or pauses,
 
 <p align="center">
   <img src="assets/screens/temperature.png" width="240" alt="Temperature controls">
+  <img src="assets/screens/preheat-settings.png" width="240" alt="Edit and save a preset">
   <img src="assets/screens/prepare-preheat.png" width="240" alt="Prepare with named preheat presets">
 </p>
 
@@ -78,6 +85,7 @@ Requires a probe and four distinct corner screws in Klipper's `[screws_tilt_adju
   <img src="assets/screens/screws-tilt.png" width="220" alt="Calculate screw adjustment">
   <img src="assets/screens/screws-tilt-probing.png" width="220" alt="Probing corners">
   <img src="assets/screens/screws-tilt-reading-results.png" width="220" alt="Reading results">
+  <img src="assets/screens/screws-tilt-adjust.png" width="220" alt="Screw directions and turn amounts">
   <img src="assets/screens/screws-tilt-success.png" width="220" alt="Corners leveled">
 </p>
 
@@ -91,20 +99,35 @@ The screws are adjusted by you; the screen measures and gives instructions. This
 ## Bed mesh and saved profiles
 
 <p align="center">
-  <img src="assets/screens/bed-mesh.png" width="240" alt="Bed Mesh menu">
-  <img src="assets/screens/mesh-viewer.png" width="240" alt="Saved mesh profiles">
-  <img src="assets/screens/mesh-pei.png" width="240" alt="Mesh height map">
+  <img src="assets/screens/leveling.png" width="220" alt="Leveling menu">
+  <img src="assets/screens/mesh-calibrating.png" width="220" alt="Live point-by-point measurement">
+  <img src="assets/screens/mesh-results.png" width="220" alt="Measurement result, Save and Continue">
 </p>
 
 Open **Home → Leveling → Bed Mesh**. With a configured probe, **Calibrate** homes missing axes and measures the bed. After measurement, inspect the colored height map and minimum/maximum Z values.
+
+During measurement, each probe result appears at its corresponding point. On completion and when opening a saved mesh, colors are scaled to that mesh’s minimum and maximum: lowest is blue, highest is red, with cyan, green and yellow between them.
 
 - **Continue** returns to the menu and keeps the measured mesh for the current session.
 - **Save** asks you to confirm the profile and restart. The measured mesh is saved as a generated `lcd_mesh_N` profile; Klipper restarts. Unrelated pending configuration changes can block saving.
 - **Mesh Viewer** lets you inspect Current Mesh or saved profiles. Viewing does not load a profile, move the printer or change the active mesh. Low Y is at the bottom of the map.
 
+<p align="center">
+  <img src="assets/screens/bed-mesh.png" width="240" alt="Bed Mesh menu">
+  <img src="assets/screens/mesh-profiles.png" width="240" alt="Saved mesh profiles">
+  <img src="assets/screens/mesh-viewer.png" width="240" alt="Default mesh height map">
+  <img src="assets/screens/mesh-pei.png" width="240" alt="Mesh height map">
+</p>
+
 **Cancel → Stop during measurement is an emergency stop:** Klipper enters shutdown. Use `FIRMWARE_RESTART` from the web console to recover. Cancel the confirmation if you want measurement to continue.
 
 ## Probe-offset calibration
+
+<p align="center">
+  <img src="assets/screens/probe-calibration.png" width="220" alt="Start calibration">
+  <img src="assets/screens/probe-calibration-active.png" width="220" alt="Four movement buttons and live Z">
+  <img src="assets/screens/probe-calibration-accepted.png" width="220" alt="Save the accepted offset">
+</p>
 
 1. Ensure the bed is clear for calibration. The screen homes XYZ when needed, raises Z for clearance and moves the probe to the configured bed center before probing.
 2. Open **Leveling → Probe Calibration → Start**.
@@ -134,11 +157,21 @@ The first encoder movement or click after idle dimming wakes the display without
 
 ### Buzzer and button sounds
 
+<p align="center">
+  <img src="assets/screens/buzzer.png" width="220" alt="Choose the buzzer output">
+  <img src="assets/screens/display-sound-settings.png" width="220" alt="Sound options under Display">
+  <img src="assets/screens/display-volume-edit.png" width="220" alt="Edit the volume">
+</p>
+
 Open **Display → Buzzer** to choose one of the configured `[pwm_cycle_time name]` outputs, or **Disabled**. Pressing a choice saves it and returns to Display. With an available output selected, **Volume**, **Click tone** and **Encoder tone** appear below Buzzer in Display.
 
 Press an audio setting, rotate to adjust it and press again to save. Volume uses 10% steps from 0 to 100%. Tones include Off, Tick, Short beep, Low, High and Double. Output and sound preferences survive restarts. Sounds play in the background; rapid rotations do not build a sound queue. If the selected section is removed from Klipper configuration, sound controls are hidden until an available output is chosen.
 
 ## Maintenance
+
+<p align="center">
+  <img src="assets/screens/maintenance.png" width="220" alt="Maintenance menu">
+</p>
 
 **Home → Maintenance** is the tile before Info. It currently contains only **Back**, which returns to the same home tile.
 
@@ -185,6 +218,10 @@ cycle_time: 0.01
 ```
 
 ## Printer power
+
+<p align="center">
+  <img src="assets/screens/power-confirm.png" width="220" alt="Power-off confirmation">
+</p>
 
 Configure the Moonraker power-device name with `./configure.sh`. Hold the encoder button to turn it on; the default hold is **2 seconds**. This works while Klipper or the display is offline, provided the Pi/service and Moonraker remain available.
 

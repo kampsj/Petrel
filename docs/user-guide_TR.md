@@ -4,6 +4,11 @@
 
 ## Gezinme ve durum alanı
 
+<p align="center">
+  <img src="assets/screens/home.png" width="220" alt="Ana ekran, birinci sayfa">
+  <img src="assets/screens/home-page-2.png" width="220" alt="Ana ekran, ikinci sayfa">
+</p>
+
 Seçimi taşımak için çevirin; seçmek için basın. Sayısal değere basın, düzenlemek için çevirin ve uygulamak için tekrar basın. **Back** önceki ekrana döner. Ana ekran her sayfada dört ikon gösterir; sayfa değiştirmek için çevirmeye devam edin. Noktalar aktif sayfayı belirtir. İsteğe bağlı öğeler yazıcınızın yapılandırmasına bağlıdır.
 
 Sabit durum alanı sıcaklık/hedefleri, fanı, hız/akış bilgisini, çalışma zamanı Z offset'i ve XYZ koordinatlarını gösterir. Hız ve ekstrüzyon alanları override yüzdeleri ile gerçek hız/hacimsel akış arasında dönüşümlü gösterilir. MMU sayfaları kendi durum düzenini kullanır.
@@ -27,6 +32,7 @@ Eksik thumbnail veya metadata baskıyı engellemez. En fazla dört kullanılan t
 
 <p align="center">
   <img src="assets/screens/printing.png" width="240" alt="Baskı ilerlemesi ve kontroller">
+  <img src="assets/screens/printing-paused.png" width="240" alt="Duraklatılmış baskı">
   <img src="assets/screens/tune.png" width="240" alt="Tune">
 </p>
 
@@ -44,7 +50,7 @@ Baskı ekranı dosyayı, ilerlemeyi ve geçen/kalan süreyi gösterir. Gerektiğ
 
 **Prepare → Home** yazıcıyı home eder. **Disable steppers** motorları bırakır. **Runtime Z offset** mevcut oturumun offset'ini değiştirir.
 
-**Prepare → Move** içinde X, Y, Z veya Extruder seçin, değeri düzenleyin ve uygulamak için basın. **Live jog [X]** açıkken encoder ile düzenleme anında hareket ettirir; **[ ]** durumunda hareket onaylandığında uygulanır.
+**Prepare → Move** içinde X, Y, Z veya Extruder seçin, değeri düzenleyin ve uygulamak için basın. **Live jog** kutusu işaretliyken encoder ile düzenleme anında hareket ettirir; kutu boşken hareket onaylandığında uygulanır.
 
 Önce gerekli eksenleri home edin. Baskı ve duraklama sırasında hareket kullanılamaz; hareket sınırları uygulanır. Ekstrüzyondan önce nozulu ısıtın. Başarısız jog sonrası hareket kilitli kalırsa yazıcıyı kontrol edin ve sunulduğunda **Control → Restore jog state** kullanın.
 
@@ -52,6 +58,7 @@ Baskı ekranı dosyayı, ilerlemeyi ve geçen/kalan süreyi gösterir. Gerektiğ
 
 <p align="center">
   <img src="assets/screens/temperature.png" width="240" alt="Sıcaklık kontrolleri">
+  <img src="assets/screens/preheat-settings.png" width="240" alt="Preset düzenleme ve kaydetme">
   <img src="assets/screens/prepare-preheat.png" width="240" alt="Prepare içinde adlandırılmış ön ısıtma presetleri">
 </p>
 
@@ -78,6 +85,7 @@ Klipper'ın `[screws_tilt_adjust]` yapılandırmasında probe ve dört ayrı kö
   <img src="assets/screens/screws-tilt.png" width="220" alt="Vida ayarını hesaplama">
   <img src="assets/screens/screws-tilt-probing.png" width="220" alt="Köşeler ölçülüyor">
   <img src="assets/screens/screws-tilt-reading-results.png" width="220" alt="Sonuçlar okunuyor">
+  <img src="assets/screens/screws-tilt-adjust.png" width="220" alt="Vida yönleri ve dönüş miktarları">
   <img src="assets/screens/screws-tilt-success.png" width="220" alt="Köşeler düzeltildi">
 </p>
 
@@ -91,22 +99,37 @@ Vidaları siz ayarlarsınız; ekran ölçüm ve yönlendirme yapar. Bu işlem ya
 ## Bed mesh ve kayıtlı profiller
 
 <p align="center">
-  <img src="assets/screens/bed-mesh.png" width="240" alt="Bed Mesh menüsü">
-  <img src="assets/screens/mesh-viewer.png" width="240" alt="Kayıtlı mesh profilleri">
-  <img src="assets/screens/mesh-pei.png" width="240" alt="Mesh yükseklik haritası">
+  <img src="assets/screens/leveling.png" width="220" alt="Leveling menüsü">
+  <img src="assets/screens/mesh-calibrating.png" width="220" alt="Nokta nokta canlı ölçüm">
+  <img src="assets/screens/mesh-results.png" width="220" alt="Ölçüm sonucu, Save ve Continue">
 </p>
 
 **Home → Leveling → Bed Mesh** açın. Probe yapılandırılmışsa **Calibrate** eksik eksenleri home edip tablayı ölçer. Ölçüm sonrası renkli yükseklik haritasını ve minimum/maksimum Z değerlerini inceleyin.
+
+Ölçüm sırasında her prob sonucu ilgili noktaya anında eklenir. Ölçüm bitince ve kayıtlı mesh açılınca renk aralığı o mesh’in minimum/maksimum değerlerine göre yeniden ayarlanır: en alçak nokta mavi, en yüksek nokta kırmızı; aradaki değerler camgöbeği, yeşil ve sarı tonlarıdır.
 
 - **Continue** menüye döner ve ölçülen mesh'i mevcut oturum için korur.
 - **Save** profil ve yeniden başlatma onayı ister. Ölçülen mesh oluşturulan `lcd_mesh_N` profiline kaydedilir; Klipper yeniden başlar. İlgisiz bekleyen yapılandırma değişiklikleri kaydı engelleyebilir.
 - **Mesh Viewer**, Current Mesh veya kayıtlı profilleri incelemenizi sağlar. Görüntülemek profil yüklemez, yazıcıyı hareket ettirmez ve aktif mesh'i değiştirmez. Düşük Y haritanın altındadır.
 
+<p align="center">
+  <img src="assets/screens/bed-mesh.png" width="240" alt="Bed Mesh menüsü">
+  <img src="assets/screens/mesh-profiles.png" width="240" alt="Kayıtlı mesh profilleri">
+  <img src="assets/screens/mesh-viewer.png" width="240" alt="Default mesh yükseklik haritası">
+  <img src="assets/screens/mesh-pei.png" width="240" alt="Mesh yükseklik haritası">
+</p>
+
 **Ölçüm sırasında Cancel → Stop acil durdurmadır:** Klipper shutdown durumuna girer. Kurtarmak için web konsolundan `FIRMWARE_RESTART` kullanın. Ölçümün sürmesini istiyorsanız onayı iptal edin.
 
 ## Probe offset kalibrasyonu
 
-1. XYZ home edin ve **Prepare → Move** ile nozulu uygun kalibrasyon XY noktasına götürün.
+<p align="center">
+  <img src="assets/screens/probe-calibration.png" width="220" alt="Kalibrasyonu başlatma">
+  <img src="assets/screens/probe-calibration-active.png" width="220" alt="Dört hareket düğmesi ve canlı Z">
+  <img src="assets/screens/probe-calibration-accepted.png" width="220" alt="Kabul edilen ofseti kaydetme">
+</p>
+
+1. Kalibrasyon için tablayı boşaltın. Ekran gerektiğinde XYZ eksenlerini home eder, güvenli geçiş için Z’yi yükseltir ve probu yapılandırılmış tabla merkezine götürür.
 2. **Leveling → Probe Calibration → Start** açın.
 3. Alt ve üst denenmiş konumların arasında canlı Z yüksekliğini izleyin. Düğmeyi çevirerek dört **-- / - / + / ++** butonundan birini seçin ve basarak Klipper'ın arama adımlarıyla hareket edin.
 4. Uygunsa **Accept**, oturumu iptal etmek için **Cancel** seçin.
@@ -134,11 +157,21 @@ Boşta kısma sonrası ilk encoder hareketi veya tıklama, menü işlemi yapmada
 
 ### Buzzer ve tuş sesleri
 
+<p align="center">
+  <img src="assets/screens/buzzer.png" width="220" alt="Buzzer çıkışını seçme">
+  <img src="assets/screens/display-sound-settings.png" width="220" alt="Display altındaki ses seçenekleri">
+  <img src="assets/screens/display-volume-edit.png" width="220" alt="Ses seviyesini düzenleme">
+</p>
+
 Yapılandırılmış `[pwm_cycle_time ad]` çıkışlarından birini veya **Disabled** seçmek için **Display → Buzzer** açın. Seçime basınca kaydedilir ve Display’e dönülür. Kullanılabilir bir çıkış seçiliyken **Volume**, **Click tone** ve **Encoder tone**, Display’de Buzzer’ın altında görünür.
 
 Ses ayarına basın, çevirmeyle değiştirin ve tekrar basarak kaydedin. Ses seviyesi %0–100 arasında 10’ar adımla değişir. Tonlar Off, Tick, Short beep, Low, High ve Double seçeneklerini içerir. Çıkış ve ses tercihleri yeniden başlatmada korunur. Sesler arka planda çalar; hızlı çevirmelerde birikmez. Seçili section Klipper yapılandırmasından kaldırılırsa kullanılabilir bir çıkış seçilene kadar ses kontrolleri gizlenir.
 
 ## Bakım
+
+<p align="center">
+  <img src="assets/screens/maintenance.png" width="220" alt="Bakım menüsü">
+</p>
 
 **Home → Maintenance**, Info’dan önceki menüdür. Şimdilik yalnızca **Back** seçeneğini içerir; bu seçenek ana menüde aynı ikona döner.
 
@@ -185,6 +218,10 @@ cycle_time: 0.01
 ```
 
 ## Yazıcı gücü
+
+<p align="center">
+  <img src="assets/screens/power-confirm.png" width="220" alt="Güç kapatma onayı">
+</p>
 
 Moonraker güç aygıtı adını `./configure.sh` ile ayarlayın. Açmak için encoder düğmesini basılı tutun; varsayılan süre **2 saniye**. Pi/servis ve Moonraker erişilebilir kaldığı sürece Klipper veya ekran çevrimdışıyken de çalışır.
 

@@ -72,3 +72,22 @@ Aynı harici ortam dosyasına yazıp servisi yeniden başlatın:
 | Kısma görselde görünmüyor | Görüntüler fiziksel arka ışık parlaklığını değil ekran piksellerini gösterir |
 
 Emülatör LCD belleğini okumak yerine çizim komutlarını takip eder. Fontlar, JPEG çözümü ve QR deseni fiziksel panelden farklı olabilir. Bu sorunlarda hem ekran görüntüsü hem fotoğraf paylaşın; tek başına görüntü fiziksel ekran doğruluğunu kanıtlamaz.
+
+## Dokümantasyon ekranlarını çevrimdışı üretme
+
+Bir geliştirme checkout’u içinde tüm dokümantasyon ekranlarını gerçek UI çizimleriyle yeniden üretebilirsiniz. Aracın örnek yazıcı ve MMU verileri kullandığı bu işlem fiziksel yazıcıya bağlanmaz; çalışan servis veya UART bağlantısı gerektirmez. Normal kurulum bağımlılıkları yeterlidir; repodaki `tests/` klasörü bulunmalıdır.
+
+```bash
+cd ~/Petrel
+~/petrel-env/bin/python tools/render_docs_screenshots.py
+```
+
+Tüm ekranlar başarılı çizilirse `docs/assets/screens/` içindeki görseller yenilenir. Mevcut dosya adlarını koruyun; forumlar bu adlara dış bağlantı verebilir. Yeni bir ekran eklemek için aracın sahne listesine örnek durumu ve iki dilde açıklamasını ekleyin. Galerileri de aynı listeden yeniden üretir.
+
+Repo dosyalarını değiştirmeden incelemek için:
+
+```bash
+~/petrel-env/bin/python tools/render_docs_screenshots.py --output-directory /tmp/petrel-docs-screens
+```
+
+Örnek değerleri ve kullanılabilir ekranları [galeride](screenshots_TR.md) görebilirsiniz. Gerçek bir hatayı raporlarken yukarıdaki canlı servis yakalama yöntemini kullanın.

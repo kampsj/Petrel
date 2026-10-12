@@ -9,7 +9,7 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
-  <a href="https://github.com/sezgynus/Petrel/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
+  <a href="https://github.com/sezgynus/Petrel/tree/v4.0.0"><img alt="v4.0.0" src="https://img.shields.io/badge/version-v4.0.0-0969da"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
   <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
@@ -31,12 +31,18 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 | Tablayı kalibre etmek | Dört köşe vida ayarı, probe offset kalibrasyonu, bed mesh ölçümü ve kayıtlı mesh görüntüleme |
 | MMU yönetmek | Doğrudan takım değiştirme, canlı filament yolu ve purge gösterimi, Happy Hare kanalları, yükleme/boşaltma, bypass, takım eşlemesi, EndlessSpool, kurtarma, bakım, LED'ler ve çoklu ünite |
 | Filamenti incelemek | Kanal malzemesi/rengi, makara ataması ve mevcutsa Spoolman kalan yüzdesi |
-| Ekranı ayarlamak | Güç döngüsünde korunan parlaklık, boşta kısma süresi ve kısılmış parlaklık |
+| Ekranı ayarlamak | Güç döngüsünde korunan parlaklık, boşta kısma, buzzer çıkışı, ses seviyesi ve tuş tonları |
 | Işık ve gücü yönetmek | PWM kabin ışığı, encoder basılı tutarak güç açma ve onaylı güç kapatma |
 | Sistemi kontrol etmek | Ağ/Wi-Fi, host ve MCU durumu, yazılım sürümleri, proje QR kodu ve Petrel güncellemeleri |
 | Ekran görüntüsü almak | Dokümantasyon ve hata bildirimi için isteğe bağlı emülatör görüntüsü |
 
 İsteğe bağlı kontroller yazıcının yapılandırmasına göre görünür. Her iki rehberde de ekrandaki menü adları İngilizcedir. Bu belgeler güncel `master` sürümünü anlatır.
+
+<p align="center">
+  <img src="docs/assets/screens/mesh-calibrating.png" width="220" alt="Canlı mesh ölçümü">
+  <img src="docs/assets/screens/probe-calibration-active.png" width="220" alt="Canlı Z kalibrasyonu">
+  <img src="docs/assets/screens/mmu-loading.png" width="220" alt="Canlı MMU filament yolu">
+</p>
 
 ## Gereksinimler
 
@@ -73,7 +79,8 @@ Gezinmek için encoderi çevirin; seçmek için basın. Sayısal ayarlarda bası
 | Control | Sıcaklık, çalışma zamanı hareket sınırları ve kabin ışığı |
 | Leveling | Bed mesh kalibrasyonu, mesh görüntüleyici, vida ayarı ve prob kalibrasyonu |
 | MMU | Happy Hare filament kontrolleri ve kurtarma |
-| Display | Parlaklık ve boşta kısma |
+| Display | Parlaklık, boşta kısma ve tuş sesleri |
+| Maintenance | Bakım menüsü; şimdilik yalnızca Back içerir |
 | Info | Sistem durumu, yazılım sürümleri ve güncellemeler |
 
 Leveling ve MMU, yapılandırılmış özelliklere bağlıdır. Açılıştaki ilerleme çubuğu hazırlık aşamasını gösterir; gezinmek için ana ekranı bekleyin. Beklerken basılı tutarak güç açma çalışmaya devam eder.
@@ -85,6 +92,7 @@ Leveling ve MMU, yapılandırılmış özelliklere bağlıdır. Açılıştaki i
 | [Kurulum ve yapılandırma](docs/installation_TR.md) | Bağlantı, kurulum, ayarlar, güncellemeler ve sorun giderme |
 | [Günlük kullanım](docs/user-guide_TR.md) | Baskı akışı, Live jog, sıcaklıklar, kalibrasyon, Display, Info, ışık ve güç |
 | [MMU ve filament](docs/mmu-guide_TR.md) | Kanallar, makara ID'leri, takım eşlemesi, EndlessSpool, bypass, kurtarma ve seçenekler |
+| [Ekran galerisi](docs/screenshots_TR.md) | Tüm ekranlar ve forumlarda kullanılabilecek doğrudan görsel bağlantıları |
 | [Dokümantasyon dizini](docs/README_TR.md) | Tüm kullanıcı rehberleri, katkı araçları ve isteğe bağlı referanslar |
 
 Rehberler güncel emülatör ekran görüntülerini içerir. Yeni eklenen ekranlar için [Display](docs/user-guide_TR.md#ekran-ayarları), [Info ve güncellemeler](docs/user-guide_TR.md#info-ve-güncellemeler) ve [vida ayarı](docs/user-guide_TR.md#vida-ayarı) bölümlerine bakın.

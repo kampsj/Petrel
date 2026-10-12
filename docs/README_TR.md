@@ -11,6 +11,8 @@
 | [MMU ve filament](mmu-guide_TR.md) | Happy Hare kanalları, makara atama, takım eşlemesi, EndlessSpool ve kurtarma |
 | [LCD uyumluluğu](lcd-assets_TR.md) | Desteklenen ekranı seçme ve panel kaynaklarını kontrol etme |
 
+[Ekran galerisi](screenshots_TR.md): tüm güncel ekranlar ve forumlarda kullanılabilecek doğrudan görsel bağlantıları.
+
 ## Katkı ve araçlar
 
 | Rehber | Kullanım amacı |

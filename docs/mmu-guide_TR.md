@@ -7,9 +7,10 @@
 Happy Hare MMU yapılandırılmışsa **Home → MMU** seçin. Ana ekran kanal renklerini ve Spoolman verisi mevcutsa kalan filament yüzdelerini de gösterir. Spoolman bilgisi eksik olsa da diğer MMU işlevleri kullanılabilir.
 
 <p align="center">
-  <img src="assets/screens/mmu.png" width="240" alt="MMU genel görünümü">
-  <img src="assets/screens/mmu-gates.png" width="240" alt="Kanal listesi">
-  <img src="assets/screens/mmu-gate-details.png" width="240" alt="Kanal işlemleri">
+  <img src="assets/screens/mmu.png" width="220" alt="Yüklü filament">
+  <img src="assets/screens/mmu-loading.png" width="220" alt="Yükleme sırasında canlı yol">
+  <img src="assets/screens/mmu-unloading.png" width="220" alt="Boşaltma sırasında canlı yol">
+  <img src="assets/screens/mmu-purging.png" width="220" alt="Purge ve kalan filament rengi">
 </p>
 
 Seçmek için çevirin; çalıştırmak için basın. Filament değiştirmek için renkli **T0, T1, …** düğmesini seçin: Happy Hare mevcut takımı boşaltıp seçtiğiniz takımı otomatik yükler. Her makaranın üstündeki kanal gerçek eşleşmesini gösterir; birkaç takım aynı kanalı kullanabilir. Dörtten fazla takım, çevirirken gruplar halinde görünür. **G0, Happy Hare kanal 0'dır**.
@@ -18,7 +19,17 @@ Dikey şema filamentin yüklenmesini ve geri çekilmesini takip eder. Filament a
 
 Genel görünümdeki takım ve **Load/Unload** düğmeleri doğrudan çalışır ve şema ekranda kalır. **More**; kanalları, eşleştirmeyi, bypass'ı, yönetimi ve ayrıntılı durumu açar. Bu sayfalardaki işlemler onay açar; **başlangıçta Cancel seçilidir**. Normal hareket ve düzenlemeler baskı/duraklama dışında boşta MMU gerektirir. Desteklenmeyen seçenekler gizlenir; yazıcı durumu meşgul, bilinmiyor veya uygun değilse işlemler kilitlenebilir. Başarısız/doğrulanmamış işlemi tekrarlamadan önce gerçek yazıcıyı kontrol edin.
 
+<p align="center">
+  <img src="assets/screens/mmu-more.png" width="220" alt="Ek MMU kontrolleri">
+</p>
+
 ## Kanallar ve yükleme
+
+<p align="center">
+  <img src="assets/screens/mmu-gates.png" width="220" alt="Kanal seçimi">
+  <img src="assets/screens/mmu-gate-details.png" width="220" alt="Kanal işlemleri">
+  <img src="assets/screens/mmu-confirm.png" width="220" alt="İşlem onayı">
+</p>
 
 **MMU → More → Gates → [kanal]** açın:
 
@@ -37,17 +48,31 @@ Kabul etmeden önce ekrandaki kanal/takım hedefini kontrol edin. MMU ana ekran�
 
 ## Makara atamaları
 
+<p align="center">
+  <img src="assets/screens/mmu-filament.png" width="220" alt="Filament ve Spoolman bilgisi">
+  <img src="assets/screens/mmu-spool.png" width="220" alt="Makara ID atama">
+</p>
+
 **Gates → [kanal] → Filament details → Assign spool ID** açın. **Spool ID**'ye basın, pozitif sayısal ID'ye çevirin, düzenlemeyi kabul etmek için basın ve **Save** seçip onaylayın. **Cancel** taslağı iptal eder. Atamayı açıkça kaldırmak için **Clear assignment** kullanın.
 
 Atama yapılandırılmış Spoolman moduna bağlıdır: bilinen `off`, `readonly` ve `push` yerel düzenlemeye izin verir; `pull` ve bilinmeyen modlar kilitli kalır. Gerekli filament bilgisi mevcut olmalıdır. Yinelenen ID uyarısı, ID'nin başka kanaldan taşınacağını belirtir. Makaranın varlığını doğrulayın; eşitleme bekliyorsanız ardından Spoolman'ı inceleyin.
 
 ## Takım eşlemesi
 
+<p align="center">
+  <img src="assets/screens/mmu-tool-map.png" width="220" alt="Takım-kanal eşlemesi">
+</p>
+
 **MMU → More → Tool map** açın. Takımı seçip basın, kanalına çevirin ve kabul etmek için basın. Diğer takımlar için tekrarlayın; ardından **Save** seçip onaylayın veya taslağı silmek için **Cancel** seçin. Birden fazla takım aynı kanalı paylaşabilir.
 
 Düzenlemeyi boşta ve baskı/duraklama dışında yapın. Düzenleme sırasında web arayüzünden eşleme değişirse devam etmeden önce düzenleyiciyi yeniden açın.
 
 ## EndlessSpool
+
+<p align="center">
+  <img src="assets/screens/mmu-endless-spool.png" width="220" alt="EndlessSpool grupları">
+  <img src="assets/screens/mmu-group-members.png" width="220" alt="Grup üyelerini seçme">
+</p>
 
 **Tool map** içinden **EndlessSpool** açın. Uyumlu yedek makaraları gruplandırarak makara bittiğinde Happy Hare'in devam etmesini sağlar.
 
@@ -60,9 +85,18 @@ Değişiklikleri boşta ve baskı/duraklama dışında yapın. Eşleşen metadat
 
 ## Bypass
 
+<p align="center">
+  <img src="assets/screens/mmu-bypass.png" width="220" alt="Bypass işlemleri">
+</p>
+
 **MMU → More → Bypass** açın. Önce **Unload current gate**, ardından **Select bypass** kullanın. Yalnız extruder filament yolu için **Load extruder** ve **Unload extruder** kullanın. Her işlemi onaylayın. Bypass seçimi boşaltılmış filament gerektirir.
 
 ## Kurtarma ve durum
+
+<p align="center">
+  <img src="assets/screens/mmu-recovery.png" width="220" alt="Kurtarma seçenekleri">
+  <img src="assets/screens/mmu-manual-state.png" width="220" alt="Gerçek filament durumunu bildirme">
+</p>
 
 <p align="center">
   <img src="assets/screens/mmu-manage.png" width="240" alt="Yönetim ve kurtarma">
@@ -99,3 +133,9 @@ Nedeni bildirilen MMU hata duraklaması kurtarmayı otomatik açar. **MMU → Mo
 | Options → Units | Çoklu üniteleri ve global kanallarını gösterir; Select this unit ilk kanalı seçmek için ayrı onay ister ve selector hareketi/home yapabilir |
 
 Tek üniteli kurulumlarda Units görünmez. Ünite seçimi baskı/duraklama dışında boşaltılmış filament gerektirir. LED seçenekleri desteklenen aktif ünite LED bilgisi gerektirir. **MMU kalibrasyonu, özel LED efektleri ve entry/status/logo LED ayarları** için web arayüzünü kullanın.
+
+<p align="center">
+  <img src="assets/screens/mmu-leds.png" width="220" alt="LED modları">
+  <img src="assets/screens/mmu-units.png" width="220" alt="Çoklu ünite listesi">
+  <img src="assets/screens/mmu-unit-gates.png" width="220" alt="Ünitenin kanalları">
+</p>

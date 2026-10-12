@@ -11,6 +11,8 @@
 | [MMU and filament](mmu-guide.md) | Happy Hare gates, spool assignment, tool map, EndlessSpool and recovery |
 | [LCD compatibility](lcd-assets.md) | Choosing the supported display and checking panel resources |
 
+[Screenshot gallery](screenshots.md): every current screen and direct image links for forum posts.
+
 ## Contributing and tools
 
 | Guide | Use it for |

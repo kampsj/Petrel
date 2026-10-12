@@ -5,6 +5,20 @@ from test_capabilities import snapshot, display, printer
 
 
 class PrintScreenTests(unittest.TestCase):
+    def test_progress_bar_uses_native_integer_coordinates(self):
+        from test_t5uic1_driver import driver
+        from test_regressions import ui
+        result = display(snapshot())
+        result.lcd = driver()
+        for percentage in (0, 1, 38, 99, 100):
+            result.lcd.serial.frames.clear()
+            ui.PetrelDisplay.Draw_Print_ProgressBar(result, percentage)
+            rectangle = result.lcd.serial.frames[1]
+            self.assertEqual(rectangle[1], 0x05)
+            self.assertEqual(int.from_bytes(rectangle[5:7], 'big'),
+                             16 + percentage * 240 // 100)
+        result.pd.sendGCode.assert_not_called()
+
     def display(self, state):
         data = snapshot()
         data['status']['print_stats'].update(state=state, filename='part.gcode',

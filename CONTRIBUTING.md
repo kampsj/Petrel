@@ -51,3 +51,5 @@ After exiting the manual process, restart the installed service with `sudo syste
 Capture the screen with the [emulator](docs/ui-emulator.md). Store descriptive filenames in `docs/assets/screens/`, replacing the existing image when it represents the same screen/state. Keep the original **272×480 PNG**; do not upscale, crop or convert it to JPEG. Use consistent display widths in Markdown and meaningful alt text in each language.
 
 Check local links, section anchors, image paths, translated guide pairs and user commands before opening the PR. Documentation-only changes do not need printer regression tests unless they also change behavior.
+
+Use `tools/render_docs_screenshots.py` to regenerate all documentation screens without a printer; the [offline rendering guide](docs/ui-emulator.md#render-documentation-screens-offline) explains the commands and example data. Preserve existing image filenames so forum links keep working.

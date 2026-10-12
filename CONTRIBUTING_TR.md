@@ -51,3 +51,5 @@ Manuel süreçten çıktıktan sonra `sudo systemctl start Petrel.service` ile k
 Ekranı [emülatörle](docs/ui-emulator_TR.md) yakalayın. Açıklayıcı adlarla `docs/assets/screens/` içine kaydedin; aynı ekran/durumu temsil ediyorsa mevcut görseli değiştirin. Özgün **272×480 PNG** korunsun; büyütmeyin, kırpmayın veya JPEG'e çevirmeyin. Markdown'da tutarlı gösterim genişliği ve her dilde anlamlı alt metin kullanın.
 
 PR açmadan önce yerel bağlantıları, bölüm bağlantılarını, görsel yollarını, çeviri çiftlerini ve kullanıcı komutlarını kontrol edin. Davranış değiştirmeyen dokümantasyon düzenlemelerinde yazıcı regresyon testleri gerekmez.
+
+Tüm dokümantasyon ekranlarını yazıcı olmadan üretmek için `tools/render_docs_screenshots.py` kullanın; [çevrimdışı üretim rehberi](docs/ui-emulator_TR.md#dokümantasyon-ekranlarını-çevrimdışı-üretme) komutları ve örnek veri kullanımını anlatır. Forum bağlantılarının kırılmaması için var olan görsel dosyalarının adlarını değiştirmeyin.

@@ -9,7 +9,7 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
-  <a href="https://github.com/sezgynus/Petrel/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
+  <a href="https://github.com/sezgynus/Petrel/tree/v4.0.0"><img alt="v4.0.0" src="https://img.shields.io/badge/version-v4.0.0-0969da"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
   <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
@@ -31,12 +31,18 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 | Calibrate the bed | Four-corner screw adjustment, probe-offset calibration, bed mesh measurement and saved mesh viewing |
 | Manage an MMU | Direct tool changes, live filament path and purge display, Happy Hare gates, load/unload, bypass, tool mapping, EndlessSpool, recovery, maintenance, LEDs and multiple units |
 | Inspect filament | Gate material/color, spool assignment and Spoolman remaining percentage when available |
-| Adjust the display | Brightness, idle dimming time and dimmed brightness, retained across power cycles |
+| Adjust the display | Brightness, idle dimming, buzzer output, volume and button tones, retained across power cycles |
 | Control lighting and power | PWM case light, encoder hold to power on and a power-off confirmation |
 | Check the system | Network/Wi-Fi, host and MCU status, software versions, project QR code and Petrel updates |
 | Create screenshots | Optional emulator capture for documentation and bug reports |
 
 Optional controls appear according to the printer's configuration. The on-screen menu labels are in English in both guides. These documents describe the current `master` version.
+
+<p align="center">
+  <img src="docs/assets/screens/mesh-calibrating.png" width="220" alt="Live mesh measurement">
+  <img src="docs/assets/screens/probe-calibration-active.png" width="220" alt="Live Z calibration">
+  <img src="docs/assets/screens/mmu-loading.png" width="220" alt="Live MMU filament path">
+</p>
 
 ## Requirements
 
@@ -73,7 +79,8 @@ Rotate the encoder to navigate; press to select. For a numeric setting, press, r
 | Control | Temperature, runtime motion limits and case light |
 | Leveling | Bed mesh calibration, mesh viewer, screw adjustment and probe calibration |
 | MMU | Happy Hare filament controls and recovery |
-| Display | Brightness and idle dimming |
+| Display | Brightness, idle dimming and button sounds |
+| Maintenance | Maintenance entry; currently contains only Back |
 | Info | System status, software versions and updates |
 
 Leveling and MMU depend on configured capabilities. During startup, a progress bar shows the current preparation stage; wait for Home before navigating. Hold-to-power-on remains available while waiting.
@@ -85,6 +92,7 @@ Leveling and MMU depend on configured capabilities. During startup, a progress b
 | [Installation and configuration](docs/installation.md) | Wiring, installation, settings, updates and troubleshooting |
 | [Daily use](docs/user-guide.md) | Print workflow, Live jog, temperatures, calibration, Display, Info, lighting and power |
 | [MMU and filament](docs/mmu-guide.md) | Gates, spool IDs, tool mapping, EndlessSpool, bypass, recovery and options |
+| [Screenshot gallery](docs/screenshots.md) | All screens and direct image links for forum posts |
 | [Documentation index](docs/README.md) | All user guides, contributor tools and optional references |
 
 The guides include the current emulator screenshots. See [Display](docs/user-guide.md#display-settings), [Info and updates](docs/user-guide.md#info-and-updates) and [screw adjustment](docs/user-guide.md#screw-adjustment) for the recently added screens.
