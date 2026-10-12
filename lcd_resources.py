@@ -18,3 +18,6 @@ ICON_SPOOL_EMPTY = 124
 # Only the small wooden flanges vary in width, not entire spool images.
 SPOOL_LEFT_FLANGES = {width: 109 + width for width in range(1, 8)}
 SPOOL_RIGHT_FLANGES = {width: 116 + width for width in range(1, 8)}
+
+ICON_CHECKBOX_EMPTY = 200
+ICON_CHECKBOX_CHECKED = 201

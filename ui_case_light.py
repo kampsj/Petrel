@@ -7,7 +7,7 @@ from ui_events import InputEvent
 
 class CaseLightMixin:
     def Draw_Case_Light_Menu(self):
-        light = '[X]' if getattr(self, '_case_light_on', False) else '[ ]'
+        light = bool(getattr(self, '_case_light_on', False))
         brightness = getattr(self, '_case_light_brightness', 0)
         def draw_brightness(row):
             self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16,
@@ -16,9 +16,7 @@ class CaseLightMixin:
                 self.lcd.Color_Bg_Black, 232, self.MBASE(row), '%')
         self._draw_list_menu('Case Light', [
             ('Back', self.ICON_Back, None, None),
-            ('Light', self.ICON_CaseLight, light, lambda row: self.lcd.draw_text(
-                False, True, self.lcd.font8x16, self.lcd.Color_White,
-                self.lcd.Color_Bg_Black, 224, self.MBASE(row), light)),
+            ('Light', self.ICON_CaseLight, light, self._menu_checkbox_painter(light)),
             ('Brightness', self.ICON_CaseLight, brightness, draw_brightness)], self.select_light.now)
 
     def _sync_case_light_tracking(self):

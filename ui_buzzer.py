@@ -89,7 +89,7 @@ class BuzzerViewMixin:
         entries = [('Back', self.ICON_Back, None, None)]
         for name in names:
             checked = name == selected
-            painter = lambda row, checked=checked: self._draw_menu_text('[X]' if checked else '[ ]', 232, self.MBASE(row) - 1)
+            painter = self._menu_checkbox_painter(checked)
             entries.append(((name or 'Disabled')[:20], None, checked, painter))
         self._buzzer_selection = min(getattr(self, '_buzzer_selection', 0), len(entries) - 1)
         title = 'Buzzer - not saved' if getattr(self, '_buzzer_save_error', False) else 'Buzzer'

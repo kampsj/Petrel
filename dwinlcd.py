@@ -1,4 +1,4 @@
-from lcd_resources import ICON_LIBRARY_ID
+from lcd_resources import ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 import display_settings
 import copy
 import textwrap
@@ -807,6 +807,15 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
         self.lcd.update()
         return True
 
+    def _menu_checkbox_painter(self, checked):
+        def draw(row):
+            x, y = 232, self.MBASE(row) - 3
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, x, y, x + 19, y + 19)
+            self.lcd.show_icon(self.ICON,
+                ICON_CHECKBOX_CHECKED if checked else ICON_CHECKBOX_EMPTY, x, y)
+        draw.checkbox = True
+        return draw
+
     def _draw_list_menu(self, title, entries, selection, start=None):
         # Entries: label, icon, displayed value signature, optional row painter.
         frame = (id(self.lcd), title, tuple((e[0], e[1]) for e in entries))
@@ -836,10 +845,13 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             values[logical] = value
             preserved = valid and logical in range(old['start'], old['start'] + self.TROWS)
             if not preserved or logical not in previous_values or previous_values[logical] != value:
-                self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                    16, 31 + row * self.MLINE, 271, 83 + row * self.MLINE)
-                if icon or label:
-                    self.Draw_Menu_Line(row, icon, label)
+                checkbox_only = (preserved and logical in previous_values
+                                 and getattr(painter, 'checkbox', False))
+                if not checkbox_only:
+                    self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
+                        16, 31 + row * self.MLINE, 271, 83 + row * self.MLINE)
+                    if icon or label:
+                        self.Draw_Menu_Line(row, icon, label)
                 if painter is not None:
                     painter(row)
         if not valid or delta or old['selection'] != selection:
@@ -2824,10 +2836,9 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
                     self.lcd.draw_scaled_float_text(True, True, 0, self.lcd.font8x16,
                         self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
             entries.append((label, self.ICON_MoveX + index, value, painter))
-        live = '[X]' if getattr(self, '_live_jog', False) else '[ ]'
+        live = bool(getattr(self, '_live_jog', False))
         entries.append(('Live jog', self.ICON_Axis, live,
-            lambda row: self.lcd.draw_text(False, True, self.lcd.font8x16,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 224, self.MBASE(row), live)))
+            self._menu_checkbox_painter(live)))
         self._draw_list_menu('Move', entries, self.select_axis.now)
 
     # --------------------------------------------------------------#
