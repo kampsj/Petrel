@@ -19,7 +19,7 @@ def image_jpeg(data):
         canvas = Image.new('RGB', (128, 128), BACKGROUND_RGB)
         canvas.paste(rgba, ((128-rgba.width)//2, (128-rgba.height)//2), rgba)
     output = BytesIO()
-    canvas.save(output, format='JPEG', quality=70, subsampling=2,
+    canvas.save(output, format='JPEG', quality=94, subsampling=2,
                 progressive=False, optimize=False)
     jpeg = output.getvalue()
     if len(jpeg) > 32768:
