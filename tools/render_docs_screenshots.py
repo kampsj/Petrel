@@ -249,7 +249,7 @@ def preview():
     v._thumbnail_cache.details[key]=PreviewDetails(7320,24,11200,33.4,
         (Filament(0,'PLA',filament_color('303030'),8.2),Filament(1,'PLA',filament_color('eee9cf'),9.6),
          Filament(2,'PLA',filament_color('36a7ef'),11.2),Filament(3,'PLA',filament_color('d52b28'),4.4)))
-    v.Draw_File_Preview(); v.lcd.show_sram_jpeg(8,68,0)
+    v.Draw_File_Preview(); v.lcd.show_sram_jpeg(8,68,0,background=False,enhanced=True)
     return finish(v)
 
 

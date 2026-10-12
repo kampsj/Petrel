@@ -5,18 +5,37 @@ import time
 import logging
 from urllib.parse import quote
 from PIL import Image
-from graphite_theme import BACKGROUND_RGB
 from preview_metadata import PreviewData, details_from_metadata
+
+MIN_FOREGROUND_LUMA = 48
+
+
+def _protect_dark_foreground(rgba):
+    """Reserve black for transparency; lift dark model pixels before alpha blend."""
+    pixels = []
+    for r, g, b, alpha in rgba.getdata():
+        if not alpha:
+            pixels.append((0, 0, 0, 0))
+            continue
+        luma = (299 * r + 587 * g + 114 * b) // 1000
+        while luma < MIN_FOREGROUND_LUMA:
+            lift = MIN_FOREGROUND_LUMA - luma
+            r, g, b = (min(255, c + lift) for c in (r, g, b))
+            luma = (299 * r + 587 * g + 114 * b) // 1000
+        pixels.append((r, g, b, alpha))
+    protected = Image.new('RGBA', rgba.size)
+    protected.putdata(pixels)
+    return protected
 
 
 def image_jpeg(data):
-    """Composite alpha/letterboxing on the UI surface before baseline JPEG."""
+    """Reserve black backing for filtered drawing, protecting dark model details."""
     with Image.open(BytesIO(data)) as source:
         if source.width * source.height > 4_000_000:
             raise ValueError('Thumbnail too large')
         source.thumbnail((128, 128), Image.Resampling.LANCZOS)
-        rgba = source.convert('RGBA')
-        canvas = Image.new('RGB', (128, 128), BACKGROUND_RGB)
+        rgba = _protect_dark_foreground(source.convert('RGBA'))
+        canvas = Image.new('RGB', (128, 128), 'black')
         canvas.paste(rgba, ((128-rgba.width)//2, (128-rgba.height)//2), rgba)
     output = BytesIO()
     canvas.save(output, format='JPEG', quality=94, subsampling=2,

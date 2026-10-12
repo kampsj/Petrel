@@ -16,7 +16,7 @@ Kurulumdan sonra fiziksel ekranda menü yazılarını/ikonlarını, renkleri, ö
 
 ## Baskı önizlemeleri
 
-Önizlemeler Moonraker'dan gelir ve yeni panel kaynak paketi gerektirmez. Eksik thumbnail baskı başlatmayı engellemez. Görseller yeniden başlatma veya yeniden bağlantı sonrası tekrar hazırlanır; kurulu ikonların yerine geçmez. Şeffaf thumbnail pikselleri ve kenar boşlukları baseline 4:2:0 JPEG dönüşümünden önce temanın zemin rengiyle birleştirilir; modelin opak siyah ayrıntıları korunur.
+Önizlemeler Moonraker'dan gelir ve yeni panel kaynak paketi gerektirmez. Eksik thumbnail baskı başlatmayı engellemez. Görseller yeniden başlatma veya yeniden bağlantı sonrası tekrar hazırlanır; kurulu ikonların yerine geçmez. Thumbnail’ler kalite 94 baseline 4:2:0 JPEG, siyah zemin ve panelin gelişmiş arka plan filtresini kullanır. Modelin koyu pikselleri alpha birleştirmesinden önce en az 48 parlaklık seviyesine yükseltilir; saf siyah koyu gri olur. Tam şeffaf pikseller ve kenar boşlukları siyah kalır, filtrelenince UI zemini görünür. Yarı şeffaf kenarlar panel filtresinde kesilebilir; fiziksel ekranda kontrol edin.
 
 ## Kaynakları tanıma
 

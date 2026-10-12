@@ -136,7 +136,7 @@ class FilePreviewMixin:
             address = cache.address(key, touch=True)
             if address is not None:
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 8, 68, 135, 195)
-                self.lcd.show_sram_jpeg(8, 68, address)
+                self.lcd.show_sram_jpeg(8, 68, address, background=False, enhanced=True)
                 self._preview_shown = True
                 self._preview_error = None
                 self._preview_message = None

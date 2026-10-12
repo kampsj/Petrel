@@ -16,7 +16,7 @@ After setup, inspect menu labels/icons, colors, preview images and encoder navig
 
 ## Print previews
 
-Previews come from Moonraker and do not need a new panel asset pack. Missing thumbnails do not prevent starting a print. Images are prepared again after restarting or reconnecting; they do not replace installed icons. Transparent thumbnail pixels and letterboxing are composited onto the theme background before baseline 4:2:0 JPEG conversion; opaque black model details are preserved.
+Previews come from Moonraker and do not need a new panel asset pack. Missing thumbnails do not prevent starting a print. Images are prepared again after restarting or reconnecting; they do not replace installed icons. Thumbnails use baseline 4:2:0 JPEG at quality 94 with black backing and native enhanced background filtering. Dark model pixels are lifted to a minimum luminance of 48 before alpha compositing, so pure black becomes dark gray; fully transparent pixels and letterboxing remain black and reveal the UI surface. Partial-alpha edges may be clipped by the panel filter; inspect them on hardware.
 
 ## Resource identification
 
