@@ -47,6 +47,23 @@ class ManagedIconTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Duplicate'):
                 icons.build_library(root)
 
+    def test_incompatible_sampling_is_rejected_before_any_panel_access(self):
+        # These are valid JPEGs on the host, but 4:4:4 broke selected home
+        # cards and homing on the physical panel with verified SRAM bytes.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for sampling in (0, 1):
+                with self.subTest(sampling=sampling):
+                    Image.new('RGB', (73, 66), '#72a8bc').save(
+                        root / '078.jpg', 'JPEG', subsampling=sampling)
+                    lcd = Mock()
+                    with self.assertRaisesRegex(ValueError, '4:2:0'):
+                        icons.sync_library(lcd, directory=root)
+                    self.assertEqual(lcd.mock_calls, [])
+            Image.new('RGB', (73, 66), '#72a8bc').save(
+                root / '078.jpg', 'JPEG', subsampling=2)
+            self.assertTrue(icons.build_library(root))
+
     def panel(self):
         lcd = Mock()
         memory = bytearray(16384)

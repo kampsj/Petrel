@@ -10,6 +10,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class AssetContracts(unittest.TestCase):
+    def test_every_shipped_icon_is_baseline_420_and_export_matches_sources(self):
+        from PIL import Image, JpegImagePlugin
+        from icon_library import build_library
+        from lcd_resources import ICON_LIBRARY_FILENAME
+        source = ROOT / 'assets/icons'
+        paths = sorted(source.glob('*.jpg'))
+        self.assertTrue(paths)
+        for path in paths:
+            with self.subTest(icon=path.name), Image.open(path) as image:
+                self.assertEqual(image.format, 'JPEG')
+                self.assertFalse(image.info.get('progressive') or image.info.get('progression'))
+                self.assertEqual(JpegImagePlugin.get_sampling(image), 2)
+                image.load()
+        self.assertEqual(build_library(source),
+                         (ROOT / 'assets/emulator' / ICON_LIBRARY_FILENAME).read_bytes())
+
     def test_ui_icon_ids_match_verified_stock_manifest(self):
         manifest = json.loads((ROOT / 'docs/lcd-assets.json').read_text())
         tree = ast.parse((ROOT / 'petrel_ui.py').read_text())

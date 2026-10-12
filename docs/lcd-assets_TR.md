@@ -29,7 +29,7 @@ sudo systemctl stop Petrel.service
 ~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
-Araç yapılandırılmış seri portu kullanır ve 7–14 slotlarına yazar. Yazma başarısız olursa servis kapalı kalır. Yazma onayları kontrol edilir; Flash geri okuması yapılmaz. Yüklemeden sonra ikonları fiziksel panelde kontrol edin.
+Araç yapılandırılmış seri portu kullanır ve 3’ten başlayan slotlara yazar (her 32 KiB blok için bir slot). Yazma başarısız olursa servis kapalı kalır. Yazma onayları kontrol edilir; Flash geri okuması yapılmaz. Yüklemeden sonra ikonları fiziksel panelde kontrol edin.
 
 Katkı görselleri için `tools/pack_icon_library.py kaynak.ICO hedef.ICO`, JPEG görsellerini koruyarak her ikonu tek bir 32 KiB blokta tutar. Böylece gözlenen çizim sorunlarıyla ilişkili blok sınırlarında ikonların bölünmesi önlenir.
 

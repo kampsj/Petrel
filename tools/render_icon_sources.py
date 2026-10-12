@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the editable Graphite SVG sources into native baseline JPEG icons."""
+"""Render Graphite SVGs as panel-compatible baseline 4:2:0 JPEG icons."""
 import argparse
 from io import BytesIO
 from pathlib import Path
@@ -24,7 +24,9 @@ def main():
         with Image.open(BytesIO(png)) as image:
             image.convert('RGB').resize((width, height), Image.Resampling.LANCZOS).save(
                 args.output_directory / (path.stem + '.jpg'), 'JPEG',
-                quality=94, subsampling=0, progressive=False)
+                # Physical T5UIC1 testing showed corrupted selected tiles and
+                # homing artwork with 4:4:4, even after verified SRAM transfer.
+                quality=94, subsampling=2, progressive=False)
 
 
 if __name__ == '__main__':

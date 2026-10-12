@@ -8,7 +8,7 @@ import struct
 import time
 import zlib
 
-from PIL import Image
+from PIL import Image, JpegImagePlugin
 from lcd_resources import ICON_LIBRARY_ID
 
 BLOCK_SIZE = 32768
@@ -65,6 +65,8 @@ def build_library(directory=SOURCE_DIRECTORY):
         with Image.open(BytesIO(payload)) as image:
             if image.format != 'JPEG' or image.info.get('progressive') or image.info.get('progression'):
                 raise ValueError(f'Use baseline JPEG: {path.name}')
+            if JpegImagePlugin.get_sampling(image) != 2:
+                raise ValueError(f'Use baseline 4:2:0 JPEG for T5UIC1 icons: {path.name}')
             image.load()
             width, height = image.size
         records.append((int(match[1]), width, height, payload))
