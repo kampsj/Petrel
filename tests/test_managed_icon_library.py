@@ -32,7 +32,7 @@ class ManagedIconTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Duplicate'):
             icons.pack_records([(1, 1, 1, b'x'), (1, 1, 1, b'y')])
         with self.assertRaisesRegex(ValueError, 'exceed'):
-            icons.pack_records([(i, 1, 1, bytes(32767)) for i in range(9)])
+            icons.pack_records([(i, 1, 1, bytes(32767)) for i in range(13)])
 
     def test_sources_decode_ids_are_stable_and_rename_does_not_rewrite(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -64,7 +64,7 @@ class ManagedIconTests(unittest.TestCase):
         lcd, memory = self.panel()
         with patch('icon_library.build_library', return_value=data):
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [8, 7])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [4, 3])
             self.assertTrue(all(c.args[0] == 0 and len(c.args[1]) == 32767
                                 for c in lcd.write_sram.call_args_list))
             lcd.reset_mock()
@@ -76,7 +76,7 @@ class ManagedIconTests(unittest.TestCase):
         changed[32768] ^= 1
         with patch('icon_library.build_library', return_value=bytes(changed)):
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [8, 7])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [4, 3])
         self.assertEqual(memory[:64], b'a' * 64)
         self.assertEqual(memory[256:272], b's' * 16)
 
@@ -96,7 +96,7 @@ class ManagedIconTests(unittest.TestCase):
             lcd.reset_mock()
             lcd.store_sram_as_picture.side_effect = None
             self.assertTrue(icons.sync_library(lcd))
-            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [7])
+            self.assertEqual([c.args[0] for c in lcd.store_sram_as_picture.call_args_list], [3])
 
     def test_manifest_crc_rejects_partial_or_corrupt_metadata(self):
         raw = icons.metadata([b'x' * 32])
@@ -125,7 +125,8 @@ class ManagedIconTests(unittest.TestCase):
             self.assertTrue(all(frame[6] & 0x80 for frame in animations))
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
                 patch('boot_artwork.sync', side_effect=lambda lcd: events.append('artwork')), \
-                patch('icon_library.sync_library', side_effect=icon_sync):
+                patch('icon_library.sync_library', side_effect=icon_sync), \
+                patch.object(Driver, '_startup_animation_library', return_value=3):
             lcd = Driver('/dev/fake', wake_delay=0,
                          startup_progress=progress)
         lcd.close()
@@ -137,7 +138,7 @@ class ManagedIconTests(unittest.TestCase):
     def test_checked_in_pack_matches_sources_and_all_payloads_are_preserved(self):
         root = Path(__file__).resolve().parents[1]
         data = icons.build_library(root / 'assets/icons')
-        self.assertEqual(data, (root / 'assets/emulator/7.ICO').read_bytes())
+        self.assertEqual(data, (root / 'assets/emulator/3.ICO').read_bytes())
         for index, entry, offset, payload in entries(data):
             self.assertEqual(payload, (root / 'assets/icons' / f'{index:03d}.jpg').read_bytes())
         validate_block_layout(data, 7)

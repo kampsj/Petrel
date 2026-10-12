@@ -1,3 +1,4 @@
+from lcd_resources import ICON_CALCULATE_LEVEL
 """Marlin ProUI-style four-corner result view with Klipper turn instructions."""
 
 
@@ -5,7 +6,7 @@ class ScrewsTiltMixin:
     def Draw_Screws_Menu(self):
         self._draw_list_menu('Screws Tilt Adjust', [
             ('Back', self.ICON_Back, None, None),
-            ('Calculate', self.ICON_SetEndTemp, None, None)],
+            ('Calculate', ICON_CALCULATE_LEVEL, None, None)],
             getattr(self, '_screws_selection', 0))
         self.lcd.update()
 

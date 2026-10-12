@@ -34,7 +34,7 @@ class MMUPowerIntegrationTests(unittest.TestCase):
                 v.lcd.reset_mock()
                 v.Draw_MMU_Menu()
                 power_copies = [c for c in v.lcd.show_icon.call_args_list if c.args[1] == ICON_POWER]
-                self.assertEqual([c.args for c in power_copies], [(7, ICON_POWER, 244, 5)])
+                self.assertEqual([c.args for c in power_copies], [(3, ICON_POWER, 244, 5)])
                 title = v._mmu_render['title']
                 self.assertLessEqual(title[1] + title[3] * 8, 241)
                 v.lcd.reset_mock()
@@ -80,8 +80,8 @@ class MMUPowerIntegrationTests(unittest.TestCase):
         self.assertEqual(v._mmu_page, 'map')
         self.assertEqual(v._mmu_map_draft, draft)
         self.assertEqual(v._mmu_selection, 0)
-        self.assertIn((1, 0, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
-        v.lcd.show_icon.assert_called_with(7, ICON_POWER, 244, 5)
+        self.assertIn((1, 0x2125, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
+        v.lcd.show_icon.assert_called_with(3, ICON_POWER, 244, 5, background=False, enhanced=True)
         v.pd.power_off_if_on.assert_not_called()
         v.pd.subscription.request.assert_not_called()
 

@@ -34,4 +34,4 @@ sudo systemctl stop Petrel.service
 sudo systemctl start Petrel.service
 ```
 
-The tool reads the configured UART, rebuilds library 7 and reloads its blocks. Display settings are preserved.
+The tool reads the configured UART, rebuilds library 3 and reloads its blocks. Display settings are preserved.

@@ -1,3 +1,5 @@
+from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
+from graphite_theme import show_icon as show_theme_icon
 from lcd_resources import ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 import display_settings
 import copy
@@ -193,10 +195,10 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
     ICON_More = 26
 
     ICON_Axis = 27
-    ICON_CloseMotor = 28
+    ICON_CloseMotor = ICON_MOTOR_OFF
     ICON_Homing = 29
     ICON_SetHome = 30
-    ICON_PLAPreheat = 31
+    ICON_PLAPreheat = ICON_PREHEAT_PROFILE
     ICON_ABSPreheat = 32
     ICON_Cool = 33
     ICON_Language = 34
@@ -207,12 +209,12 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
     ICON_Extruder = 38
 
     ICON_Temperature = 40
-    ICON_Motion = 41
+    ICON_Motion = ICON_MOTION
     ICON_WriteEEPROM = 42
     ICON_ReadEEPROM = 43
     ICON_ResumeEEPROM = 44
     ICON_Info = 45
-    ICON_CaseLight = ICON_Motion
+    ICON_CaseLight = ICON_LIGHT
 
     ICON_SetEndTemp = 46
     ICON_SetBedTemp = 47
@@ -243,7 +245,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
     ICON_StepX = 71
     ICON_StepY = 72
     ICON_StepZ = 73
-    ICON_StepE = 74
+    ICON_StepE = ICON_FLOW
     ICON_Setspeed = 75
     ICON_SetZOffset = 76
     ICON_Rectangle = 77
@@ -597,6 +599,21 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self._uart_failed()
             return False
 
+    @staticmethod
+    def _draw_pill(lcd, x, y, width, height, color):
+        import math
+        radius = min(width, height) / 2
+        for row in range(height):
+            dy = min(row + .5, height - row - .5)
+            inset = max(0, math.ceil(radius - math.sqrt(max(0, radius**2 - (radius-dy)**2))))
+            lcd.draw_rectangle(1, color, x + inset, y + row, x + width - inset - 1, y + row)
+
+    def _draw_progress_track(self, lcd, x, y, width, value):
+        self._draw_pill(lcd, x, y, width, 8, 0x39C8)
+        filled = max(0, min(width, round(width * value / 100)))
+        if filled:
+            self._draw_pill(lcd, x, y, filled, 8, 0x063B)
+
     def _draw_boot_progress(self, value, lcd=None, message=None):
         lcd = self.lcd if lcd is None else lcd
         message = message or {40: 'Preparing display assets', 70: 'Waiting for printer...',
@@ -608,28 +625,21 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 and message == getattr(self, '_boot_message', None)
                 and lcd is getattr(self, '_boot_animation_lcd', None)):
             return
-        self._boot_progress = value
-        self._boot_message = message
-        # Keep progress overlays between the Petrel brand and bottom slogan.
-        lcd.draw_rectangle(1, 0x0000, 16, 290, 255, 309)
-        lcd.draw_rectangle(0, 0xFFFF, 16, 290, 255, 309)
-        if value:
-            lcd.draw_rectangle(1, 0x07E0, 18, 292, 18 + 235 * value // 100, 307)
-        # Stop the panel before erasing its old frame, then reposition the animation.
         if lcd is getattr(self, '_boot_animation_lcd', None) and getattr(self, '_boot_animation_running', False):
-            old_x = getattr(self, '_boot_animation_x', 16)
-            lcd.configure_animation(0, False, self.ICON, 250, 254, old_x, 320, 10)
-        self._boot_animation_running = False
-        lcd.draw_rectangle(1, 0x0000, 16, 320, 255, 339)
+            lcd.configure_animation(0, False, getattr(self, '_boot_animation_active_library', self.ICON), 250, 254, self._boot_animation_x, 320, 10)
+        self._boot_progress, self._boot_message = value, message
+        # Restore original splash pixels; no solid-color patches over the artwork.
+        lcd.copy_cache(0, 16, 284, 255, 344, 16, 284, background=True, enhanced=False)
+        self._draw_progress_track(lcd, 24, 292, 224, value)
         x = (272 - (len(message)*8 + 24)) // 2
-        lcd.draw_text(False, False, lcd.font8x16, 0xFFFF, 0x0000,
+        lcd.draw_text(False, False, lcd.font8x16, 0xE75E, 0,
                       x+24, 322, message)
-        # The panel cycles stock frames; the host sends no per-frame updates.
-        if value < 100:
-            lcd.configure_animation(0, True, self.ICON, 250, 254, x, 320, 10)
-            self._boot_animation_running = True
-        self._boot_animation_x = x
-        self._boot_animation_lcd = lcd
+        library = getattr(lcd, '_boot_animation_library', self.ICON)
+        self._boot_animation_running = value < 100 and library is not None
+        if self._boot_animation_running:
+            lcd.configure_animation(0, True, library, 250, 254, x, 320, 10)
+        self._boot_animation_active_library = library
+        self._boot_animation_x, self._boot_animation_lcd = x, lcd
         lcd.update()
 
     def _poll_boot(self):
@@ -863,7 +873,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         def draw(row):
             x, y = 232, self.MBASE(row) - 3
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, x, y, x + 19, y + 19)
-            self.lcd.show_icon(self.ICON,
+            show_theme_icon(self.lcd, self.ICON,
                 ICON_CHECKBOX_CHECKED if checked else ICON_CHECKBOX_EMPTY, x, y)
         draw.checkbox = True
         return draw
@@ -1232,7 +1242,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 mesg
             )
         for t in range(0, 100, 2):
-            self.lcd.show_icon(self.ICON, self.ICON_Bar, 15, 260)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Bar, 15, 260)
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 15 + t * 242 / 100, 260, 257, 280)
             self.lcd.update()
             time.sleep(.020)
@@ -1260,7 +1270,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self.pd.HMI_flag.done_confirm_flag = True
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 250,
                                     self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
-            self.lcd.show_icon(self.ICON, self.ICON_Confirm_E, 86, 283)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 86, 283)
         elif status == 'error':
             if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
                 self.Goto_MainMenu()
@@ -1312,9 +1322,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             active = index == self.select_page.now
             if partial:
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, x, y, x+109, y+99)
-            self.lcd.show_icon(self.ICON, selected if active else normal, x, y)
-            if active:
-                self.lcd.draw_rectangle(0, self.lcd.Color_White, x, y, x+109, y+99)
+            show_theme_icon(self.lcd, self.ICON, selected if active else normal, x, y)
+            # Demo selection is built into the rounded selected tile asset.
             self._draw_menu_text(label, x+(109-len(label)*8)//2, y+71)
         pages = (len(entries)+3)//4
         if pages > 1 and not partial:
@@ -1576,9 +1585,9 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         values = getattr(self, '_display_values', [100, 0, 10])
         entries = [('Back', self.ICON_Back, None, None)]
         for row, label, icon, text in (
-                (1, 'Brightness', 205, str(values[0]) + '%'),
-                (2, 'Idle dim', 15, str(values[1]) + ' min' if values[1] else 'Off'),
-                (3, 'Dim brightness', 205, str(values[2]) + '%')):
+                (1, 'Brightness', ICON_BRIGHTNESS, str(values[0]) + '%'),
+                (2, 'Idle dim', ICON_IDLE_DIM, str(values[1]) + ' min' if values[1] else 'Off'),
+                (3, 'Dim brightness', ICON_DIM_BRIGHTNESS, str(values[2]) + '%')):
             editing = getattr(self, '_display_edit', False) and selection == row
             painter = lambda row, text=text, editing=editing: self.lcd.draw_text(
                 True, False, self.lcd.font8x16, self.lcd.Color_White,
@@ -1592,7 +1601,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 True, False, self.lcd.font8x16, self.lcd.Color_White,
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
                 max(172, 260 - len(text) * 8), self.MBASE(row) - 1, text)
-            entries.append((label, None, (text, editing), painter))
+            entries.append((label, {'Buzzer': ICON_BUZZER,'Volume': ICON_VOLUME,'Click tone': ICON_CLICK_TONE,'Encoder tone': ICON_ENCODER_TONE}[label], (text, editing), painter))
         self._display_selection = min(selection, len(entries) - 1)
         title = 'Display - not saved' if getattr(self, '_display_save_message', '') else 'Display'
         self._draw_list_menu(title, entries, self._display_selection)
@@ -2467,7 +2476,10 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             for other in list(cache):
                 if other != key and x < other[1] <= right and y - 1 <= other[2] <= y + 19:
                     del cache[other]
-        getattr(self.lcd, method)(*args)
+        if method == 'show_icon':
+            show_theme_icon(self.lcd, *args)
+        else:
+            getattr(self.lcd, method)(*args)
         cache[key] = value
 
     def Draw_Status_Area(self, with_update):
@@ -2481,9 +2493,10 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         if layout != getattr(self, '_status_layout', None) or not with_update:
             self._status_layout = layout
             self._status_render = {}
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0,
+            self.lcd.draw_rectangle(1, 0x18C4, 0,
                 self.STATUS_Y, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
 
+            self.lcd.draw_line(self.lcd.Line_Color, 12, 363, 259, 363)
         y1, y2, y3 = 382, 416, 458
         # Temperature fields need enough width for "actual/target". Keep them
         # in a wider left column and compact the two telemetry columns.
@@ -2493,13 +2506,13 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         if self.pd.HAS_HOTEND:
             self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1 - 1)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, value1, y1,
+                self.lcd.Color_White, 0x18C4, 3, value1, y1,
                 self.pd.thermalManager['temp_hotend'][0]['celsius'])
             self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black,
+                self.lcd.Color_White, 0x18C4,
                 value1 + 3 * self.STAT_CHR_W, y1, "/")
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
+                self.lcd.Color_White, 0x18C4, 3,
                 value1 + 4 * self.STAT_CHR_W, y1,
                 self.pd.thermalManager['temp_hotend'][0]['target'])
 
@@ -2512,24 +2525,24 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         else:
             speed_text = '{:.0f}mm/s'.format(abs(self.pd.live_velocity))
         self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
-            self.lcd.Color_White, self.lcd.Color_Bg_Black, value2, y1, speed_text)
+            self.lcd.Color_White, 0x18C4, value2, y1, speed_text)
 
         if self.pd.HAS_FAN:
             self._draw_status_field('show_icon', self.ICON, self.ICON_FanSpeed, x3, y1 - 1)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
+                self.lcd.Color_White, 0x18C4, 3,
                 value3, y1, self.pd.dashboard_fan_pwm)
 
         if self.pd.HAS_HEATED_BED:
             self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 1)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, value1, y2,
+                self.lcd.Color_White, 0x18C4, 3, value1, y2,
                 self.pd.thermalManager['temp_bed']['celsius'])
             self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black,
+                self.lcd.Color_White, 0x18C4,
                 value1 + 3 * self.STAT_CHR_W, y2, "/")
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, self.lcd.Color_Bg_Black, 3,
+                self.lcd.Color_White, 0x18C4, 3,
                 value1 + 4 * self.STAT_CHR_W, y2,
                 self.pd.thermalManager['temp_bed']['target'])
 
@@ -2541,12 +2554,12 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         else:
             flow_text = '{:.1f}mm3/s'.format(self.pd.volumetric_flow)
         self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
-            self.lcd.Color_White, self.lcd.Color_Bg_Black, value2, y2, flow_text)
+            self.lcd.Color_White, 0x18C4, value2, y2, flow_text)
 
         if self.pd.HAS_ZOFFSET_ITEM:
             self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2 - 1)
             self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.DWIN_FONT_STAT, self.lcd.Color_Bg_Black,
+                self.lcd.DWIN_FONT_STAT, 0x18C4,
                 2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
 
         positions = self.pd.live_position
@@ -2556,13 +2569,13 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
             self._draw_status_field('show_icon', self.ICON, icon, xpos, y3 - 3)
             self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.DWIN_FONT_STAT, self.lcd.Color_Bg_Black,
+                self.lcd.DWIN_FONT_STAT, 0x18C4,
                 3, 1, value_x, y3, position * 10)
 
     def _draw_power_icon(self, selected=False, clear=False):
         if clear:
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 241, 2, 268, 29)
-        self.lcd.show_icon(self.ICON, ICON_POWER, 244, 5)
+        show_theme_icon(self.lcd, self.ICON, ICON_POWER, 244, 5)
         if selected:
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 241, 2, 267, 28)
 
@@ -2585,13 +2598,13 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 105, 258, 374)
 
     def Draw_More_Icon(self, line):
-        self.lcd.show_icon(self.ICON, self.ICON_More, 226, self.MBASE(line) - 3)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_More, 226, self.MBASE(line) - 3)
 
     def Draw_Menu_Cursor(self, line):
-        self.lcd.draw_rectangle(1, self.lcd.Rectangle_Color, 0, self.MBASE(line) - 18, 14, self.MBASE(line + 1) - 20)
+        self.lcd.draw_rectangle(1, self.lcd.Rectangle_Color, 4, self.MBASE(line) - 13, 7, self.MBASE(line + 1) - 25)
 
     def Draw_Menu_Icon(self, line, icon):
-        self.lcd.show_icon(self.ICON, icon, 26, self.MBASE(line) - 3)
+        show_theme_icon(self.lcd, self.ICON, icon, 26, self.MBASE(line) - 3)
 
     def Draw_Menu_Line(self, line, icon=False, label=False):
         if (label):
@@ -2641,7 +2654,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         label = path.rstrip('/').rsplit('/', 1)[-1]
         self.Draw_Menu_Line(row, False if is_dir else self.ICON_File, label)
         if is_dir:
-            self.lcd.show_icon(self.ICON, ICON_FOLDER, 26, self.MBASE(row) - 7)
+            show_theme_icon(self.lcd, self.ICON, ICON_FOLDER, 26, self.MBASE(row) - 7)
 
     def Draw_Select_Highlight(self, sel):
         self.pd.HMI_flag.select_flag = sel
@@ -2660,17 +2673,18 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Window, 14, 60, 258, 330)
 
     def Draw_Printing_Screen(self):
-        self.Draw_Title('Tune')
-        self._draw_menu_text('Pause', 41, 188)
-        self._draw_menu_text('Stop', 176, 188)
+        self.Draw_Title('Paused' if self.pd.printingIsPaused() else 'Printing')
+        self._draw_menu_text('Elapsed', 41, 188)
+        self._draw_menu_text('Remaining', 170, 188)
 
     def Draw_Print_ProgressBar(self, Percentrecord=None):
         if Percentrecord is None:
             Percentrecord = self.pd.getPercent()
-        self.lcd.show_icon(self.ICON, self.ICON_Bar, 15, 93)
-        self.lcd.draw_rectangle(1, self.lcd.BarFill_Color, 16 + Percentrecord * 240 // 100, 93, 256, 113)
-        self.lcd.draw_integer_text(True, True, 0, self.lcd.font8x16, self.lcd.Percent_Color, self.lcd.Color_Bg_Black, 3, 109, 133, Percentrecord)
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Percent_Color, self.lcd.Color_Bg_Black, 133, 133, "%")
+        self._draw_progress_track(self.lcd, 24, 99, 224, Percentrecord)
+        text = '%d%%' % Percentrecord
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 104, 122, 167, 141)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Black, (272-len(text)*8)//2, 123, text)
 
     def _draw_print_time(self, seconds, x):
         # Format completed minutes, not rounded fractional hours/minutes.
@@ -2711,29 +2725,30 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         text = T5UIC1Display._panel_text(label)[:24]
         palette = {
             'MACHINE': (0x07FF, ICON_MACHINE),
-            'HOST': (0xF81F, ICON_HOST),
-            'SOFTWARE': (0xA81F, ICON_SOFTWARE),
+            'HOST': (0x4C7F, ICON_HOST),
+            'SOFTWARE': (0x03DF, ICON_SOFTWARE),
         }
         key = text.upper()
         if key.startswith('MCU'):
-            color, icon = 0x07E0, ICON_MCU
+            color, icon = 0x063B, ICON_MCU
         else:
             color, icon = palette.get(key, (self.lcd.Color_White, None))
         if icon is not None:
-            self.lcd.show_icon(self.ICON, icon, 8, y - 2)
+            show_theme_icon(self.lcd, self.ICON, icon, 8, y - 2)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Info, 8, y - 2)
-        self.lcd.draw_text(False, False, self.lcd.font10x20, color,
-                             self.lcd.Color_Bg_Black, 40, y, key)
-        self.lcd.draw_rectangle(1, color, 40, y + 21, 255, y + 22)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Info, 8, y - 2)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
+                             self.lcd.Color_Bg_Black, 40, y+2, key)
+        self.lcd.draw_rectangle(1, self.lcd.Line_Color, 40, y + 21, 255, y + 21)
 
     def _draw_info_update_button(self, y, selected):
         updater = self._software_updater()
-        background = self.lcd.Select_Color if selected else self.lcd.Color_Bg_Black
-        self.lcd.draw_rectangle(1, background, 32, y - 2, 239, y + 19)
+        background = 0x063B if selected else 0x2967
+        foreground = 0x10C4 if selected else self.lcd.Color_White
+        self._draw_pill(self.lcd, 32, y - 4, 208, 28, background)
         label = T5UIC1Display._panel_text(updater.label)[:25]
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White,
-                           background, (272 - len(label) * 8) // 2, y, label)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, foreground,
+                           background, (272 - len(label) * 8) // 2, y+2, label)
         if not updater.message or updater.phase in ('checking', 'updating', 'restarting', 'recovering'):
             return
         color = {'current': 0x07E0, 'available': 0xFFE0, 'dirty': 0xFFE0, 'confirm_recovery': 0xFFE0}.get(updater.phase, 0xF800)
@@ -2875,7 +2890,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 False, True, self.lcd.font8x16, self.lcd.Color_White,
                 self.lcd.Select_Color if editing else self.lcd.Color_Bg_Black,
                 168, self.MBASE(row), text.rjust(9))
-            entries.append((label, self.ICON_Motion, (text, editing), painter))
+            entries.append((label, {'max_velocity': ICON_VELOCITY,'max_accel': ICON_ACCELERATION,'square_corner_velocity': ICON_CORNER_SPEED,'minimum_cruise_ratio': ICON_CRUISE_RATIO}[field], (text, editing), painter))
         self._draw_list_menu('Motion (runtime)', entries, self.select_motion.now)
 
     def Draw_Move_Menu(self):
@@ -2892,7 +2907,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                         self.lcd.Color_White, self.lcd.Color_Bg_Black, 3, 1, 216, self.MBASE(row), v)
             entries.append((label, self.ICON_MoveX + index, value, painter))
         live = bool(getattr(self, '_live_jog', False))
-        entries.append(('Live jog', self.ICON_Axis, live,
+        entries.append(('Live jog', ICON_LIVE_JOG, live,
             self._menu_checkbox_painter(live)))
         self._draw_list_menu('Move', entries, self.select_axis.now)
 
@@ -2905,7 +2920,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self._draw_power_icon(getattr(self, '_power_focus', False))
 
         if self.pd.mmu is None:
-            self.lcd.show_icon(self.ICON, self.ICON_LOGO, 71, 52)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_LOGO, 71, 52)
         else:
             self.Draw_MMU_Status()
         self._drawn_mmu_state = copy.deepcopy(self.pd.mmu)
@@ -2930,8 +2945,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             npos = _MAX(0, self.lcd.DWIN_WIDTH - len(name) * self.MENU_CHR_W) / 2
             self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black, npos, 60, name)
 
-        self.lcd.show_icon(self.ICON, self.ICON_PrintTime, 17, 193)
-        self.lcd.show_icon(self.ICON, self.ICON_RemainTime, 150, 191)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_PrintTime, 17, 193)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_RemainTime, 150, 191)
 
         self.Draw_Print_ProgressBar()
         self.Draw_Print_ProgressElapsed()
@@ -2979,14 +2994,14 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 (272 - 8 * 10) / 2, 150,
                 self.MSG_STOP_PRINT
             )
-        self.lcd.show_icon(self.ICON, self.ICON_Confirm_E, 26, 280)
-        self.lcd.show_icon(self.ICON, self.ICON_Cancel_E, 146, 280)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 26, 280)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_Cancel_E, 146, 280)
         self.Draw_Select_Highlight(True)
 
     def Popup_Window_Home(self, parking=False):
         self.Clear_Main_Window()
         self.Draw_Popup_Bkgd_60()
-        self.lcd.show_icon(self.ICON, self.ICON_BLTouch, 101, 105)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_BLTouch, 101, 105)
         if parking:
             self.lcd.draw_text(
                 False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
@@ -3000,13 +3015,13 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
     def Popup_Window_ETempTooLow(self):
         self.Clear_Main_Window()
         self.Draw_Popup_Bkgd_60()
-        self.lcd.show_icon(self.ICON, self.ICON_TempTooLow, 102, 105)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_TempTooLow, 102, 105)
         self.lcd.draw_text(
             False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color,
             self.lcd.Color_Bg_Window, 20, 235,
             "Nozzle is too cold"
         )
-        self.lcd.show_icon(self.ICON, self.ICON_Confirm_E, 86, 280)
+        show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 86, 280)
 
     def Erase_Menu_Cursor(self, line):
         self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, self.MBASE(line) - 18, 14, self.MBASE(line + 1) - 20)
@@ -3078,84 +3093,83 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
 
     def ICON_Print(self):
         if self.select_page.now == 0:
-            self.lcd.show_icon(self.ICON, self.ICON_Print_1, 17, 130)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Print_1, 17, 130)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 17, 130, 126, 229)
             self._draw_menu_text('Print', 57, 201)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Print_0, 17, 130)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Print_0, 17, 130)
             self._draw_menu_text('Print', 57, 201)
 
     def ICON_Prepare(self):
         if self.select_page.now == 1:
-            self.lcd.show_icon(self.ICON, self.ICON_Prepare_1, 145, 130)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Prepare_1, 145, 130)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 145, 130, 254, 229)
             self._draw_menu_text('Prepare', 175, 201)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Prepare_0, 145, 130)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Prepare_0, 145, 130)
             self._draw_menu_text('Prepare', 175, 201)
 
     def ICON_Control(self):
         if self.select_page.now == 2:
-            self.lcd.show_icon(self.ICON, self.ICON_Control_1, 17, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Control_1, 17, 246)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 17, 246, 126, 345)
             self._draw_menu_text('Control', 48, 318)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Control_0, 17, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Control_0, 17, 246)
             self._draw_menu_text('Control', 48, 318)
 
     def ICON_Leveling(self, show):
         if show:
-            self.lcd.show_icon(self.ICON, self.ICON_Leveling_1, 145, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Leveling_1, 145, 246)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 145, 246, 254, 345)
             self._draw_menu_text('Leveling', 182, 318)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Leveling_0, 145, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Leveling_0, 145, 246)
             self._draw_menu_text('Leveling', 182, 318)
 
     def ICON_StartInfo(self, show):
         if show:
-            self.lcd.show_icon(self.ICON, self.ICON_Info_1, 145, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Info_1, 145, 246)
             self.lcd.draw_rectangle(0, self.lcd.Color_White, 145, 246, 254, 345)
             self._draw_menu_text('Info', 186, 318)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Info_0, 145, 246)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Info_0, 145, 246)
             self._draw_menu_text('Info', 186, 318)
+
+    def _draw_print_control_label(self, label, x):
+        self._draw_menu_text(label, x + (80 - len(label) * 8) // 2, 325)
 
     def ICON_Tune(self):
         if (self.select_print.now == 0):
-            self.lcd.show_icon(self.ICON, self.ICON_Setup_1, 8, 252)
-            self.lcd.draw_rectangle(0, self.lcd.Color_White, 8, 252, 87, 351)
-            self._draw_menu_text('Tune', 31, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Setup_1, 8, 252)
+            self._draw_print_control_label('Tune', 8)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Setup_0, 8, 252)
-            self._draw_menu_text('Tune', 31, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Setup_0, 8, 252)
+            self._draw_print_control_label('Tune', 8)
 
     def ICON_Continue(self):
         if (self.select_print.now == 1):
-            self.lcd.show_icon(self.ICON, self.ICON_Continue_1, 96, 252)
-            self.lcd.draw_rectangle(0, self.lcd.Color_White, 96, 252, 175, 351)
-            self._draw_menu_text('Continue', 121, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Continue_1, 96, 252)
+            self._draw_print_control_label('Continue', 96)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Continue_0, 96, 252)
-            self._draw_menu_text('Continue', 121, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Continue_0, 96, 252)
+            self._draw_print_control_label('Continue', 96)
 
     def ICON_Pause(self):
         if (self.select_print.now == 1):
-            self.lcd.show_icon(self.ICON, self.ICON_Pause_1, 96, 252)
-            self.lcd.draw_rectangle(0, self.lcd.Color_White, 96, 252, 175, 351)
-            self._draw_menu_text('Pause', 116, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Pause_1, 96, 252)
+            self._draw_print_control_label('Pause', 96)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Pause_0, 96, 252)
-            self._draw_menu_text('Pause', 116, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Pause_0, 96, 252)
+            self._draw_print_control_label('Pause', 96)
 
     def ICON_Stop(self):
         if (self.select_print.now == 2):
-            self.lcd.show_icon(self.ICON, self.ICON_Stop_1, 184, 252)
-            self.lcd.draw_rectangle(0, self.lcd.Color_White, 184, 252, 263, 351)
-            self._draw_menu_text('Stop', 209, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Stop_1, 184, 252)
+            self._draw_print_control_label('Stop', 184)
         else:
-            self.lcd.show_icon(self.ICON, self.ICON_Stop_0, 184, 252)
-            self._draw_menu_text('Stop', 209, 325)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_Stop_0, 184, 252)
+            self._draw_print_control_label('Stop', 184)
 
     def Item_Prepare_Move(self, row):
         self.draw_move_en(self.MBASE(row))  # "Move >"
@@ -3316,7 +3330,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                 self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 4, 31, 268, 125)
                 self._home_mmu_layout = None
                 if mmu_state is None:
-                    self.lcd.show_icon(self.ICON, self.ICON_LOGO, 71, 52)
+                    show_theme_icon(self.lcd, self.ICON, self.ICON_LOGO, 71, 52)
             if mmu_state is not None and mmu_state != getattr(self, '_drawn_mmu_state', None):
                 self.Draw_MMU_Status()
             self._drawn_mmu_state = copy.deepcopy(mmu_state)
@@ -3358,7 +3372,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
                            self.lcd.Color_Bg_Window, 42, 150, 'Turn off printer?')
         for yes, label, x in ((True, 'Yes', 42), (False, 'No', 164)):
-            color = self.lcd.Select_Color if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
+            color = 0x063B if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
             self.lcd.draw_rectangle(0, color, x - 12, 224, x + 52, 264)
             self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
                                self.lcd.Color_Bg_Window, x, 236, label)

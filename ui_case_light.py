@@ -1,3 +1,4 @@
+from lcd_resources import ICON_BRIGHTNESS
 """Case-light screen rendering and interaction mixin."""
 
 import logging
@@ -17,7 +18,7 @@ class CaseLightMixin:
         self._draw_list_menu('Case Light', [
             ('Back', self.ICON_Back, None, None),
             ('Light', self.ICON_CaseLight, light, self._menu_checkbox_painter(light)),
-            ('Brightness', self.ICON_CaseLight, brightness, draw_brightness)], self.select_light.now)
+            ('Brightness', ICON_BRIGHTNESS, brightness, draw_brightness)], self.select_light.now)
 
     def _sync_case_light_tracking(self):
         screen = getattr(self, 'checkkey', None)

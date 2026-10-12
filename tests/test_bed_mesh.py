@@ -704,7 +704,7 @@ class MeshSubmenuNavigationTests(unittest.TestCase):
         view.HMI_Bed_Mesh_Menu()
         self.assertTrue(view._mesh_submenu)
         self.assertEqual([(e[0], e[2]) for e in view._mesh_menu_entries()],
-                         [('BACK',view.ICON_Back),('CALIBRATE',29),('VIEWER',55)])
+                         [('BACK',view.ICON_Back),('CALIBRATE',234),('VIEWER',225)])
         view._mesh_menu_selection = 0
         view.HMI_Bed_Mesh_Menu()
         self.assertFalse(view._mesh_submenu)

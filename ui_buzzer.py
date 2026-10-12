@@ -1,3 +1,4 @@
+from lcd_resources import ICON_BUZZER, ICON_SOUND_OFF
 """Display-menu buzzer selection and sound preferences."""
 from dataclasses import replace
 from buzzer_control import Settings, Player, outputs, resolve_output, TONES
@@ -90,7 +91,7 @@ class BuzzerViewMixin:
         for name in names:
             checked = name == selected
             painter = self._menu_checkbox_painter(checked)
-            entries.append(((name or 'Disabled')[:20], None, checked, painter))
+            entries.append(((name or 'Disabled')[:20], ICON_BUZZER if name else ICON_SOUND_OFF, checked, painter))
         self._buzzer_selection = min(getattr(self, '_buzzer_selection', 0), len(entries) - 1)
         title = 'Buzzer - not saved' if getattr(self, '_buzzer_save_error', False) else 'Buzzer'
         self._draw_list_menu(title, entries, self._buzzer_selection)

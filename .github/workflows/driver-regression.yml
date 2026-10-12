@@ -8,6 +8,7 @@ on:
     branches:
       - master
       - fix/immediate-boot-splash
+      - feature/graphite-theme
       - refactor/t5uic1-complete-driver
       - feature/global-power-button
       - feature/mmu-menu

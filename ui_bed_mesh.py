@@ -1,3 +1,4 @@
+from lcd_resources import ICON_ACTIVE_MESH, ICON_MESH_CALIBRATE, ICON_MESH_PROFILE, ICON_PROBE_CALIBRATION, ICON_SCREW_ADJUST
 """Bed mesh screens, profile browsing and encoder navigation."""
 import math
 from t5uic1_driver import T5UIC1Display
@@ -46,9 +47,9 @@ class BedMeshMixin:
         if self.pd.capabilities.bed_mesh:
             entries.append(('MESH', 'Bed Mesh', 203))
         if self.pd.capabilities.screws_tilt_adjust:
-            entries.append(('SCREWS', 'Screws Tilt Adjust', 202))
+            entries.append(('SCREWS', 'Screws Tilt Adjust', ICON_SCREW_ADJUST))
         if self.pd.capabilities.probe and 'manual_probe' in self.pd.state.objects:
-            entries.append(('PROBE', 'Probe Calibration', self.ICON_Zoffset))
+            entries.append(('PROBE', 'Probe Calibration', ICON_PROBE_CALIBRATION))
         return tuple(entries)
 
     def _mesh_menu_entries(self):
@@ -57,8 +58,8 @@ class BedMeshMixin:
         entries = [('BACK', 'Back', self.ICON_Back)]
         if self.pd.capabilities.bed_mesh:
             if self.pd.capabilities.probe:
-                entries.append(('CALIBRATE', 'Calibrate', 29))
-            entries.append(('VIEWER', 'Mesh Viewer', 55))
+                entries.append(('CALIBRATE', 'Calibrate', ICON_MESH_CALIBRATE))
+            entries.append(('VIEWER', 'Mesh Viewer', ICON_MESH_PROFILE))
         return tuple(entries)
 
     def Draw_Bed_Mesh_Menu(self):
@@ -228,7 +229,7 @@ class BedMeshMixin:
             choice = min(getattr(self, '_mesh_profile_selection', 0), len(names)-1)
             self._mesh_profile_selection = choice
             entries = [(T5UIC1Display._panel_text(label)[:25],
-                        self.ICON_Back if index == 0 else self.ICON_HotendTemp, None, None)
+                        self.ICON_Back if index == 0 else ICON_ACTIVE_MESH if label == 'Current Mesh' else ICON_MESH_PROFILE, None, None)
                        for index, label in enumerate(names)]
             self._draw_list_menu('Mesh Viewer', entries, choice)
         self.lcd.update()

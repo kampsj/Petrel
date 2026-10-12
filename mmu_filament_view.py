@@ -42,9 +42,9 @@ def filament_height(m):
 
 
 class MMUFilamentView:
-    BG = 0x0000
-    BLOCK = 0x2945
-    TUBE = 0xAD75
+    BG = 0x2125
+    BLOCK = 0x39C8
+    TUBE = 0x8471
     X = 59
     TOP = 168
     BODY = 186

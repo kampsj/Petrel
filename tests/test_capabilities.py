@@ -352,7 +352,7 @@ class CapabilityTests(unittest.TestCase):
         labels = [call.args for call in result.lcd.draw_text.call_args_list
                   if call.args[-1] in ('0', '1')]
         self.assertEqual(len(labels), 2)
-        self.assertEqual(labels[0][3], 0x0000)
+        self.assertEqual(labels[0][3], result.lcd.Color_White)
         self.assertEqual(labels[1][3], result.lcd.Color_White)
 
     def test_high_gate_count_mmu_lane_indicators_do_not_overlap(self):
@@ -700,7 +700,8 @@ class CapabilityMenuTests(unittest.TestCase):
         result = display(data)
         entry = next(item for item in result._menus['control'] if item[0] == 'LIGHT')
         self.assertEqual(entry[2], result.ICON_CaseLight)
-        self.assertEqual(result.ICON_CaseLight, result.ICON_Motion)
+        self.assertEqual(result.ICON_CaseLight, 210)
+        self.assertNotEqual(result.ICON_CaseLight, result.ICON_Motion)
 
     def test_case_light_is_hidden_without_output_pin(self):
         result = display(snapshot())

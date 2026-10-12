@@ -598,7 +598,7 @@ class MMUUITests(unittest.TestCase):
 
     def test_home_uses_full_canvas_but_keeps_original_dashboard_untouched(self):
         v, _ = self.make()
-        self.assertIn((1, 0x0000, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
+        self.assertIn((1, 0x2125, 0, 0, 271, 479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
         self.assertIn('T2 > G2', self.strings(v))
         self.assertIn('Loaded', self.strings(v))
         v.lcd.reset_mock()
@@ -882,7 +882,7 @@ class MMUUITests(unittest.TestCase):
         with patch.object(ui, 'T5UIC1Display', return_value=port):
             self.assertTrue(v._ensure_uart())
         self.assertEqual(v._mmu_page, 'gates')
-        self.assertIn((1,0x0000,0,0,271,479), [c.args for c in port.draw_rectangle.call_args_list])
+        self.assertIn((1,0x2125,0,0,271,479), [c.args for c in port.draw_rectangle.call_args_list])
         self.assertIn('G0 PLA', [c.args[-1] for c in port.draw_text.call_args_list])
         v.pd.subscription.request.assert_not_called()
 
@@ -916,5 +916,5 @@ class MMUUITests(unittest.TestCase):
         v.EachMomentUpdate()
         self.assertEqual(v.checkkey,v.MMUMenu)
         self.assertIn('201/205 C', self.strings(v))
-        self.assertNotIn((1,0x0000,0,0,271,479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
+        self.assertNotIn((1,0x2125,0,0,271,479), [c.args for c in v.lcd.draw_rectangle.call_args_list])
         self.assertFalse(any(c.args[3] == v.STATUS_Y for c in v.lcd.draw_rectangle.call_args_list))

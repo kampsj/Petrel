@@ -88,18 +88,18 @@ class T5UIC1Display:
     DWIN_WIDTH = WIDTH
     DWIN_HEIGHT = HEIGHT
 
-    Color_White = 0xFFFF
+    Color_White = 0xE75E
     Color_Yellow = 0xFF0F
-    Color_Bg_Window = 0x31E8
-    Color_Bg_Blue = 0x1125
-    Color_Bg_Black = 0x0841
+    Color_Bg_Window = 0x2967
+    Color_Bg_Blue = 0x2966
+    Color_Bg_Black = 0x2125
     Color_Bg_Red = 0xF00F
-    Popup_Text_Color = 0xD6BA
-    Line_Color = 0x3A6A
-    Rectangle_Color = 0xEE2F
-    Percent_Color = 0xFE29
-    BarFill_Color = 0x10E4
-    Select_Color = 0x33BB
+    Popup_Text_Color = 0xE75E
+    Line_Color = 0x39C8
+    Rectangle_Color = 0x063B
+    Percent_Color = 0x063B
+    BarFill_Color = 0x39C8
+    Select_Color = 0x19E9
 
     DWIN_FONT_MENU = FONT_8X16
     DWIN_FONT_STAT = FONT_10X20
@@ -158,10 +158,13 @@ class T5UIC1Display:
             # Present the complete boot frame before packing/checking icons.
             # Existing panel icons can animate throughout an unchanged sync.
             if startup_progress is not None:
+                self._boot_animation_library = self._startup_animation_library()
                 self.show_jpeg(0)
                 startup_progress(self, 40)
                 self.update()
             self._startup_sync_icons()
+            from lcd_resources import ICON_LIBRARY_ID
+            self._boot_animation_library = ICON_LIBRARY_ID
             if startup_progress is not None:
                 # A changed library stops animation before Flash programming;
                 # the next stage restarts it using the newly committed icons.
@@ -170,6 +173,16 @@ class T5UIC1Display:
         except BaseException:
             self.close()
             raise
+
+    def _startup_animation_library(self):
+        """Use a committed resident directory while migrating library 7 to 3."""
+        from icon_library import MAGIC, METADATA_ADDRESS
+        from lcd_resources import ICON_LIBRARY_ID
+        header = self.read_flash(METADATA_ADDRESS, 42)
+        if (header[:8] == MAGIC and header[8] in (ICON_LIBRARY_ID, 7)
+                and 1 <= header[9] <= 16-header[8] and any(header[10:42])):
+            return header[8]
+        return None  # First install/incomplete directory: animate after upload.
 
     def _startup_sync_icons(self):
         from icon_library import sync_library

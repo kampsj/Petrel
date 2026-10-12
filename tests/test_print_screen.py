@@ -13,10 +13,14 @@ class PrintScreenTests(unittest.TestCase):
         for percentage in (0, 1, 38, 99, 100):
             result.lcd.serial.frames.clear()
             ui.PetrelDisplay.Draw_Print_ProgressBar(result, percentage)
-            rectangle = result.lcd.serial.frames[1]
-            self.assertEqual(rectangle[1], 0x05)
-            self.assertEqual(int.from_bytes(rectangle[5:7], 'big'),
-                             16 + percentage * 240 // 100)
+            rectangles = [f for f in result.lcd.serial.frames if f[1] == 0x05]
+            fills = [f for f in rectangles if int.from_bytes(f[3:5], 'big') == 0x063B]
+            self.assertEqual(bool(fills), percentage > 0)
+            for f in fills:
+                x0,y0,x1,y1 = [int.from_bytes(f[i:i+2], 'big') for i in (5,7,9,11)]
+                self.assertGreaterEqual(x0, 24)
+                self.assertLess(x1, 24 + round(224 * percentage / 100))
+                self.assertTrue(99 <= y0 <= y1 <= 106)
         result.pd.sendGCode.assert_not_called()
 
     def display(self, state):

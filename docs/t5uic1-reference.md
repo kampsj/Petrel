@@ -255,7 +255,7 @@ image content into picture slot `0x00..0x0F`.
 
 ## Managed icon library
 
-JPEG pictures and ICO libraries share Picture Flash. Library 7 uses slots 7–15;
+JPEG pictures and ICO libraries share Picture Flash. Library 3 uses slots 3–15;
 stock pictures remain in slots 0–2. Individual baseline JPEGs in `assets/icons/`
 are packed by `icon_library.py`, preserving each payload within one 32 KiB
 block and reserving every block’s final byte. The packer reuses gaps with
@@ -314,7 +314,7 @@ changed setting, never on encoder movement or idle dim/wake.
 | --- | --- | --- |
 | `0x0100..0x010F` | Display settings | 16 bytes |
 | `0x0120..0x0147` | Boot-artwork fingerprint | 40 bytes |
-| `0x0200..0x037F` | Icon-library block metadata | 384 bytes |
+| `0x0200..0x03FF` | Icon-library block metadata | 512 bytes |
 | `0x0400..0x047F` | Buzzer settings | 128 bytes |
 
 The Display record contains the magic/version `PETDSPL2`, brightness (0–100),

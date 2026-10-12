@@ -16,7 +16,7 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 87 67 CC 33 C3 3C')])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23 67 CC 33 C3 3C')])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_machine_host_software_headings_use_native_library_ids(self):
@@ -26,7 +26,7 @@ class AuditRenderingTests(unittest.TestCase):
                 result.lcd.serial.frames.clear()
                 result._draw_info_section(label, 140)
                 icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 87') + bytes((icon,)) + result.lcd.TAIL])
+                self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23') + bytes((icon,)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_title_draws_global_power_from_native_library(self):
@@ -34,17 +34,15 @@ class AuditRenderingTests(unittest.TestCase):
         result.lcd.serial.frames.clear()
         result.Draw_Title('Prepare')
         icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-        self.assertEqual(icons, [bytes.fromhex('AA 23 00 F4 00 05 87 6B CC 33 C3 3C')])
+        self.assertEqual(icons, [bytes.fromhex('AA 23 00 F4 00 05 23 6B CC 33 C3 3C')])
         self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_complete_progress_has_three_digits_before_percent_sign(self):
         result = self.screen()
         result.Draw_Print_ProgressBar(100)
         text = [f for f in result.lcd.MYSERIAL1.frames if f[1] == 0x11]
-        self.assertEqual(text[0][11:-4], b'100')
-        self.assertEqual(int.from_bytes(text[0][7:9], 'big'), 109)
-        self.assertEqual(text[1][11:-4], b'%')
-        self.assertEqual(int.from_bytes(text[1][7:9], 'big'), 133)
+        self.assertEqual(text[0][11:-4], b'100%')
+        self.assertEqual(int.from_bytes(text[0][7:9], 'big'), 120)
 
     def test_print_time_formats_completed_minutes_and_long_prints(self):
         result = self.screen()

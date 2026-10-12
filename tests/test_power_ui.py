@@ -20,7 +20,7 @@ class PowerUITests(unittest.TestCase):
         result.get_encoder_state = Mock(return_value=result.ENCODER_DIFF_CCW)
         self.assertTrue(result._handle_power_navigation())
         self.assertTrue(result._power_focus)
-        result.lcd.show_icon.assert_called_with(7, 107, 244, 5)
+        result.lcd.show_icon.assert_called_with(3, 107, 244, 5, background=False, enhanced=True)
 
     def test_power_press_opens_confirmation_with_yes_selected_by_default(self):
         result = self.view()

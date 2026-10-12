@@ -16,7 +16,7 @@ USABLE_SIZE = BLOCK_SIZE - 1
 DIRECTORY_SIZE = 4096
 SOURCE_DIRECTORY = Path(__file__).resolve().parent / 'assets/icons'
 METADATA_ADDRESS = 0x0200
-METADATA_SIZE = 384
+METADATA_SIZE = 512
 MAGIC = b'PETICO01'
 MAX_BLOCKS = 16 - ICON_LIBRARY_ID
 _ATTEMPTS = set()
@@ -40,7 +40,7 @@ def pack_records(records):
             block = min(fits, key=lambda i: (USABLE_SIZE - used[i] - len(payload), i))
         else:
             if len(blocks) >= MAX_BLOCKS:
-                raise ValueError('Icons exceed reserved Picture Flash slots 7..15')
+                raise ValueError('Icons exceed reserved Picture Flash slots 3..15')
             block = len(blocks)
             blocks.append(bytearray(BLOCK_SIZE))
             used.append(0)
