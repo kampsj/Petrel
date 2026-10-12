@@ -147,14 +147,20 @@ class T5UIC1Display:
                     break
             else:
                 raise T5UIC1TimeoutError("DWIN handshake timed out")
-            # Preserve the existing Ender 3 V2 portrait orientation and startup
-            # traffic.  Do not wait for the optional 0x34 acknowledgement here.
-            self.set_orientation(1, wait_ack=False)
-            self._startup_sync_icons()
-            # Start the animation only after the managed icon upload finishes.
+            # The panel CFG already selects portrait orientation. Preserve
+            # its power-on picture instead of reapplying direction via 0x34.
+            from boot_artwork import sync
+            sync(self)
+            # Present the complete boot frame before packing/checking icons.
+            # Existing panel icons can animate throughout an unchanged sync.
             if startup_progress is not None:
                 self.show_jpeg(0)
                 startup_progress(self, 40)
+                self.update()
+            self._startup_sync_icons()
+            if startup_progress is not None:
+                # A changed library stops animation before Flash programming;
+                # the next stage restarts it using the newly committed icons.
                 startup_progress(self, 70)
             self.update()
         except BaseException:
@@ -162,8 +168,6 @@ class T5UIC1Display:
             raise
 
     def _startup_sync_icons(self):
-        from boot_artwork import sync
-        sync(self)
         from icon_library import sync_library
         sync_library(self)
 

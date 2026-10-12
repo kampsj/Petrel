@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - fix/immediate-boot-splash
       - refactor/t5uic1-complete-driver
       - feature/global-power-button
       - feature/mmu-menu

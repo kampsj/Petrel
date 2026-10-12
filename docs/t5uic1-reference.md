@@ -158,8 +158,8 @@ Decoded configuration:
 | Main UART baud rate | **115200** |
 
 This matches the runtime assumptions in Petrel: the serial port opens at
-115200 baud, CRC framing is not enabled, and startup applies runtime direction
-`1` (90°).
+115200 baud, CRC framing is not enabled, and startup preserves the CFG-defined
+90° orientation without sending runtime opcode `0x34`.
 
 ## Boot-time configuration vs runtime control
 

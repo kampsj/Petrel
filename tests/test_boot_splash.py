@@ -187,7 +187,8 @@ class BootSplashTests(unittest.TestCase):
             v._draw_boot_progress(value, lcd)
 
         with patch.object(uart.serial_module, 'Serial', return_value=port, create=True), \
-                patch.object(T5UIC1Display, '_startup_sync_icons', synchronized):
+                patch.object(T5UIC1Display, '_startup_sync_icons', synchronized), \
+                patch('boot_artwork.sync'):
             lcd = T5UIC1Display('/dev/fake', wake_delay=0, startup_progress=progress)
         self.addCleanup(lcd.close)
         self.assertEqual(stages, [40, 70])

@@ -12,7 +12,7 @@
 | `petrel-readme.png` | Petrel bird logo, wordmark and slogan header used by both main READMEs |
 | [emulator/](emulator/README.md) | Host-side stock icon and font inputs for screenshots |
 
-The boot JPEG is 480×272 for panel picture slot 0. It is shown directly without cache copies.
+The boot JPEG is 480×272 for panel picture slot 0. It is shown directly without cache copies. After boot artwork synchronization, the splash, progress bar and loading animation are displayed before icon-library preparation and checks. Unchanged icon synchronization does not stop the animation; actual icon uploads stop it temporarily and the next boot stage restarts it.
 
 Changed boot artwork is uploaded automatically to picture slot 0 on the first LCD connection. A verified fingerprint at Flash address `0x0120` prevents repeated writes; the JPEG must be baseline 480×272 and at most 32767 bytes.
 
