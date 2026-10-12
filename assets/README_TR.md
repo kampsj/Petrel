@@ -12,7 +12,7 @@
 | `petrel-readme.png` | İki ana README için Petrel kuş logosu, yazı ve slogan başlığı |
 | [emulator/](emulator/README_TR.md) | Ekran görüntüleri için bilgisayar tarafı stok ikon ve font girdileri |
 
-Açılış JPEG’i panelin 0 numaralı resim slotu için 480×272 boyutundadır. Önbellek kopyası olmadan doğrudan gösterilir.
+Açılış JPEG’i panelin 0 numaralı resim slotu için 480×272 boyutundadır. Önbellek kopyası olmadan doğrudan gösterilir. Açılış görselinin senkronizasyonundan sonra bootsplash, ilerleme çubuğu ve yükleniyor animasyonu ikon kütüphanesi hazırlığı ve kontrollerinden önce gösterilir. Değişiklik yoksa ikon senkronizasyonu animasyonu durdurmaz; gerçek ikon yüklemesinde geçici olarak durdurulur ve sonraki açılış aşamasında yeniden başlatılır.
 
 Değişen açılış görseli ilk LCD bağlantısında otomatik olarak resim slotu 0’a yüklenir. Flash adresi `0x0120` üzerindeki doğrulanmış parmak izi tekrar yazmayı önler; JPEG baseline 480×272 biçiminde ve en fazla 32767 bayt olmalıdır.
 

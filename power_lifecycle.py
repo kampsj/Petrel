@@ -10,12 +10,15 @@ class PowerMonitor:
         self.future = None
         self.next_poll = 0
         self.status = None
+        self.available = None
 
     def poll(self):
         if self.future is not None and self.future.done():
             future, self.future = self.future, None
             try:
                 devices = future.result().get('result', {}).get('devices', [])
+                self.available = any(str(item.get('device', '')).casefold() == self.device
+                                     for item in devices)
                 status = next((item.get('status') for item in devices
                                if str(item.get('device', '')).casefold() == self.device), None)
                 self.status = status if status in ('on', 'off') else None

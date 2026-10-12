@@ -71,6 +71,7 @@ class ManagedIconTests(unittest.TestCase):
             self.assertFalse(icons.sync_library(lcd))
             lcd.write_sram.assert_not_called()
             lcd.write_flash.assert_not_called()
+            lcd.configure_animation.assert_not_called()
         changed = bytearray(data)
         changed[32768] ^= 1
         with patch('icon_library.build_library', return_value=bytes(changed)):
@@ -104,21 +105,34 @@ class ManagedIconTests(unittest.TestCase):
         broken[20] ^= 1
         self.assertEqual(icons.parse_metadata(broken), [])
 
-    def test_startup_syncs_icons_before_boot_animation(self):
+    def test_startup_presents_splash_bar_and_animation_before_icon_sync(self):
         from test_uart import Port, Driver, serial_module
         port = Port([b'\xAA\x00OK' + Driver.TAIL])
         events = []
+        from test_boot_splash import BootSplashTests
+        view = BootSplashTests().view()
+        def progress(lcd, value):
+            events.append(('progress', value))
+            view._draw_boot_progress(value, lcd)
         def icon_sync(lcd):
             events.append('icons')
+            opcodes = [frame[1] for frame in port.frames]
+            self.assertIn(0x22, opcodes)
+            self.assertIn(0x05, opcodes)
+            self.assertIn(0x28, opcodes)
+            self.assertEqual(opcodes[-1], 0x3D)
+            animations = [frame for frame in port.frames if frame[1] == 0x28]
+            self.assertTrue(all(frame[6] & 0x80 for frame in animations))
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
                 patch('boot_artwork.sync', side_effect=lambda lcd: events.append('artwork')), \
                 patch('icon_library.sync_library', side_effect=icon_sync):
             lcd = Driver('/dev/fake', wake_delay=0,
-                         startup_progress=lambda lcd, value: events.append(('progress', value)))
+                         startup_progress=progress)
         lcd.close()
+        self.assertNotIn(0x34, [frame[1] for frame in port.frames])
         self.assertNotIn(0x25, [frame[1] for frame in port.frames])
         self.assertNotIn(0x26, [frame[1] for frame in port.frames])
-        self.assertEqual(events, ['artwork', 'icons', ('progress', 40), ('progress', 70)])
+        self.assertEqual(events, ['artwork', ('progress', 40), 'icons', ('progress', 70)])
 
     def test_checked_in_pack_matches_sources_and_all_payloads_are_preserved(self):
         root = Path(__file__).resolve().parents[1]

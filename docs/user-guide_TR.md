@@ -228,3 +228,5 @@ Moonraker güç aygıtı adını `./configure.sh` ile ayarlayın. Açmak için e
 Kapatmak için ilk menü öğesinden (MMU sayfalarında Back) saat yönünün tersine çevirerek sağ üst güç ikonuna odaklanın. **Turn off printer?** açmak için basın; **başlangıçta Yes seçilidir**. Yapılandırılmış aygıtı kapatmak için Yes onaylayın veya dönmek için No seçin.
 
 Pi çalışmaya devam ederken röle yazıcı ve ekranı birlikte besliyorsa, yeniden güç açıldığında ilk ana ekran sayfasına dönülür. Menüleri kullanmadan önce açılışın bitmesini bekleyin.
+
+Yapılandırılmış Moonraker güç cihazı açıldığında Petrel, LCD için 150 ms aralıklarla bloklamayan handshake denemelerini başlatır. Bu cihaz yoksa aynı hızlı bağlantı penceresini Klipper’ın hazır duruma geçmesi tetikler. 10 saniye yanıt alınamazsa handshake istekleri 5 saniye aralığa döner. Bağlantısı doğrulanan panel, sabit 750 ms uyanma beklemesi olmadan kullanılır.

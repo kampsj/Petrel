@@ -19,6 +19,7 @@ from ui_screws_tilt import ScrewsTiltMixin
 from ui_bed_mesh import BedMeshMixin
 from ui_file_preview import FilePreviewMixin
 from power_lifecycle import PowerMonitor
+from uart_startup import PanelProbe
 
 from encoder import Encoder
 from gpiozero import Button, Device
@@ -317,6 +318,9 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self._uart_online = False
         self._next_uart_retry = 0
         self._next_uart_probe = 0
+        self._panel_probe = None
+        self._uart_fast_until = 0
+        self._uart_start_signal = None
         self._uart_probe_failures = 0
         self._boot_active = True
         self._boot_files_started = (None, 0)
@@ -369,6 +373,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self._panel_backend_epoch = self.pd.subscription.snapshot()['epoch']
         self._configure_menus()
         self._offline = bool(self.pd.connection_error)
+        self._poll_panel_power()
         self._ensure_uart()
         # Enable producers only after all UI/backend resources are initialized.
         with self._input_lock:
@@ -389,13 +394,18 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self._mmu_canvas_page = None
         self._uart_online = False
         self._uart_epoch += 1
-        self._next_uart_retry = time.monotonic() + 5
+        now = time.monotonic()
+        self._next_uart_retry = now + (.15 if now < getattr(self, '_uart_fast_until', 0) else 5)
         self._next_uart_probe = 0
         self._uart_probe_failures = 0
         if self.lcd is not None:
             self.lcd.close()
         self.lcd = None
-        logging.warning('LCD UART unavailable; retrying in 5 seconds')
+        probe = getattr(self, '_panel_probe', None)
+        if probe is not None:
+            probe.close()
+            self._panel_probe = None
+        logging.warning('LCD UART unavailable; reconnect scheduled')
 
     def _reset_power_ui(self):
         """A relay cycle starts a new UI session; never replay old input/actions."""
@@ -444,7 +454,16 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         status = monitor.poll()
         snapshot = self.pd.subscription.snapshot()
         device = self.pd.power_device.casefold()
+        notified = snapshot.get('power_devices', {}).get(device)
+        if monitor.available is False:
+            notified = None
         serial = snapshot.get('power_off_serial', {}).get(device, 0)
+        if (notified in ('on', 'off') and
+                (notified != getattr(self, '_power_notification', None)
+                 or serial != self._relay_off_serial)):
+            status = notified
+            monitor.status = notified
+            self._power_notification = notified
         epoch = snapshot['epoch']
         event_cycle = serial != self._relay_off_serial
         transition = (status in ('on', 'off') and status != self._relay_status
@@ -453,6 +472,10 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         backend_cycle = (snapshot['state'] == 'ready' and epoch != self._panel_backend_epoch
                          and not getattr(self, '_boot_active', False))
         if event_cycle or transition or backend_cycle:
+            probe = getattr(self, '_panel_probe', None)
+            if probe is not None:
+                probe.close()
+                self._panel_probe = None
             self._reset_power_ui()
             if self.lcd is not None:
                 self.lcd.close()
@@ -467,6 +490,20 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self._relay_status = status
         if snapshot['state'] == 'ready':
             self._panel_backend_epoch = epoch
+        if hasattr(self, '_uart_start_signal'):
+            available = True if notified in ('on', 'off') else monitor.available
+            signal = (('power', serial) if available is True and status == 'on' else
+                      ('backend', epoch) if available is False and snapshot['state'] == 'ready' else None)
+            if signal != self._uart_start_signal:
+                self._uart_start_signal = signal
+                if signal is not None and not self._uart_online:
+                    self._uart_fast_until = time.monotonic() + 10
+                    self._next_uart_retry = 0
+                    if hasattr(self, '_loop'):
+                        self._loop.set_interval(.05)
+                    probe = getattr(self, '_panel_probe', None)
+                    if probe is not None:
+                        probe.accelerate()
 
     def _ensure_uart(self):
         if getattr(self, '_relay_status', None) == 'off':
@@ -477,6 +514,19 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             return False
         try:
             options = {}
+            if hasattr(self, '_panel_probe'):
+                if hasattr(self, '_loop'):
+                    self._loop.set_interval(.05)
+                if self._panel_probe is None:
+                    self._panel_probe = PanelProbe(self._settings[0])
+                    if time.monotonic() < self._uart_fast_until:
+                        self._panel_probe.accelerate()
+                port = self._panel_probe.poll()
+                if port is None:
+                    return False
+                self._panel_probe.close()
+                self._panel_probe = None
+                options['connected_serial'] = port
             if getattr(self, '_emulator', None) is not None:
                 options['packet_observer'] = self._emulator
             if getattr(self, '_boot_active', False):
@@ -533,6 +583,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                     and not getattr(self, '_boot_active', False)):
                 self._show_message('Moonraker unavailable')
             self._uart_online = True
+            if hasattr(self, '_loop'):
+                self._loop.set_interval(.5)
             self._uart_epoch += 1
             self._uart_probe_failures = 0
             self._next_uart_probe = time.monotonic() + 2.0
@@ -924,6 +976,9 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                     logging.exception('LCD resource cleanup failed')
         if self.lcd is not None:
             self.lcd.close()
+        probe = getattr(self, '_panel_probe', None)
+        if probe is not None:
+            probe.close()
 
     def _show_message(self, message):
         self.Clear_Main_Window()

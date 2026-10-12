@@ -52,7 +52,7 @@ class PacketTests(unittest.TestCase):
         self.assertEqual(result.serial.frames[-1], bytes.fromhex(
             'AA 27 21 00 00 00 00 00 0A 00 14 00 1E 00 28 CC 33 C3 3C'))
 
-    def test_startup_wakes_then_handshakes_and_sets_direction_without_jpg(self):
+    def test_startup_wakes_and_handshakes_without_overriding_cfg_direction(self):
         port = Port([b'\xAA\x00OK' + Driver.TAIL])
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
                 patch.object(Driver.__init__.__globals__['time'], 'sleep') as sleep, \
@@ -62,7 +62,6 @@ class PacketTests(unittest.TestCase):
         sync.assert_called_once_with(result)
         self.assertEqual(port.frames, [bytes.fromhex(frame) for frame in (
             'AA 00 CC 33 C3 3C',
-            'AA 34 5A A5 01 CC 33 C3 3C',
             'AA 3D CC 33 C3 3C')])
         result.close()
 

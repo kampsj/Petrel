@@ -115,7 +115,7 @@ class T5UIC1Display:
 
     def __init__(self, port, baudrate=115200, handshake_timeout=1.0,
                  handshake_attempts=3, wake_delay=0.750, startup_progress=None,
-                 packet_observer=None):
+                 packet_observer=None, connected_serial=None):
         if not isinstance(baudrate, int) or baudrate <= 0:
             raise ValueError("baudrate must be positive")
         if not math.isfinite(handshake_timeout) or handshake_timeout <= 0:
@@ -125,7 +125,10 @@ class T5UIC1Display:
         if not math.isfinite(wake_delay) or wake_delay < 0:
             raise ValueError("wake delay must be nonnegative")
 
-        self.serial = serial.Serial(port, baudrate, timeout=0.05, write_timeout=1)
+        self.serial = (connected_serial if connected_serial is not None else
+                       serial.Serial(port, baudrate, timeout=0.05, write_timeout=1))
+        self.serial.timeout = 0.05
+        self.serial.write_timeout = 1
         # Compatibility attribute while the rest of the application migrates.
         self.MYSERIAL1 = self.serial
         self._closed = False
@@ -141,20 +144,27 @@ class T5UIC1Display:
         try:
             if packet_observer is not None:
                 packet_observer.reset_panel()
-            time.sleep(wake_delay)
-            for _ in range(handshake_attempts):
-                if self.handshake(handshake_timeout):
-                    break
-            else:
-                raise T5UIC1TimeoutError("DWIN handshake timed out")
-            # Preserve the existing Ender 3 V2 portrait orientation and startup
-            # traffic.  Do not wait for the optional 0x34 acknowledgement here.
-            self.set_orientation(1, wait_ack=False)
-            self._startup_sync_icons()
-            # Start the animation only after the managed icon upload finishes.
+            if connected_serial is None:
+                time.sleep(wake_delay)
+                for _ in range(handshake_attempts):
+                    if self.handshake(handshake_timeout):
+                        break
+                else:
+                    raise T5UIC1TimeoutError("DWIN handshake timed out")
+            # The panel CFG already selects portrait orientation. Preserve
+            # its power-on picture instead of reapplying direction via 0x34.
+            from boot_artwork import sync
+            sync(self)
+            # Present the complete boot frame before packing/checking icons.
+            # Existing panel icons can animate throughout an unchanged sync.
             if startup_progress is not None:
                 self.show_jpeg(0)
                 startup_progress(self, 40)
+                self.update()
+            self._startup_sync_icons()
+            if startup_progress is not None:
+                # A changed library stops animation before Flash programming;
+                # the next stage restarts it using the newly committed icons.
                 startup_progress(self, 70)
             self.update()
         except BaseException:
@@ -162,8 +172,6 @@ class T5UIC1Display:
             raise
 
     def _startup_sync_icons(self):
-        from boot_artwork import sync
-        sync(self)
         from icon_library import sync_library
         sync_library(self)
 
