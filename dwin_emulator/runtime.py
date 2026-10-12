@@ -13,7 +13,7 @@ from uuid import uuid4
 
 def default_socket():
     # SSH login sessions and systemd services often have different XDG values.
-    return Path.home() / '.cache' / 'KlipperDWIN-emulator' / 'control.sock'
+    return Path.home() / '.cache' / 'Petrel-emulator' / 'control.sock'
 
 
 class Emulator:
@@ -66,13 +66,13 @@ class Emulator:
             except Exception as error:
                 description = f'0x{frame[1]:02x}: {error}'
                 if description not in self.model.errors:
-                    logging.warning('DWIN emulator: %s', description)
+                    logging.warning('Petrel emulator: %s', description)
                 self.model.errors.add(description)
 
     def snapshot(self):
         with self.lock:
             if self.model is None:
-                raise RuntimeError('DWIN emulator is disabled')
+                raise RuntimeError('Petrel emulator is disabled')
             if not self.online or not self.baseline:
                 raise RuntimeError('LCD is disconnected or a fresh panel baseline is required')
             return self.model.snapshot()
@@ -86,7 +86,7 @@ class ScreenshotServer:
     def __init__(self, emulator, socket_path=None, output=None):
         self.emulator = emulator
         self.path = Path(socket_path or default_socket()).expanduser()
-        self.output = Path(output or Path.home() / 'KlipperDWIN-screenshots').expanduser()
+        self.output = Path(output or Path.home() / 'Petrel-screenshots').expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         directory = self.path.parent.stat()
         if directory.st_uid != os.getuid() or stat.S_IMODE(directory.st_mode) & 0o077:
@@ -115,7 +115,7 @@ class ScreenshotServer:
             self.sock.close()
             raise
         self.closed = False
-        self.thread = Thread(target=self._serve, name='DWIN-screenshot', daemon=True)
+        self.thread = Thread(target=self._serve, name='Petrel-screenshot', daemon=True)
         self.thread.start()
 
     def _save(self, file_format):

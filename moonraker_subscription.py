@@ -381,8 +381,8 @@ class MoonrakerSubscription:
         raise MoonrakerError('Moonraker RPC timed out: ' + method)
 
     def _bootstrap(self):
-        identify = {'client_name': 'DWIN_T5UIC1_LCD', 'version': 'refactor',
-                    'type': 'display', 'url': 'https://github.com/sezgynus/DWIN_T5UIC1_LCD'}
+        identify = {'client_name': 'Petrel', 'version': '3.0.0',
+                    'type': 'display', 'url': 'https://github.com/sezgynus/Petrel'}
         if self._api_key:
             identify['api_key'] = self._api_key
         self._rpc('server.connection.identify', identify)

@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="KlipperDWIN"
-SERVICE_NAME="KlipperDWIN"
-REPO_URL="https://github.com/sezgynus/KlipperDWIN.git"
+APP_NAME="Petrel"
+SERVICE_NAME="Petrel"
+REPO_URL="https://github.com/sezgynus/Petrel.git"
 INSTALL_USER="${SUDO_USER:-$USER}"
 INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXPECTED_REPO_DIR="$INSTALL_HOME/KlipperDWIN"
-VENV_DIR="$INSTALL_HOME/klipperdwin-env"
-APP_CONFIG_DIR="$INSTALL_HOME/.config/KlipperDWIN"
-ENV_FILE="$APP_CONFIG_DIR/KlipperDWIN.env"
+EXPECTED_REPO_DIR="$INSTALL_HOME/Petrel"
+VENV_DIR="$INSTALL_HOME/petrel-env"
+APP_CONFIG_DIR="$INSTALL_HOME/.config/Petrel"
+ENV_FILE="$APP_CONFIG_DIR/Petrel.env"
 
 if [[ "$REPO_DIR" != "$EXPECTED_REPO_DIR" ]]; then
-    echo "KlipperDWIN must be cloned to $EXPECTED_REPO_DIR" >&2
+    echo "Petrel must be cloned to $EXPECTED_REPO_DIR" >&2
     exit 1
 fi
 
@@ -23,7 +23,7 @@ if [[ ! -d "$REPO_DIR/.git" ]]; then
 fi
 
 if [[ -n "$(git -C "$REPO_DIR" status --porcelain)" ]]; then
-    echo "The KlipperDWIN repository must be clean before installation." >&2
+    echo "The Petrel repository must be clean before installation." >&2
     exit 1
 fi
 
@@ -44,7 +44,7 @@ if [[ "$(basename "$MOONRAKER_CONFIG_DIR")" == "config" ]]; then
 else
     MOONRAKER_DATA_DIR="$INSTALL_HOME/printer_data"
 fi
-UPDATE_CONF="$MOONRAKER_CONFIG_DIR/KlipperDWIN.conf"
+UPDATE_CONF="$MOONRAKER_CONFIG_DIR/Petrel.conf"
 ASVC_FILE="$MOONRAKER_DATA_DIR/moonraker.asvc"
 
 echo "Installing system dependencies..."
@@ -58,10 +58,10 @@ fi
 sudo -u "$INSTALL_USER" "$VENV_DIR/bin/python" -m pip install --upgrade pip
 sudo -u "$INSTALL_USER" "$VENV_DIR/bin/python" -m pip install -r "$REPO_DIR/requirements.txt"
 
-echo "Preparing KlipperDWIN configuration..."
+echo "Preparing Petrel configuration..."
 sudo -u "$INSTALL_USER" mkdir -p "$APP_CONFIG_DIR"
 if [[ ! -f "$ENV_FILE" ]]; then
-    echo "No existing KlipperDWIN configuration found."
+    echo "No existing Petrel configuration found."
     echo "Starting first-time configuration..."
     sudo -u "$INSTALL_USER" "$REPO_DIR/configure.sh"
 else
@@ -84,27 +84,27 @@ fi
 
 echo "Installing systemd service..."
 sed \
-    -e "s|@KLIPPERDWIN_USER@|$INSTALL_USER|g" \
-    -e "s|@KLIPPERDWIN_HOME@|$INSTALL_HOME|g" \
+    -e "s|@PETREL_USER@|$INSTALL_USER|g" \
+    -e "s|@PETREL_HOME@|$INSTALL_HOME|g" \
     -e "s|@SUPPLEMENTARY_GROUPS@|$SUPPLEMENTARY_LINE|g" \
-    "$REPO_DIR/simpleLCD.service" | sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null
+    "$REPO_DIR/Petrel.service" | sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null
 sudo systemctl daemon-reload
 
 echo "Registering Moonraker Update Manager..."
 cat > "$UPDATE_CONF" <<EOF
-[update_manager KlipperDWIN]
+[update_manager Petrel]
 type: git_repo
 channel: dev
-path: ~/KlipperDWIN
+path: ~/Petrel
 origin: $REPO_URL
 primary_branch: master
-virtualenv: ~/klipperdwin-env
+virtualenv: ~/petrel-env
 requirements: requirements.txt
-managed_services: KlipperDWIN
+managed_services: Petrel
 EOF
 chown "$INSTALL_USER:$INSTALL_USER" "$UPDATE_CONF"
 
-INCLUDE_LINE="[include KlipperDWIN.conf]"
+INCLUDE_LINE="[include Petrel.conf]"
 if ! grep -Fqx "$INCLUDE_LINE" "$MOONRAKER_CONF"; then
     printf '\n%s\n' "$INCLUDE_LINE" >> "$MOONRAKER_CONF"
 fi
@@ -122,11 +122,11 @@ if systemctl list-unit-files moonraker.service >/dev/null 2>&1; then
     sudo systemctl restart moonraker.service
 else
     echo "Moonraker service name was not detected as moonraker.service."
-    echo "Restart your Moonraker instance so it loads KlipperDWIN.conf and moonraker.asvc."
+    echo "Restart your Moonraker instance so it loads Petrel.conf and moonraker.asvc."
 fi
 
 echo
-echo "KlipperDWIN installation complete."
+echo "Petrel installation complete."
 echo "Edit: $ENV_FILE"
 echo "Service: $SERVICE_NAME.service"
-echo "Moonraker updater: [update_manager KlipperDWIN]"
+echo "Moonraker updater: [update_manager Petrel]"

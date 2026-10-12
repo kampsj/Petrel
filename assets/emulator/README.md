@@ -12,11 +12,11 @@ These files are inputs for screenshot rendering on the Pi. Enabling the emulator
 | `0T5UIC1.HZK` | Default original T5UIC1 font |
 | `0_DWIN_ASC.HZK` | Alternative DGUS ASCII font; select explicitly only when appropriate |
 
-For a custom panel font, set `DWIN_EMULATOR_FONT` to the matching file in the service environment and restart. See [optional emulator settings](../../docs/ui-emulator.md#optional-settings). Matching resources matters when comparing a screenshot with a physical display.
+For a custom panel font, set `PETREL_EMULATOR_FONT` to the matching file in the service environment and restart. See [optional emulator settings](../../docs/ui-emulator.md#optional-settings). Matching resources matters when comparing a screenshot with a physical display.
 
 ## Provenance
 
 - `0T5UIC1.HZK`: [Quint097/DWIN_Font_Tools](https://github.com/Quint097/DWIN_Font_Tools/blob/main/HZK%20Font%20Files/DWIN%20Font%20(Original)/0T5UIC1.HZK).
 - `0_DWIN_ASC.HZK`: [ihrapsa/T5UIC1-DWIN-toolset](https://github.com/ihrapsa/T5UIC1-DWIN-toolset/blob/main/Dwin_Toolbox-en%2F0_DWIN_ASC.HZK).
 
-Upstream resources retain their original provenance; KlipperDWIN does not claim authorship of these binary files.
+Upstream resources retain their original provenance; Petrel does not claim authorship of these binary files.

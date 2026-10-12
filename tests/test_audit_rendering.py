@@ -73,7 +73,7 @@ class AuditRenderingTests(unittest.TestCase):
         result = self.screen()
         result.pd.refresh_system_info = lambda: False
         result.pd.system_info = {
-            'klipperdwin': 'v' * 100, 'moonraker': 'm' * 100,
+            'petrel': 'v' * 100, 'moonraker': 'm' * 100,
             'mainsail': 'Ölçüm' * 20, 'network': 'Online', 'ip': '192.168.100.200',
             'host_cpu': 99.9, 'host_temp': 52.75,
             'mcus': ({'name': 'toolhead-µcu-with-long-name', 'load': 12.34,
@@ -157,7 +157,7 @@ class AuditRenderingTests(unittest.TestCase):
 
 
 def test_user_visible_labels_do_not_depend_on_frame_copy_assets():
-    source = Path(__file__).resolve().parents[1].joinpath('dwinlcd.py').read_text()
+    source = Path(__file__).resolve().parents[1].joinpath('petrel_ui.py').read_text()
     legacy_text_fragments = (
         'Frame_TitleCopy(',
         'copy_cache(1, 226, 179, 256, 189',  # Back

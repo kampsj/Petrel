@@ -30,7 +30,7 @@ class JogRecoveryTests(unittest.TestCase):
             future.result(2)
         scripts = self.scripts(opener)
         self.assertEqual(len(scripts), 3)
-        self.assertTrue(scripts[0].startswith('SAVE_GCODE_STATE NAME=_DWIN_JOG_'))
+        self.assertTrue(scripts[0].startswith('SAVE_GCODE_STATE NAME=_PETREL_JOG_'))
         self.assertEqual(scripts[2], 'RESTORE_GCODE_STATE NAME=' + scripts[0].split('NAME=')[1] + ' MOVE=0')
         self.assertEqual(sum('G1 X1 F300' in script for script in scripts), 1)
         self.assertFalse(result.jog_recovery_required)

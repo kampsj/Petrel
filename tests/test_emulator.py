@@ -301,4 +301,4 @@ class EmulatorSocketPathTests(unittest.TestCase):
             with patch('dwin_emulator.runtime.Path.home', return_value=Path.home()):
                 service = default_socket()
         self.assertEqual(ssh, service)
-        self.assertEqual(ssh, Path.home() / '.cache/KlipperDWIN-emulator/control.sock')
+        self.assertEqual(ssh, Path.home() / '.cache/Petrel-emulator/control.sock')

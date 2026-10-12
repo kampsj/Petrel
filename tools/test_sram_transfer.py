@@ -95,10 +95,10 @@ def main():
     args = parser.parse_args()
     if not args.serial_port or args.timeout <= 0:
         parser.error('Configure UART and use a positive timeout')
-    state = subprocess.run(['systemctl', 'is-active', 'KlipperDWIN.service'],
+    state = subprocess.run(['systemctl', 'is-active', 'Petrel.service'],
                            capture_output=True, text=True).stdout.strip()
     if state not in ('inactive', 'failed', 'unknown'):
-        parser.error('Stop KlipperDWIN.service first')
+        parser.error('Stop Petrel.service first')
     lcd = ManualDisplay(args.serial_port)
     trace = TracePort(lcd.serial)
     lcd.serial = trace

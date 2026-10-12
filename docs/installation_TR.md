@@ -24,12 +24,12 @@ GPIO numaraları **BCM numaralarıdır**. Encoder pinleri yapılandırma sıras�
 
 ## Kurulum
 
-Servisin sahibi olacak kullanıcıyla çalıştırın. Repo temiz olmalı ve `~/KlipperDWIN` konumunda bulunmalıdır:
+Servisin sahibi olacak kullanıcıyla çalıştırın. Repo temiz olmalı ve `~/Petrel` konumunda bulunmalıdır:
 
 ```bash
 cd ~
-git clone https://github.com/sezgynus/KlipperDWIN.git
-cd ~/KlipperDWIN
+git clone https://github.com/sezgynus/Petrel.git
+cd ~/Petrel
 ./install.sh
 ```
 
@@ -44,7 +44,7 @@ Varsayılanı kabul etmek için Enter'a basın veya kendi değerinizi girin:
 | Moonraker güç aygıtı | `Printer` |
 | Güç açma basılı tutma süresi | `2000` ms (2 saniye) |
 
-Kurulum `~/klipperdwin-env` ortamını hazırlar, bağımlılıkları yükler ve `KlipperDWIN.service` servisini etkinleştirir. Ayarlar `~/.config/KlipperDWIN/KlipperDWIN.env` içinde tutulur; `moonraker.conf` yanına `KlipperDWIN.conf` include dosyası eklenir ve servis Moonraker güncellemelerine kaydedilir. Kurulum tekrarlandığında mevcut ayarlar korunur.
+Kurulum `~/petrel-env` ortamını hazırlar, bağımlılıkları yükler ve `Petrel.service` servisini etkinleştirir. Ayarlar `~/.config/Petrel/Petrel.env` içinde tutulur; `moonraker.conf` yanına `Petrel.conf` include dosyası eklenir ve servis Moonraker güncellemelerine kaydedilir. Kurulum tekrarlandığında mevcut ayarlar korunur.
 
 Moonraker yapılandırmanız farklı konumdaysa:
 
@@ -55,7 +55,7 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ## Ayarları değiştirme
 
 ```bash
-cd ~/KlipperDWIN
+cd ~/Petrel
 ./configure.sh
 ```
 
@@ -67,29 +67,31 @@ Yapılandırıcının sormadığı ayarlar için harici ortam dosyasını düzen
 |---|---|
 | `MOONRAKER_URL` | Moonraker adresi / `http://127.0.0.1:7125` |
 | `MOONRAKER_API_KEY` | Gerekiyorsa kimlik doğrulama anahtarı / boş |
-| `DWIN_REQUEST_TIMEOUT` | Saniye cinsinden istek zaman aşımı / `5` |
-| `DWIN_SERIAL_PORT` | Yapılandırılmış UART / kurulum `/dev/ttyS0` önerir |
-| `DWIN_ENCODER_PINS` | BCM numaralarıyla encoder A/B / `21 19` |
-| `DWIN_BUTTON_PIN` | BCM numarasıyla encoder düğmesi / `20` |
-| `DWIN_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/KlipperDWIN/presets.json` |
-| `DWIN_POWER_DEVICE` | Moonraker güç aygıtınızın adı / `Printer` |
-| `DWIN_POWER_ON_HOLD_MS` | Milisaniye cinsinden güç açma süresi / `2000`; `0` anında açar |
-| `DWIN_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık |
+| `PETREL_REQUEST_TIMEOUT` | Saniye cinsinden istek zaman aşımı / `5` |
+| `PETREL_SERIAL_PORT` | Yapılandırılmış UART / kurulum `/dev/ttyS0` önerir |
+| `PETREL_ENCODER_PINS` | BCM numaralarıyla encoder A/B / `21 19` |
+| `PETREL_BUTTON_PIN` | BCM numarasıyla encoder düğmesi / `20` |
+| `PETREL_SETTINGS_FILE` | Yerel preset yedeği / `~/.config/Petrel/presets.json` |
+| `PETREL_POWER_DEVICE` | Moonraker güç aygıtınızın adı / `Printer` |
+| `PETREL_POWER_ON_HOLD_MS` | Milisaniye cinsinden güç açma süresi / `2000`; `0` anında açar |
+| `PETREL_EMULATOR` | Ekran görüntüsü alma / `0` kapalı, `1` açık |
 
-Düzenleme sonrası `sudo systemctl restart KlipperDWIN.service` ile yeniden başlatın. Özel anahtarları ve makine ayarlarını takip edilen repo dosyalarının dışında tutun. Görüntü almaya özel seçenekler için [emülatör rehberine](ui-emulator_TR.md) bakın.
+Düzenleme sonrası `sudo systemctl restart Petrel.service` ile yeniden başlatın. Özel anahtarları ve makine ayarlarını takip edilen repo dosyalarının dışında tutun. Görüntü almaya özel seçenekler için [emülatör rehberine](ui-emulator_TR.md) bakın.
 
 ## Güncelleme
 
-Moonraker yapılandırmasını yeniden okuduktan sonra **Mainsail → Machine → Update Manager → KlipperDWIN** yolunu kullanın. Listeyi yenileyip güncelleyin; bağımlılıklar ve servis yeniden başlatması otomatik yapılır. Update Manager `master` dalını takip eder.
+Mevcut kurulum, sonraki Moonraker güncellemesinden sonra otomatik taşınır: eski updater bu sürümü indirir ve ilk servis açılışı ayrı bir geçiş işi başlatır. Ayarlar korunur, repo `~/Petrel` konumuna taşınır, `~/petrel-env` hazırlanır, `Petrel.service` kurulur ve Moonraker yeni updater kaydıyla yeniden başlatılır. Python bağımlılıkları için birkaç dakika bekleyin. Otomatik geçiş Pi üzerinde şifresiz sudo erişimi gerektirir; bu yoksa bir kez `sudo python3 ~/KlipperDWIN/petrel_migration.py --user "$USER"` çalıştırın. Mevcut bir Petrel kurulumunun üzerine yazılmaz. Servis geçişi başarısız olursa önceki kurulum geri yüklenir; ayrıntılar `journalctl -u Petrel-migration.service` içindedir.
 
-Yazıcı boşta iken LCD'deki **Info** bölümünden de KlipperDWIN güncellemelerini kontrol edip yükleyebilirsiniz. [Info ve güncellemeler](user-guide_TR.md#info-ve-güncellemeler) bölümüne bakın. Takip edilen repo dosyalarındaki yerel değişiklikler güncellemeyi engelleyebilir; kurtarma bunları silmeden önce inceleyin veya yedekleyin.
+Moonraker yapılandırmasını yeniden okuduktan sonra **Mainsail → Machine → Update Manager → Petrel** yolunu kullanın. Listeyi yenileyip güncelleyin; bağımlılıklar ve servis yeniden başlatması otomatik yapılır. Update Manager `master` dalını takip eder.
+
+Yazıcı boşta iken LCD'deki **Info** bölümünden de Petrel güncellemelerini kontrol edip yükleyebilirsiniz. [Info ve güncellemeler](user-guide_TR.md#info-ve-güncellemeler) bölümüne bakın. Takip edilen repo dosyalarındaki yerel değişiklikler güncellemeyi engelleyebilir; kurtarma bunları silmeden önce inceleyin veya yedekleyin.
 
 ## Sorun giderme
 
 ```bash
-sudo systemctl status KlipperDWIN.service --no-pager
-journalctl -u KlipperDWIN.service --since "10 minutes ago" --no-pager
-sudo systemctl restart KlipperDWIN.service
+sudo systemctl status Petrel.service --no-pager
+journalctl -u Petrel.service --since "10 minutes ago" --no-pager
+sudo systemctl restart Petrel.service
 ```
 
 | Belirti | Kontrol edilecekler |

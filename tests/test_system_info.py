@@ -39,12 +39,12 @@ class SystemInfoTests(unittest.TestCase):
         self.assertEqual(system_info.wifi_signal_text(None), 'N/A')
 
     def test_updater_version_prefers_full_git_description(self):
-        versions = {'KlipperDWIN': {
+        versions = {'Petrel': {
             'version': 'v0.4.0-2',
             'full_version_string': 'v0.4.0-2-g1234abcd',
         }}
         self.assertEqual(
-            system_info.updater_version(versions, 'KlipperDWIN', full=True),
+            system_info.updater_version(versions, 'Petrel', full=True),
             'v0.4.0-2-g1234abcd')
 
     def test_updater_version_handles_missing_component(self):

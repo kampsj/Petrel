@@ -1,4 +1,4 @@
-"""User-requested, asynchronous updates scoped to the KlipperDWIN updater."""
+"""User-requested, asynchronous updates scoped to the Petrel updater."""
 from moonraker_client import MoonrakerClient
 
 
@@ -53,7 +53,7 @@ class SoftwareUpdate:
                 if recover:
                     versions = client.get('/machine/update/status')['result']['version_info']
                     item = versions.get(name, {})
-                    if not name or name.casefold() != 'klipperdwin' or not item or (item.get('is_valid', False) and not item.get('is_dirty', False)):
+                    if not name or name.casefold() != 'petrel' or not item or (item.get('is_valid', False) and not item.get('is_dirty', False)):
                         raise ValueError('Check updates again')
                     client.request('POST', '/machine/update/recover', {'name': name, 'hard': False})
                     refreshed = client.request('POST', '/machine/update/refresh', {'name': name})
@@ -70,7 +70,7 @@ class SoftwareUpdate:
                     client.request('POST', '/machine/update/client', {'name': name})
                     return name, None
                 versions = client.get('/machine/update/status')['result']['version_info']
-                name_found = next((key for key in versions if key.casefold() == 'klipperdwin'), None)
+                name_found = next((key for key in versions if key.casefold() == 'petrel'), None)
                 if name_found is None:
                     raise ValueError('Updater not configured')
                 refreshed = client.request('POST', '/machine/update/refresh', {'name': name_found})
@@ -105,7 +105,7 @@ class SoftwareUpdate:
             if available == 'dirty':
                 self.phase, self.message = 'dirty', 'Repo invalid or modified'
             elif available is None:
-                self.phase, self.message = 'restarting', 'Restarting KlipperDWIN'
+                self.phase, self.message = 'restarting', 'Restarting Petrel'
             elif available:
                 self.phase, self.message = 'available', 'Update available'
             else:

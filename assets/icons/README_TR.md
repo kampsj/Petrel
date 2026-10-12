@@ -4,7 +4,7 @@
 
 Baseline JPEG dosyalarını buraya ekleyin veya mevcut olanları değiştirin. Dosya adı ikon ID'siyle başlamalı: `092.jpg`, `092-about.jpg` veya `092_about.jpeg`. ID aralığı 0–255'tir; her ID yalnız bir dosyada kullanılabilir. Mevcut ID'lerin anlamı korunur. ID ve içerik aynı kalırken dosya adını değiştirmek yükleme başlatmaz. Yeni görsel kütüphaneye girer; ID'nin arayüzde nerede gösterileceğini UI kodu seçer.
 
-JPEG'ler boyutlandırılmadan ve yeniden sıkıştırılmadan korunur. Progressive JPEG, yinelenen ID ve 32767 bayttan büyük görseller reddedilir. Kütüphane Picture Flash 7–15 slotlarına sığmalıdır; stok 0–2 resimleri korunur.
+JPEG'ler boyutlandırılmadan ve yeniden sıkıştırılmadan korunur. Progressive JPEG, yinelenen ID ve 32767 bayttan büyük görseller reddedilir. Kütüphane Picture Flash 7–15 slotlarına sığmalıdır; stok 1–2 resimleri korunur; resim 0 ayrı yönetilen Petrel açılış görselidir.
 
 Uygulama güncellemesinden sonraki ilk LCD bağlantısında bu klasörden kütüphane oluşturulur. Paketleyici büyük ikonları önce yerleştirir ve küçük ikonlarla kalan boşlukları doldurur. ID sırası fiziksel yerleşimden bağımsızdır. Her bloğun son baytı ayrılır ve UART yazımına dahil edilmez. Hiçbir JPEG blok sınırını geçmez.
 
@@ -23,9 +23,9 @@ Emülatör de bu JPEG kaynaklarını kullanır. `assets/emulator/7.ICO` referans
 Panel kaynaklarını yeniden yüklediğinizde, kayıt eski kurulumu tarif ediyor olabileceğinden zorla yeniden yükleyin:
 
 ```bash
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_icons.py
-sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
+sudo systemctl start Petrel.service
 ```
 
 Yazma onayları ve kayıt geri okuması doğrulanır; Picture Flash'ın kendisi geri okunmaz. Yeni ikon yerleşimini fiziksel ekranda kontrol edin.

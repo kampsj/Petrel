@@ -15,7 +15,7 @@ class JogTests(unittest.TestCase):
                 result = printer(data)
                 result.moveAbsolute('X', 110, 5000)
                 script = result.sendGCode.call_args.args[0].splitlines()
-                self.assertTrue(script[0].startswith('SAVE_GCODE_STATE NAME=_DWIN_JOG_'))
+                self.assertTrue(script[0].startswith('SAVE_GCODE_STATE NAME=_PETREL_JOG_'))
                 self.assertEqual(script[-1], 'RESTORE_GCODE_STATE NAME=' + script[0].split('NAME=')[1] + ' MOVE=0')
                 self.assertEqual(result.sendGCode.call_args.kwargs['cleanup'], script[-1])
                 self.assertIn('G1 X10 F5000', script)

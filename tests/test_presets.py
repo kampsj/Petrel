@@ -77,7 +77,7 @@ class PresetTests(unittest.TestCase):
 
     def test_default_path_honors_xdg_directory(self):
         with patch.dict('os.environ', {'XDG_CONFIG_HOME': self.directory.name}):
-            self.assertEqual(PresetStore().path, Path(self.directory.name) / 'dwin-lcd/presets.json')
+            self.assertEqual(PresetStore().path, Path(self.directory.name) / 'Petrel/presets.json')
 
 
 class MainsailPresetTests(unittest.TestCase):

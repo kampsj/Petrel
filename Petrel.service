@@ -1,5 +1,5 @@
 [Unit]
-Description=KlipperDWIN display interface
+Description=Petrel display interface
 Wants=network-online.target
 After=network-online.target
 StartLimitIntervalSec=60
@@ -7,12 +7,12 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-User=@KLIPPERDWIN_USER@
+User=@PETREL_USER@
 @SUPPLEMENTARY_GROUPS@
-WorkingDirectory=@KLIPPERDWIN_HOME@/KlipperDWIN
+WorkingDirectory=@PETREL_HOME@/Petrel
 Environment=PYTHONUNBUFFERED=1
-EnvironmentFile=@KLIPPERDWIN_HOME@/.config/KlipperDWIN/KlipperDWIN.env
-ExecStart=@KLIPPERDWIN_HOME@/klipperdwin-env/bin/python @KLIPPERDWIN_HOME@/KlipperDWIN/run.py
+EnvironmentFile=@PETREL_HOME@/.config/Petrel/Petrel.env
+ExecStart=@PETREL_HOME@/petrel-env/bin/python @PETREL_HOME@/Petrel/run.py
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30

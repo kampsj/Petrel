@@ -35,7 +35,7 @@ def main():
     try:
         print(capture(args.socket, args.format)['path'])
     except (OSError, RuntimeError, ValueError) as error:
-        parser.exit(1, f'{error}. Enable DWIN_EMULATOR and run as the service user.\n')
+        parser.exit(1, f'{error}. Enable PETREL_EMULATOR and run as the service user.\n')
 
 
 if __name__ == '__main__':

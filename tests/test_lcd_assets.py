@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class AssetContracts(unittest.TestCase):
     def test_ui_icon_ids_match_verified_stock_manifest(self):
         manifest = json.loads((ROOT / 'docs/lcd-assets.json').read_text())
-        tree = ast.parse((ROOT / 'dwinlcd.py').read_text())
-        cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'DWIN_LCD')
+        tree = ast.parse((ROOT / 'petrel_ui.py').read_text())
+        cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'PetrelDisplay')
         constants = {n.targets[0].id: n.value.value for n in cls.body
                      if isinstance(n, ast.Assign) and len(n.targets) == 1
                      and isinstance(n.targets[0], ast.Name) and isinstance(n.value, ast.Constant)}
@@ -43,7 +43,7 @@ class AssetContracts(unittest.TestCase):
             assets.icon(9, 90)
 
     def test_legacy_virtual_area_cache_is_not_used_by_ui(self):
-        source = (ROOT / 'dwinlcd.py').read_text()
+        source = (ROOT / 'petrel_ui.py').read_text()
         tree = ast.parse(source)
         forbidden = {'cache_jpeg', 'show_jpeg', 'copy_cache', 'copy_cache1'}
         calls = []

@@ -149,7 +149,7 @@ class ImmutableStateTests(unittest.TestCase):
 
 class InputRoutingTests(unittest.TestCase):
     def display(self):
-        display = ui.DWIN_LCD.__new__(ui.DWIN_LCD)
+        display = ui.PetrelDisplay.__new__(ui.PetrelDisplay)
         display._closed = False
         display._input_lock = Lock()
         display._producer_value = 0
@@ -351,7 +351,7 @@ class DisplayIntegrationTests(unittest.TestCase):
                 'virtual_sdcard': {'is_active': False, 'progress': 0},
             },
         }
-        original = ui.DWIN_LCD.Draw_Prepare_Menu
+        original = ui.PetrelDisplay.Draw_Prepare_Menu
         def prepare(display):
             original(display)
             prepared.set()
@@ -366,10 +366,10 @@ class DisplayIntegrationTests(unittest.TestCase):
                 patch.object(ui, 'Button', return_value=button), \
                 patch.object(ui, 'T5UIC1Display', FakeLCD), \
                 patch.object(ui, 'PowerMonitor'), \
-                patch.object(ui.DWIN_LCD, 'HMI_ShowBoot'), \
-                patch.object(ui.DWIN_LCD, 'Draw_Prepare_Menu', prepare):
+                patch.object(ui.PetrelDisplay, 'HMI_ShowBoot'), \
+                patch.object(ui.PetrelDisplay, 'Draw_Prepare_Menu', prepare):
             subscription.return_value.snapshot.return_value = snapshot
-            display = ui.DWIN_LCD('fake-port', (21, 19), 13, '')
+            display = ui.PetrelDisplay('fake-port', (21, 19), 13, '')
             try:
                 self.assertIs(button.when_released, release_callback)
                 encoder.callback(-1)  # Main menu -> Prepare, preserving old direction.

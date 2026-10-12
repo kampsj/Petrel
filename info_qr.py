@@ -1,7 +1,7 @@
 """Project QR uses native rendering and bounded display-area translation.
 """
 
-PROJECT_URL = 'https://github.com/sezgynus/KlipperDWIN'
+PROJECT_URL = 'https://github.com/sezgynus/Petrel'
 def draw_project_qr(lcd, y, top=92, bottom=360):
     """Render QR safely, then translate inside the menu with native area move."""
     # Native QR must be fully on-screen. Its reserved 168px box stays inside

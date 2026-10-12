@@ -9,10 +9,10 @@ import run
 
 class ConfigTests(unittest.TestCase):
     def test_environment_defaults(self):
-        values = dict(MOONRAKER_URL='http://printer:7125', DWIN_SERIAL_PORT='/dev/test',
-                      DWIN_ENCODER_PINS='26 19', DWIN_BUTTON_PIN='13',
-                      DWIN_REQUEST_TIMEOUT='2.5', DWIN_SETTINGS_FILE='/tmp/presets.json',
-                      DWIN_POWER_DEVICE='Printer', DWIN_POWER_ON_HOLD_MS='1500')
+        values = dict(MOONRAKER_URL='http://printer:7125', PETREL_SERIAL_PORT='/dev/test',
+                      PETREL_ENCODER_PINS='26 19', PETREL_BUTTON_PIN='13',
+                      PETREL_REQUEST_TIMEOUT='2.5', PETREL_SETTINGS_FILE='/tmp/presets.json',
+                      PETREL_POWER_DEVICE='Printer', PETREL_POWER_ON_HOLD_MS='1500')
         with patch.dict(os.environ, values, clear=True):
             args = run.parse_args([])
         self.assertEqual(args.encoder_pins, (26, 19))
@@ -24,16 +24,16 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(args.power_on_hold_ms, 1500)
 
     def test_cli_overrides_environment(self):
-        with patch.dict(os.environ, {'DWIN_ENCODER_PINS': '26 19', 'DWIN_REQUEST_TIMEOUT': '2'}, clear=True):
+        with patch.dict(os.environ, {'PETREL_ENCODER_PINS': '26 19', 'PETREL_REQUEST_TIMEOUT': '2'}, clear=True):
             args = run.parse_args(['--encoder-pins', '21', '19', '--request-timeout', '3'])
         self.assertEqual(args.encoder_pins, (21, 19))
         self.assertEqual(args.request_timeout, 3)
 
     def test_invalid_configuration_exits_before_hardware_import(self):
-        for values in (dict(DWIN_ENCODER_PINS='21'), dict(DWIN_ENCODER_PINS='13 19'),
-                       dict(DWIN_ENCODER_PINS='28 19'), dict(DWIN_REQUEST_TIMEOUT='nan'),
-                       dict(DWIN_REQUEST_TIMEOUT='0'), dict(DWIN_BUTTON_PIN='invalid'),
-                       dict(DWIN_POWER_ON_HOLD_MS='-1'), dict(DWIN_POWER_ON_HOLD_MS='invalid')):
+        for values in (dict(PETREL_ENCODER_PINS='21'), dict(PETREL_ENCODER_PINS='13 19'),
+                       dict(PETREL_ENCODER_PINS='28 19'), dict(PETREL_REQUEST_TIMEOUT='nan'),
+                       dict(PETREL_REQUEST_TIMEOUT='0'), dict(PETREL_BUTTON_PIN='invalid'),
+                       dict(PETREL_POWER_ON_HOLD_MS='-1'), dict(PETREL_POWER_ON_HOLD_MS='invalid')):
             with self.subTest(values=values), patch.dict(os.environ, values, clear=True), contextlib.redirect_stderr(io.StringIO()):
                 with self.assertRaises(SystemExit) as error:
                     run.parse_args([])
@@ -44,7 +44,7 @@ class EmulatorConfigTests(unittest.TestCase):
     def test_emulator_defaults_off_and_cli_overrides_environment(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertFalse(run.parse_args([]).emulator)
-        with patch.dict(os.environ, {'DWIN_EMULATOR': '1'}, clear=True):
+        with patch.dict(os.environ, {'PETREL_EMULATOR': '1'}, clear=True):
             self.assertTrue(run.parse_args([]).emulator)
             self.assertFalse(run.parse_args(['--no-emulator']).emulator)
         args = run.parse_args(['--emulator', '--emulator-font', '/tmp/font.hzk'])

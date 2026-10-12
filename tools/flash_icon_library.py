@@ -77,10 +77,10 @@ def main():
         parser.error('--post-ack-delay must be finite and within 0..10 seconds')
     if args.allow_cross_block and (not args.file or not args.sha256):
         parser.error('--allow-cross-block requires --file and --sha256')
-    state = subprocess.run(['systemctl', 'is-active', 'KlipperDWIN.service'],
+    state = subprocess.run(['systemctl', 'is-active', 'Petrel.service'],
                            capture_output=True, text=True).stdout.strip()
     if state not in ('inactive', 'failed', 'unknown'):
-        parser.error('Stop KlipperDWIN.service before uploading')
+        parser.error('Stop Petrel.service before uploading')
     root = Path(__file__).resolve().parent.parent
     path = args.file or (root / 'assets/emulator' / ICON_LIBRARY_FILENAME)
     if args.file:

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/klipperdwin-readme.png" width="600" alt="KlipperDWIN — Printer Display">
+  <img src="assets/petrel-readme.png" width="600" alt="Petrel — Open-source display interface">
 </p>
 
 **Control your Klipper printer from a DWIN display and rotary encoder.**
@@ -9,7 +9,7 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
-  <a href="https://github.com/sezgynus/KlipperDWIN/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
+  <a href="https://github.com/sezgynus/Petrel/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
   <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
@@ -33,7 +33,7 @@ Browse prints, preview a model, adjust the printer, level the bed and manage a H
 | Inspect filament | Gate material/color, spool assignment and Spoolman remaining percentage when available |
 | Adjust the display | Brightness, idle dimming time and dimmed brightness, retained across power cycles |
 | Control lighting and power | PWM case light, encoder hold to power on and a power-off confirmation |
-| Check the system | Network/Wi-Fi, host and MCU status, software versions, project QR code and KlipperDWIN updates |
+| Check the system | Network/Wi-Fi, host and MCU status, software versions, project QR code and Petrel updates |
 | Create screenshots | Optional emulator capture for documentation and bug reports |
 
 Optional controls appear according to the printer's configuration. The on-screen menu labels are in English in both guides. These documents describe the current `master` version.
@@ -53,12 +53,14 @@ Follow the [installation and configuration guide](docs/installation.md) for wiri
 
 ```bash
 cd ~
-git clone https://github.com/sezgynus/KlipperDWIN.git
-cd ~/KlipperDWIN
+git clone https://github.com/sezgynus/Petrel.git
+cd ~/Petrel
 ./install.sh
 ```
 
-The installer sets up dependencies, the service and Moonraker Update Manager. To change connection, encoder or power settings later, run `./configure.sh` from `~/KlipperDWIN`.
+Existing installations switch to Petrel through the next Moonraker update, preserving settings. See the [update and migration guide](docs/installation.md#update).
+
+The installer sets up dependencies, the service and Moonraker Update Manager. To change connection, encoder or power settings later, run `./configure.sh` from `~/Petrel`.
 
 ## Getting started
 

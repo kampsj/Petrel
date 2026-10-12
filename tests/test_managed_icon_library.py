@@ -111,13 +111,14 @@ class ManagedIconTests(unittest.TestCase):
         def icon_sync(lcd):
             events.append('icons')
         with patch.object(serial_module, 'Serial', return_value=port, create=True), \
+                patch('boot_artwork.sync', side_effect=lambda lcd: events.append('artwork')), \
                 patch('icon_library.sync_library', side_effect=icon_sync):
             lcd = Driver('/dev/fake', wake_delay=0,
                          startup_progress=lambda lcd, value: events.append(('progress', value)))
         lcd.close()
         self.assertNotIn(0x25, [frame[1] for frame in port.frames])
         self.assertNotIn(0x26, [frame[1] for frame in port.frames])
-        self.assertEqual(events, ['icons', ('progress', 40), ('progress', 70)])
+        self.assertEqual(events, ['artwork', 'icons', ('progress', 40), ('progress', 70)])
 
     def test_checked_in_pack_matches_sources_and_all_payloads_are_preserved(self):
         root = Path(__file__).resolve().parents[1]

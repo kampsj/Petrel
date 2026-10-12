@@ -4,7 +4,7 @@
 
 Optional technical reference for panel firmware and resource work. For installation and everyday controls, start with the [user guides](README.md#user-guides).
 
-KlipperDWIN targets the DWIN **T5UIC1** command-driven display used by the
+Petrel targets the DWIN **T5UIC1** command-driven display used by the
 Ender 3 V2 family. This document covers the complete LCD-side configuration
 surface used by this project: kernel firmware, `T5UIC1.CFG` hardware
 configuration, SD-card assets, memory regions and runtime UART commands.
@@ -49,7 +49,7 @@ families:
 
 JPEG page files must match the physical screen resolution, use baseline JPEG,
 and use a supported sampling mode. The T5UIC1 guide also limits a single JPEG
-image to 32 KiB. KlipperDWIN's audited asset layout and icon/cache assumptions
+image to 32 KiB. Petrel's audited asset layout and icon/cache assumptions
 are documented separately in [lcd-assets.md](lcd-assets.md).
 
 ## T5UIC1.CFG hardware configuration
@@ -78,7 +78,7 @@ offsets `0x00..0x0A`; unused bytes should be written as `0x00`.
 | `4..2` | Reserved | Write `0` |
 | `1..0` | Default display direction | `00` = 0°, `01` = 90°, `10` = 180°, `11` = 270° |
 
-The stock KlipperDWIN transport currently assumes **CRC disabled**. The driver
+The stock Petrel transport currently assumes **CRC disabled**. The driver
 parses the panel's inbound `0xFF` CRC-error report, but enabling CFG bit 5
 would also require validating/implementing the CRC-enabled TX/RX frame format
 before that mode can be supported safely.
@@ -98,7 +98,7 @@ The T5UIC1 guide defines LCD profile IDs including:
 | `0x06` | 320×480 `DMT48320C035_04WN` IPS variant |
 
 Later selection IDs are listed in the translated v2.3 guide, but their model
-text is ambiguous in that translation. KlipperDWIN does not depend on those
+text is ambiguous in that translation. Petrel does not depend on those
 profiles.
 
 The byte at `0x05` is used only when offset `0x0A` contains exactly
@@ -119,7 +119,7 @@ divisor = 7,833,600 / requested_baud
 actual_baud = 7,833,600 / divisor
 ```
 
-The valid divisor range is `1..1023`. The standard KlipperDWIN configuration
+The valid divisor range is `1..1023`. The standard Petrel configuration
 uses:
 
 ```text
@@ -131,9 +131,9 @@ This is the **main UART** setting used for the host-to-display protocol. It is
 not the same as opcode `0x38`, which configures the T5UIC1 extended/auxiliary
 serial interface at runtime.
 
-## KlipperDWIN reference panel configuration
+## Petrel reference panel configuration
 
-The panel used to develop and physically validate KlipperDWIN currently runs:
+The panel used to develop and physically validate Petrel currently runs:
 
 ```text
 Kernel: T5UIC1_V20_4页面_191022.BIN
@@ -157,7 +157,7 @@ Decoded configuration:
 | Main UART divisor | `0x0044` |
 | Main UART baud rate | **115200** |
 
-This matches the runtime assumptions in KlipperDWIN: the serial port opens at
+This matches the runtime assumptions in Petrel: the serial port opens at
 115200 baud, CRC framing is not enabled, and startup applies runtime direction
 `1` (90°).
 
@@ -224,7 +224,7 @@ using payload bytes as frame delimiters.
 | `0x3A` | Extended UART receive upload | `poll_aux_data()` |
 | `0xFF` | CRC error report (inbound) | `poll_crc_error()` |
 
-KlipperDWIN also retains the proven `0x3D` display-update command through
+Petrel also retains the proven `0x3D` display-update command through
 `update()` for compatibility with the Creality/mriscoc T5UIC1 implementation.
 
 ## Memory and persistence
@@ -245,7 +245,7 @@ for the panel acknowledgement instead of assuming completion.
 The guide documents Data Flash as 16 KiB (`0x0000..0x3FFF`). On the reference
 T5UIC1 panel, physical testing showed `0x0000..0x3FFE` is readable and writable,
 while a one-byte read at `0x3FFF` receives no response and a write transaction
-that spans `0x3FFF` receives no acknowledgement. KlipperDWIN therefore keeps
+that spans `0x3FFF` receives no acknowledgement. Petrel therefore keeps
 the documented 16 KiB physical size but exposes only `0x0000..0x3FFE` through
 the Data Flash API.
 
@@ -313,16 +313,17 @@ changed setting, never on encoder movement or idle dim/wake.
 | Data Flash range | Owner | Size |
 | --- | --- | --- |
 | `0x0100..0x010F` | Display settings | 16 bytes |
+| `0x0120..0x0147` | Boot-artwork fingerprint | 40 bytes |
 | `0x0200..0x037F` | Icon-library block metadata | 384 bytes |
 | `0x0400..0x047F` | Buzzer settings | 128 bytes |
 
-The Display record contains the magic/version `KDWDSPL2`, brightness (0–100),
+The Display record contains the magic/version `PETDSPL2`, brightness (0–100),
 idle minutes (0 = Off, otherwise 1–60), dim brightness (0–100), one reserved byte and a CRC32. Legacy `KDWDSPL1` records retain brightness/timeout and default dim brightness to 10%, without an automatic flash write. The 16-byte allocation is unchanged. These
 addresses refer to Data Flash, separate from JPEG Picture Flash slots.
 
 ### Buzzer preferences
 
-The separate `KDWBZR01` record stores the selected PWM section name, volume,
+The separate `PETBZR01` record stores the selected PWM section name, volume,
 click tone and encoder tone with CRC32 and exact readback verification. It is
 written only when confirming a changed setting. The sound worker uses a bounded
 single pending event, monotonic timing and epoch-guarded WebSocket notifications.

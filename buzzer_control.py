@@ -31,14 +31,14 @@ class Settings:
 
     def encode(self):
         self.validate()
-        body = struct.pack('>8sBBB', b'KDWBZR01', self.volume, self.click, self.encoder)
+        body = struct.pack('>8sBBB', b'PETBZR01', self.volume, self.click, self.encoder)
         body += self.output.encode('ascii') + b'\0'
         body = body.ljust(RECORD_SIZE - 4, b'\0')
         return body + struct.pack('>I', zlib.crc32(body))
 
     @classmethod
     def decode(cls, raw):
-        if len(raw) != RECORD_SIZE or raw[:8] != b'KDWBZR01':
+        if len(raw) != RECORD_SIZE or raw[:8] not in (b'PETBZR01', b'KDWBZR01'):
             return None
         if zlib.crc32(raw[:-4]) != int.from_bytes(raw[-4:], 'big'):
             return None
@@ -76,7 +76,7 @@ class Player:
         self.busy = False
         self.stopped = False
         self.generation = 0
-        self.thread = Thread(target=self._run, name='dwin-buzzer', daemon=True)
+        self.thread = Thread(target=self._run, name='petrel-buzzer', daemon=True)
         self.thread.start()
 
     def play(self, settings, kind):

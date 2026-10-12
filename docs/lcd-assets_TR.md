@@ -4,9 +4,9 @@
 
 ## Desteklenen ekran
 
-KlipperDWIN, uyumlu 4,3 inç Ender 3 V2 panelinde kullanılan **272×480 dikey DWIN T5UIC1** düzenini hedefler. DWIN, DACAI ve TJC firmware/kaynak paketleri birbirinin yerine kullanılamaz.
+Petrel, uyumlu 4,3 inç Ender 3 V2 panelinde kullanılan **272×480 dikey DWIN T5UIC1** düzenini hedefler. DWIN, DACAI ve TJC firmware/kaynak paketleri birbirinin yerine kullanılamaz.
 
-Fiziksel panelde eşleşen stok ikon kütüphanesi **7 (`7.ICO`)**, fontlar ve İngilizce bitmap kaynakları bulunmalıdır. Ekran yönü **1**'dir. Özel KlipperDWIN görselleri uygulamayla ayrıca sağlanır; [görsel rehberine](../assets/README_TR.md) bakın.
+Fiziksel panelde eşleşen stok ikon kütüphanesi **7 (`7.ICO`)**, fontlar ve İngilizce bitmap kaynakları bulunmalıdır. Ekran yönü **1**'dir. Özel Petrel görselleri uygulamayla ayrıca sağlanır; [görsel rehberine](../assets/README_TR.md) bakın.
 
 ## Panel kurmadan veya değiştirmeden önce
 
@@ -25,8 +25,8 @@ Uygulama artık kütüphane 7'yi [`assets/icons`](../assets/icons/README_TR.md) 
 Deneysel library-7 branch'inde, panel firmware'ini değiştirmeden depodaki `7.ICO` dosyasını UART üzerinden yükleyin:
 
 ```sh
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/flash_icon_library.py && sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
 Araç yapılandırılmış seri portu kullanır ve 7–14 slotlarına yazar. Yazma başarısız olursa servis kapalı kalır. Yazma onayları kontrol edilir; Flash geri okuması yapılmaz. Yüklemeden sonra ikonları fiziksel panelde kontrol edin.

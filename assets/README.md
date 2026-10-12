@@ -6,13 +6,15 @@
 
 | File | Purpose |
 |---|---|
-| `klipperdwin_bootsplash.jpg` | Selected boot artwork, intended for panel picture slot 0 |
+| `petrel_bootsplash.jpg` | Petrel bird logo and slogan boot artwork for panel picture slot 0 |
 | `spool-empty.png` | Shared 42×52 empty spool sprite: wooden flanges and a thin gray hub |
 | `display-settings.png` | Original transparent Display icon sprite |
-| `klipperdwin-readme.png` | README logo and wordmark header adapted from the boot artwork |
+| `petrel-readme.png` | Petrel bird logo, wordmark and slogan header used by both main READMEs |
 | [emulator/](emulator/README.md) | Host-side stock icon and font inputs for screenshots |
 
 The boot JPEG is 480×272 for panel picture slot 0. It is shown directly without cache copies.
+
+Changed boot artwork is uploaded automatically to picture slot 0 on the first LCD connection. A verified fingerprint at Flash address `0x0120` prevents repeated writes; the JPEG must be baseline 480×272 and at most 32767 bytes.
 
 ## Managed icon library
 
@@ -27,9 +29,9 @@ User-interface screenshots belong in `docs/assets/screens/`, not this artwork fo
 After reinstalling panel resources, force a reload of the managed icons over SSH as the service user:
 
 ```bash
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_icons.py
-sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
+sudo systemctl start Petrel.service
 ```
 
 The tool reads the configured UART, rebuilds library 7 and reloads its blocks. Display settings are preserved.

@@ -171,7 +171,7 @@ class PrinterData:
     files = None
     MACHINE_SIZE = 'unknown'
     SHORT_BUILD_VERSION = "unknown"
-    CORP_WEBSITE_E = "github.com/sezgynus/KlipperDWIN"
+    CORP_WEBSITE_E = "github.com/sezgynus/Petrel"
 
     def __init__(self, API_Key='', URL='http://127.0.0.1:7125', timeout=5.0, settings_path=None,
                  power_device='Printer'):
@@ -188,7 +188,7 @@ class PrinterData:
         self.spoolman_client = MoonrakerClient(URL, API_Key, timeout, queue_size=16)
         self._jog_lock = Lock()
         self._jog_restore = None
-        self._jog_state_name = '_DWIN_JOG_' + uuid.uuid4().hex
+        self._jog_state_name = '_PETREL_JOG_' + uuid.uuid4().hex
         self.state = PrinterState()
         self.capabilities = PrinterCapabilities()
         self._apply_capabilities(self.capabilities)
@@ -223,7 +223,7 @@ class PrinterData:
         self.presets_from_mainsail = False
         self.preset_revision = 0
         self.system_info = {
-            'klipperdwin': 'Unavailable',
+            'petrel': 'Unavailable',
             'moonraker': 'Unavailable',
             'mainsail': 'Unavailable',
             'network': 'Unknown',
@@ -359,7 +359,7 @@ class PrinterData:
             versions = response.get('result', {}).get('version_info', {})
             if not isinstance(versions, Mapping):
                 raise ValueError('Invalid update-manager status')
-            current['klipperdwin'] = updater_version(versions, 'KlipperDWIN', full=True)
+            current['petrel'] = updater_version(versions, 'Petrel', full=True)
             current['moonraker'] = updater_version(versions, 'moonraker', full=True)
             current['mainsail'] = updater_version(versions, 'mainsail')
         except ReadPending:

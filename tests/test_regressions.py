@@ -22,7 +22,7 @@ def load_application():
     dependencies['gpiozero.pins.lgpio'].LGPIOFactory = Mock()
     with patch.dict(sys.modules, dependencies):
         backend = importlib.import_module('printerInterface')
-        ui = importlib.import_module('dwinlcd')
+        ui = importlib.import_module('petrel_ui')
     return backend, ui
 
 
@@ -44,7 +44,7 @@ class RegressionContracts(unittest.TestCase):
         return printer
 
     def display(self, mode):
-        display = ui.DWIN_LCD.__new__(ui.DWIN_LCD)
+        display = ui.PetrelDisplay.__new__(ui.PetrelDisplay)
         # Use discovered devices and real menu indices, with isolated I/O.
         from test_capabilities import snapshot, printer
         display.pd = printer(snapshot())

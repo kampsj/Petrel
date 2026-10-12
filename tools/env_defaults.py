@@ -8,10 +8,10 @@ import sys
 def ensure_emulator_default(path):
     path = Path(path)
     text = path.read_text()
-    if re.search(r'^\s*DWIN_EMULATOR=', text, re.MULTILINE):
+    if re.search(r'^\s*PETREL_EMULATOR=', text, re.MULTILINE):
         return False
     with path.open('a') as stream:
-        stream.write(('' if not text or text.endswith('\n') else '\n') + 'DWIN_EMULATOR=0\n')
+        stream.write(('' if not text or text.endswith('\n') else '\n') + 'PETREL_EMULATOR=0\n')
     return True
 
 

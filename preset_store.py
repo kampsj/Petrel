@@ -8,7 +8,7 @@ import tempfile
 
 def default_path():
     root = os.environ.get('XDG_CONFIG_HOME') or str(Path.home() / '.config')
-    return Path(root) / 'dwin-lcd' / 'presets.json'
+    return Path(root) / 'Petrel' / 'presets.json'
 
 
 class PresetStore:

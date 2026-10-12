@@ -3,7 +3,7 @@
 The class in this module is deliberately limited to panel/protocol concerns.
 UI layout and rendering policy live above it.  The public methods map directly
 onto the T5UIC1 v2.3 instruction set, with a small set of compatibility
-renderers used by KlipperDWIN to preserve its current visual output.
+renderers used by Petrel to preserve its current visual output.
 """
 
 import logging
@@ -162,6 +162,8 @@ class T5UIC1Display:
             raise
 
     def _startup_sync_icons(self):
+        from boot_artwork import sync
+        sync(self)
         from icon_library import sync_library
         sync_library(self)
 

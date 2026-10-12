@@ -61,7 +61,7 @@ def printer(data):
 
 
 def display(data):
-    result = ui.DWIN_LCD.__new__(ui.DWIN_LCD)
+    result = ui.PetrelDisplay.__new__(ui.PetrelDisplay)
     result.pd = printer(data)
     result.lcd = Mock()
     for name in result.SELECTIONS:
@@ -533,7 +533,7 @@ class CapabilityMenuTests(unittest.TestCase):
         result = display(snapshot())
         result.pd.refresh_system_info = Mock(return_value=False)
         result.pd.system_info = {
-            'klipperdwin': 'v0.4.0-2-g1234abcd', 'moonraker': 'v0.9.3-1-gabcd',
+            'petrel': 'v0.4.0-2-g1234abcd', 'moonraker': 'v0.9.3-1-gabcd',
             'mainsail': 'v2.14.0', 'network': 'Online', 'ip': '192.168.1.50',
             'host_cpu': 37.2, 'host_ram': 35.4, 'host_temp': 48.5,
             'wifi_ssid': 'My WiFi', 'wifi_rssi': -65,

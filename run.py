@@ -9,22 +9,22 @@ import signal
 def build_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--moonraker-url', default=os.environ.get('MOONRAKER_URL', 'http://127.0.0.1:7125'))
-    parser.add_argument('--request-timeout', type=float, default=os.environ.get('DWIN_REQUEST_TIMEOUT', '5'))
-    parser.add_argument('--serial-port', default=os.environ.get('DWIN_SERIAL_PORT', '/dev/ttyAMA0'))
-    parser.add_argument('--encoder-pins', type=int, nargs=2, default=os.environ.get('DWIN_ENCODER_PINS', '21 19').split())
-    parser.add_argument('--button-pin', type=int, default=os.environ.get('DWIN_BUTTON_PIN', '13'))
-    parser.add_argument('--settings-file', default=os.environ.get('DWIN_SETTINGS_FILE'), help='Local preset JSON path')
-    parser.add_argument('--power-device', default=os.environ.get('DWIN_POWER_DEVICE', 'Printer'),
+    parser.add_argument('--request-timeout', type=float, default=os.environ.get('PETREL_REQUEST_TIMEOUT', '5'))
+    parser.add_argument('--serial-port', default=os.environ.get('PETREL_SERIAL_PORT', '/dev/ttyAMA0'))
+    parser.add_argument('--encoder-pins', type=int, nargs=2, default=os.environ.get('PETREL_ENCODER_PINS', '21 19').split())
+    parser.add_argument('--button-pin', type=int, default=os.environ.get('PETREL_BUTTON_PIN', '13'))
+    parser.add_argument('--settings-file', default=os.environ.get('PETREL_SETTINGS_FILE'), help='Local preset JSON path')
+    parser.add_argument('--power-device', default=os.environ.get('PETREL_POWER_DEVICE', 'Printer'),
                         help='Moonraker power device controlled by the encoder button')
     parser.add_argument('--power-on-hold-ms', type=int,
-                        default=os.environ.get('DWIN_POWER_ON_HOLD_MS', '2000'),
+                        default=os.environ.get('PETREL_POWER_ON_HOLD_MS', '2000'),
                         help='Encoder-button hold time for power-on in milliseconds; 0 powers on immediately')
     parser.add_argument('--emulator', action=argparse.BooleanOptionalAction,
-                        default=os.environ.get('DWIN_EMULATOR', '0').lower() in ('1', 'true', 'yes', 'on'),
+                        default=os.environ.get('PETREL_EMULATOR', '0').lower() in ('1', 'true', 'yes', 'on'),
                         help='Enable the developer framebuffer mirror (default: off)')
-    parser.add_argument('--emulator-socket', default=os.environ.get('DWIN_EMULATOR_SOCKET'))
-    parser.add_argument('--emulator-font', default=os.environ.get('DWIN_EMULATOR_FONT'))
-    parser.add_argument('--screenshot-directory', default=os.environ.get('DWIN_SCREENSHOT_DIRECTORY'))
+    parser.add_argument('--emulator-socket', default=os.environ.get('PETREL_EMULATOR_SOCKET'))
+    parser.add_argument('--emulator-font', default=os.environ.get('PETREL_EMULATOR_FONT'))
+    parser.add_argument('--screenshot-directory', default=os.environ.get('PETREL_SCREENSHOT_DIRECTORY'))
     return parser
 
 
@@ -50,10 +50,13 @@ def parse_args(argv=None):
 
 
 def main():
-    args = parse_args()
     logging.basicConfig(level=logging.INFO)
-    from dwinlcd import DWIN_LCD
-    display = DWIN_LCD(args.serial_port, tuple(args.encoder_pins), args.button_pin,
+    from petrel_migration import bootstrap
+    if bootstrap():
+        return  # The independent migration job starts Petrel with its new paths.
+    args = parse_args()
+    from petrel_ui import PetrelDisplay
+    display = PetrelDisplay(args.serial_port, tuple(args.encoder_pins), args.button_pin,
              os.environ.get('MOONRAKER_API_KEY', ''),
              moonraker_url=args.moonraker_url, request_timeout=args.request_timeout,
              settings_path=args.settings_file, power_device=args.power_device,

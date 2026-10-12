@@ -64,7 +64,7 @@ class select_t:
         return self.changed()
 
 
-class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -558,7 +558,7 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             return
         self._boot_progress = value
         self._boot_message = message
-        # Keep both overlays below the slot-0 artwork's PRINTER DISPLAY label.
+        # Keep progress overlays between the Petrel brand and bottom slogan.
         lcd.draw_rectangle(1, 0x0000, 16, 290, 255, 309)
         lcd.draw_rectangle(0, 0xFFFF, 16, 290, 255, 309)
         if value:
@@ -2729,7 +2729,7 @@ class DWIN_LCD(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, B
             ))
         items.extend([
             ('section', 'Software', None),
-            ('row', 'KlipperDWIN', info.get('klipperdwin', 'Unavailable')),
+            ('row', 'Petrel', info.get('petrel', 'Unavailable')),
             ('row', 'Klipper', self.pd.SHORT_BUILD_VERSION),
             ('row', 'Moonraker', info.get('moonraker', 'Unavailable')),
             ('row', 'Mainsail', info.get('mainsail', 'Unavailable')),

@@ -163,7 +163,7 @@ Scan the project QR to open the repository. To update from the LCD:
 
 1. Leave the printer idle and scroll to **Check for updates**. Press the encoder.
 2. Wait for **Checking…**. Green **Up to date** means no update is needed; an available update changes the button to **Update**.
-3. Select **Update** to install KlipperDWIN. Moonraker restarts the service afterwards. This does not update every printer component.
+3. Select **Update** to install Petrel. Moonraker restarts the service afterwards. This does not update every printer component.
 
 If the checkout is dirty or invalid, **Soft recovery** offers a second **Confirm recovery** step. Recovery discards local repository changes; back up anything you need first. Rotating cancels confirmation. Recovery does not automatically install an update. If a result is unconfirmed, check Mainsail Update Manager before retrying.
 

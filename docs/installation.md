@@ -24,12 +24,12 @@ In `sudo raspi-config`, enable serial hardware and disable the serial login cons
 
 ## Install
 
-Run as the user who will own the service. The checkout must be clean and located at `~/KlipperDWIN`:
+Run as the user who will own the service. The checkout must be clean and located at `~/Petrel`:
 
 ```bash
 cd ~
-git clone https://github.com/sezgynus/KlipperDWIN.git
-cd ~/KlipperDWIN
+git clone https://github.com/sezgynus/Petrel.git
+cd ~/Petrel
 ./install.sh
 ```
 
@@ -44,7 +44,7 @@ Press Enter to accept a prompt's default, or enter your own value:
 | Moonraker power device | `Printer` |
 | Power-on hold | `2000` ms (2 seconds) |
 
-Installation prepares `~/klipperdwin-env`, installs dependencies and enables `KlipperDWIN.service`. It keeps settings in `~/.config/KlipperDWIN/KlipperDWIN.env`, adds a `KlipperDWIN.conf` include beside `moonraker.conf` and registers the service for Moonraker updates. Existing settings are preserved when installation is repeated.
+Installation prepares `~/petrel-env`, installs dependencies and enables `Petrel.service`. It keeps settings in `~/.config/Petrel/Petrel.env`, adds a `Petrel.conf` include beside `moonraker.conf` and registers the service for Moonraker updates. Existing settings are preserved when installation is repeated.
 
 For a nonstandard Moonraker configuration location:
 
@@ -55,7 +55,7 @@ MOONRAKER_CONFIG=/path/to/moonraker.conf ./install.sh
 ## Change settings
 
 ```bash
-cd ~/KlipperDWIN
+cd ~/Petrel
 ./configure.sh
 ```
 
@@ -67,29 +67,31 @@ For settings not prompted by the configurator, edit the external environment fil
 |---|---|
 | `MOONRAKER_URL` | Moonraker address / `http://127.0.0.1:7125` |
 | `MOONRAKER_API_KEY` | Authentication key if required / empty |
-| `DWIN_REQUEST_TIMEOUT` | Request timeout in seconds / `5` |
-| `DWIN_SERIAL_PORT` | Configured UART / installer suggests `/dev/ttyS0` |
-| `DWIN_ENCODER_PINS` | Encoder A/B in BCM numbering / `21 19` |
-| `DWIN_BUTTON_PIN` | Encoder button in BCM numbering / `20` |
-| `DWIN_SETTINGS_FILE` | Local preset fallback / `~/.config/KlipperDWIN/presets.json` |
-| `DWIN_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
-| `DWIN_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |
-| `DWIN_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled |
+| `PETREL_REQUEST_TIMEOUT` | Request timeout in seconds / `5` |
+| `PETREL_SERIAL_PORT` | Configured UART / installer suggests `/dev/ttyS0` |
+| `PETREL_ENCODER_PINS` | Encoder A/B in BCM numbering / `21 19` |
+| `PETREL_BUTTON_PIN` | Encoder button in BCM numbering / `20` |
+| `PETREL_SETTINGS_FILE` | Local preset fallback / `~/.config/Petrel/presets.json` |
+| `PETREL_POWER_DEVICE` | Name of your Moonraker power device / `Printer` |
+| `PETREL_POWER_ON_HOLD_MS` | Power-on hold in milliseconds / `2000`; `0` means immediate |
+| `PETREL_EMULATOR` | Screenshot capture / `0` disabled, `1` enabled |
 
-Restart after editing: `sudo systemctl restart KlipperDWIN.service`. Keep private keys and machine settings outside tracked repository files. See the [emulator guide](ui-emulator.md) for screenshot-specific options.
+Restart after editing: `sudo systemctl restart Petrel.service`. Keep private keys and machine settings outside tracked repository files. See the [emulator guide](ui-emulator.md) for screenshot-specific options.
 
 ## Update
 
-After Moonraker reloads its configuration, use **Mainsail → Machine → Update Manager → KlipperDWIN**. Refresh and update; dependencies and the service restart are handled automatically. Update Manager follows `master`.
+Existing installations migrate automatically after their next Moonraker update: the old updater downloads this version, and the first service start schedules a separate migration job. It preserves settings, moves the checkout to `~/Petrel`, prepares `~/petrel-env`, installs `Petrel.service` and reloads Moonraker with the new updater. Allow a few minutes for Python dependencies. Automatic migration requires the same passwordless sudo access normally available on the Pi; otherwise run `sudo python3 ~/KlipperDWIN/petrel_migration.py --user "$USER"` once. Migration refuses to overwrite an existing Petrel installation. A failed service switch restores the previous installation; details are in `journalctl -u Petrel-migration.service`.
 
-You can also check and install KlipperDWIN updates from **Info** on the LCD while the printer is idle. See [Info and updates](user-guide.md#info-and-updates). Local edits to tracked repository files may block updating; inspect or back them up before recovery discards them.
+After Moonraker reloads its configuration, use **Mainsail → Machine → Update Manager → Petrel**. Refresh and update; dependencies and the service restart are handled automatically. Update Manager follows `master`.
+
+You can also check and install Petrel updates from **Info** on the LCD while the printer is idle. See [Info and updates](user-guide.md#info-and-updates). Local edits to tracked repository files may block updating; inspect or back them up before recovery discards them.
 
 ## Troubleshooting
 
 ```bash
-sudo systemctl status KlipperDWIN.service --no-pager
-journalctl -u KlipperDWIN.service --since "10 minutes ago" --no-pager
-sudo systemctl restart KlipperDWIN.service
+sudo systemctl status Petrel.service --no-pager
+journalctl -u Petrel.service --since "10 minutes ago" --no-pager
+sudo systemctl restart Petrel.service
 ```
 
 | Symptom | What to check |

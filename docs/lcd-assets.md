@@ -4,9 +4,9 @@
 
 ## Supported display
 
-KlipperDWIN targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable.
+Petrel targets the **272×480 portrait DWIN T5UIC1** layout used by the compatible 4.3-inch Ender 3 V2 panel. DWIN, DACAI and TJC firmware/resource packs are not interchangeable.
 
-The physical panel needs the matching stock icon library **7 (`7.ICO`)**, fonts and English bitmap resources. Display direction is **1**. Custom KlipperDWIN artwork is supplied separately with the application; see the [artwork guide](../assets/README.md).
+The physical panel needs the matching stock icon library **7 (`7.ICO`)**, fonts and English bitmap resources. Display direction is **1**. Custom Petrel artwork is supplied separately with the application; see the [artwork guide](../assets/README.md).
 
 ## Before installing or replacing a panel
 
@@ -25,8 +25,8 @@ The application now builds library 7 from [`assets/icons`](../assets/icons/READM
 On the experimental library-7 branch, install the bundled `7.ICO` over UART without replacing panel firmware:
 
 ```sh
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/flash_icon_library.py && sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/flash_icon_library.py && sudo systemctl start Petrel.service
 ```
 
 The tool uses the configured serial port and writes slots 7–14. Failed writes leave the service stopped. It checks write acknowledgements, without Flash readback. Inspect the icons on the physical panel after upload.

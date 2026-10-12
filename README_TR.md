@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/klipperdwin-readme.png" width="600" alt="KlipperDWIN — Printer Display">
+  <img src="assets/petrel-readme.png" width="600" alt="Petrel — Open-source display interface">
 </p>
 
 **Klipper yazıcınızı DWIN ekranı ve döner encoder ile kontrol edin.**
@@ -9,7 +9,7 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 [English](README.md) · [Türkçe](README_TR.md)
 
 <p align="center">
-  <a href="https://github.com/sezgynus/KlipperDWIN/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
+  <a href="https://github.com/sezgynus/Petrel/tree/v3.0.0"><img alt="v3.0.0" src="https://img.shields.io/badge/version-v3.0.0-0969da"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&amp;logoColor=white">
   <img alt="Klipper / Moonraker" src="https://img.shields.io/badge/Klipper-Moonraker-7d3cff">
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue"></a>
@@ -33,7 +33,7 @@ Web arayüzünü açmadan baskı dosyalarına göz atın, modeli önizleyin, yaz
 | Filamenti incelemek | Kanal malzemesi/rengi, makara ataması ve mevcutsa Spoolman kalan yüzdesi |
 | Ekranı ayarlamak | Güç döngüsünde korunan parlaklık, boşta kısma süresi ve kısılmış parlaklık |
 | Işık ve gücü yönetmek | PWM kabin ışığı, encoder basılı tutarak güç açma ve onaylı güç kapatma |
-| Sistemi kontrol etmek | Ağ/Wi-Fi, host ve MCU durumu, yazılım sürümleri, proje QR kodu ve KlipperDWIN güncellemeleri |
+| Sistemi kontrol etmek | Ağ/Wi-Fi, host ve MCU durumu, yazılım sürümleri, proje QR kodu ve Petrel güncellemeleri |
 | Ekran görüntüsü almak | Dokümantasyon ve hata bildirimi için isteğe bağlı emülatör görüntüsü |
 
 İsteğe bağlı kontroller yazıcının yapılandırmasına göre görünür. Her iki rehberde de ekrandaki menü adları İngilizcedir. Bu belgeler güncel `master` sürümünü anlatır.
@@ -53,12 +53,14 @@ Bağlantı, seri port hazırlığı ve iletişim ayarları için [kurulum ve yap
 
 ```bash
 cd ~
-git clone https://github.com/sezgynus/KlipperDWIN.git
-cd ~/KlipperDWIN
+git clone https://github.com/sezgynus/Petrel.git
+cd ~/Petrel
 ./install.sh
 ```
 
-Kurulum betiği bağımlılıkları, servisi ve Moonraker Update Manager'ı hazırlar. Bağlantı, encoder veya güç ayarlarını sonradan değiştirmek için `~/KlipperDWIN` içinde `./configure.sh` çalıştırın.
+Mevcut kurulum sonraki Moonraker güncellemesinde ayarlar korunarak Petrel’e geçer. [Güncelleme ve geçiş rehberine](docs/installation_TR.md#güncelleme) bakın.
+
+Kurulum betiği bağımlılıkları, servisi ve Moonraker Update Manager'ı hazırlar. Bağlantı, encoder veya güç ayarlarını sonradan değiştirmek için `~/Petrel` içinde `./configure.sh` çalıştırın.
 
 ## İlk kullanım
 

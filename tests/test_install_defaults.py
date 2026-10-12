@@ -19,11 +19,11 @@ class InstallerDefaultsTests(unittest.TestCase):
                 self.assertTrue(ensure_emulator_default(path))
                 self.assertTrue(path.read_text().startswith(content))
                 self.assertFalse(ensure_emulator_default(path))
-                self.assertEqual(path.read_text().count('DWIN_EMULATOR='), 1)
+                self.assertEqual(path.read_text().count('PETREL_EMULATOR='), 1)
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-            path.write_text('DWIN_EMULATOR=1\n')
+            path.write_text('PETREL_EMULATOR=1\n')
             self.assertFalse(ensure_emulator_default(path))
-            self.assertEqual(path.read_text(), 'DWIN_EMULATOR=1\n')
+            self.assertEqual(path.read_text(), 'PETREL_EMULATOR=1\n')
 
     def test_configurator_writes_off_and_preserves_existing_enabled_value(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -36,14 +36,14 @@ class InstallerDefaultsTests(unittest.TestCase):
             for name, content in commands.items():
                 command = bin_dir / name; command.write_text(content); command.chmod(0o755)
             env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'], TEST_HOME=tmp, USER='user', SUDO_USER='user')
-            path = home / '.config/KlipperDWIN/KlipperDWIN.env'
+            path = home / '.config/Petrel/Petrel.env'
             def configure():
                 result = subprocess.run(['bash', str(ROOT / 'configure.sh')], input='\n' * 20,
                                text=True, env=env, capture_output=True)
                 if result.returncode:
                     self.fail(result.stdout + result.stderr)
             configure()
-            self.assertIn('DWIN_EMULATOR=0\n', path.read_text())
-            path.write_text(path.read_text().replace('DWIN_EMULATOR=0', 'DWIN_EMULATOR=1'))
+            self.assertIn('PETREL_EMULATOR=0\n', path.read_text())
+            path.write_text(path.read_text().replace('PETREL_EMULATOR=0', 'PETREL_EMULATOR=1'))
             configure()
-            self.assertIn('DWIN_EMULATOR=1\n', path.read_text())
+            self.assertIn('PETREL_EMULATOR=1\n', path.read_text())

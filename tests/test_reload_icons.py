@@ -10,9 +10,9 @@ from tools import reload_icons as tool
 class ReloadIconTests(unittest.TestCase):
     def test_reads_configured_uart_without_executing_environment_file(self):
         with tempfile.TemporaryDirectory() as tmp:
-            config = Path(tmp) / '.config/KlipperDWIN/KlipperDWIN.env'
+            config = Path(tmp) / '.config/Petrel/Petrel.env'
             config.parent.mkdir(parents=True)
-            config.write_text('DWIN_SERIAL_PORT="/dev/serial0"\nIGNORED=$(false)\n')
+            config.write_text('PETREL_SERIAL_PORT="/dev/serial0"\nIGNORED=$(false)\n')
             with patch.dict(os.environ, {}, clear=True), patch.object(connection.Path, 'home', return_value=Path(tmp)):
                 self.assertEqual(connection.configured_port(), '/dev/serial0')
 

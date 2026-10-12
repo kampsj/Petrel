@@ -4,7 +4,7 @@
 
 ## Report a bug or suggest a feature
 
-Open a GitHub issue describing what you tried, what you expected and what happened. Include the KlipperDWIN revision, Pi/OS, display model, relevant Klipper/Happy Hare versions, reproduction steps and a short service-log excerpt. For visual issues, add an original-size screenshot and, when relevant, a photo of the physical display. Remove credentials and private network information.
+Open a GitHub issue describing what you tried, what you expected and what happened. Include the Petrel revision, Pi/OS, display model, relevant Klipper/Happy Hare versions, reproduction steps and a short service-log excerpt. For visual issues, add an original-size screenshot and, when relevant, a photo of the physical display. Remove credentials and private network information.
 
 Feature proposals should describe the user workflow and the required printer capability. Contributions can include code, documentation, translations, icons or hardware test results.
 
@@ -28,23 +28,23 @@ For user-visible changes, update the relevant guide and screenshots. **English a
 On an installed Pi, the existing application environment contains the runtime dependencies. Run tests from the development checkout:
 
 ```bash
-~/klipperdwin-env/bin/python -m unittest discover -s tests -v
-~/klipperdwin-env/bin/python -m compileall -q .
+~/petrel-env/bin/python -m unittest discover -s tests -v
+~/petrel-env/bin/python -m compileall -q .
 ```
 
 For manual application testing, stop the installed service first so only one process uses the UART and encoder. Supply your own connection/pin values; running `run.py` directly does not read the service's environment file and its bare UART/button defaults differ from the installer:
 
 ```bash
-sudo systemctl stop KlipperDWIN.service
-cd ~/KlipperDWIN
-~/klipperdwin-env/bin/python run.py \
+sudo systemctl stop Petrel.service
+cd ~/Petrel
+~/petrel-env/bin/python run.py \
   --serial-port /dev/ttyS0 \
   --encoder-pins 21 19 \
   --button-pin 20 \
   --moonraker-url http://127.0.0.1:7125
 ```
 
-After exiting the manual process, restart the installed service with `sudo systemctl start KlipperDWIN.service`. Use `run.py --help` for available options; CLI values override environment values. Test movement, calibration and MMU changes on appropriate hardware in addition to automated tests.
+After exiting the manual process, restart the installed service with `sudo systemctl start Petrel.service`. Use `run.py --help` for available options; CLI values override environment values. Test movement, calibration and MMU changes on appropriate hardware in addition to automated tests.
 
 ## Screenshots and documentation
 

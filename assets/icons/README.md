@@ -4,7 +4,7 @@
 
 Add or replace baseline JPEGs here. Use the icon ID as the filename prefix: `092.jpg`, `092-about.jpg` or `092_about.jpeg`. IDs are 0–255; each ID must occur once. Existing IDs retain their meaning. Renaming an icon without changing its ID or bytes does not trigger an upload. A new image enters the library; UI code chooses where its ID is displayed.
 
-JPEGs are preserved without resizing or recompression. Progressive JPEGs, duplicate IDs and images larger than 32767 bytes are rejected. The whole library must fit Picture Flash slots 7–15; stock pictures 0–2 are untouched.
+JPEGs are preserved without resizing or recompression. Progressive JPEGs, duplicate IDs and images larger than 32767 bytes are rejected. The whole library must fit Picture Flash slots 7–15; stock pictures 1–2 are untouched; picture 0 holds the separately managed Petrel boot artwork.
 
 After an application update, the first LCD connection builds the library from this directory. The packer places larger icons first and fits smaller icons into remaining holes. Icon IDs do not depend on physical placement. Every block's last byte is reserved and excluded from UART writes. No JPEG crosses a block boundary.
 
@@ -23,9 +23,9 @@ Custom UI icons use IDs 100–109 and 124. MMU uses 100/101 and Display uses 108
 After reinstalling panel resources, force a reload because stored metadata may still describe the previous installation:
 
 ```bash
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_icons.py
-sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
+sudo systemctl start Petrel.service
 ```
 
 Write acknowledgements and metadata readback are verified; Picture Flash itself is not read back. Confirm the newly packed icon layout on the physical display.

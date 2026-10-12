@@ -6,13 +6,15 @@
 
 | Dosya | Amaç |
 |---|---|
-| `klipperdwin_bootsplash.jpg` | Panel picture slot 0 için seçilen açılış görseli |
+| `petrel_bootsplash.jpg` | Panel resim slotu 0 için Petrel kuş logosu ve sloganıyla açılış görseli |
 | `spool-empty.png` | Ortak 42×52 boş makara sprite’ı: ahşap kenarlar ve ince gri merkez |
 | `display-settings.png` | Özgün şeffaf Display ikon sprite'ı |
-| `klipperdwin-readme.png` | Açılış görselinden uyarlanan README logo ve yazı başlığı |
+| `petrel-readme.png` | İki ana README için Petrel kuş logosu, yazı ve slogan başlığı |
 | [emulator/](emulator/README_TR.md) | Ekran görüntüleri için bilgisayar tarafı stok ikon ve font girdileri |
 
 Açılış JPEG’i panelin 0 numaralı resim slotu için 480×272 boyutundadır. Önbellek kopyası olmadan doğrudan gösterilir.
+
+Değişen açılış görseli ilk LCD bağlantısında otomatik olarak resim slotu 0’a yüklenir. Flash adresi `0x0120` üzerindeki doğrulanmış parmak izi tekrar yazmayı önler; JPEG baseline 480×272 biçiminde ve en fazla 32767 bayt olmalıdır.
 
 ## Yönetilen ikon kütüphanesi
 
@@ -27,9 +29,9 @@ Kullanıcı arayüzü ekran görüntüleri bu görsel klasörüne değil `docs/a
 Panel kaynaklarını yeniden kurduktan sonra yönetilen ikonları SSH üzerinden servis kullanıcısı olarak zorla yeniden yükleyin:
 
 ```bash
-sudo systemctl stop KlipperDWIN.service
-~/klipperdwin-env/bin/python ~/KlipperDWIN/tools/reload_icons.py
-sudo systemctl start KlipperDWIN.service
+sudo systemctl stop Petrel.service
+~/petrel-env/bin/python ~/Petrel/tools/reload_icons.py
+sudo systemctl start Petrel.service
 ```
 
 Araç yapılandırılmış UART’ı okur, kütüphane 7’yi oluşturup bloklarını yeniden yükler. Ekran ayarları korunur.

@@ -18,10 +18,10 @@ def main():
     args = parser.parse_args()
     if not args.serial_port:
         parser.error('UART not configured')
-    state = subprocess.run(['systemctl', 'is-active', 'KlipperDWIN.service'],
+    state = subprocess.run(['systemctl', 'is-active', 'Petrel.service'],
                            capture_output=True, text=True).stdout.strip()
     if state not in ('inactive', 'failed', 'unknown'):
-        parser.error('Stop KlipperDWIN.service first')
+        parser.error('Stop Petrel.service first')
     logging.basicConfig(level=logging.INFO, format='%(message)s')
     lcd = ManualDisplay(args.serial_port)
     try:

@@ -163,7 +163,7 @@ Repoyu açmak için proje QR kodunu tarayın. LCD'den güncellemek için:
 
 1. Yazıcıyı boşta bırakın ve **Check for updates** düğmesine kaydırın. Encodere basın.
 2. **Checking…** aşamasını bekleyin. Yeşil **Up to date** güncelleme gerekmediğini gösterir; güncelleme varsa düğme **Update** olur.
-3. KlipperDWIN'i yüklemek için **Update** seçin. Moonraker ardından servisi yeniden başlatır. Bu işlem tüm yazıcı bileşenlerini güncellemez.
+3. Petrel'i yüklemek için **Update** seçin. Moonraker ardından servisi yeniden başlatır. Bu işlem tüm yazıcı bileşenlerini güncellemez.
 
 Repo kirli veya geçersizse **Soft recovery**, ikinci bir **Confirm recovery** adımı sunar. Kurtarma yerel repo değişikliklerini siler; gerekenleri önceden yedekleyin. Çevirmek onayı iptal eder. Kurtarma otomatik güncelleme yüklemez. Sonuç doğrulanmamışsa tekrar denemeden önce Mainsail Update Manager'dan kontrol edin.
 
