@@ -4,7 +4,7 @@ import argparse
 from io import BytesIO
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from PIL import Image
+from PIL import Image, ImageDraw, ImageChops
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +23,19 @@ def main():
                               output_height=height * 4)
         with Image.open(BytesIO(png)) as image:
             rendered = image.convert('RGB').resize((width, height), Image.Resampling.LANCZOS)
-            fan_frame = 235 <= int(path.stem) <= 242
+            icon_id = int(path.stem)
+            button_frame = 125 <= icon_id <= 133 or 243 <= icon_id <= 247
+            if button_frame:
+                # Both states share an opaque neutral perimeter and a hard
+                # silhouette. Otherwise filtered JPEG edges can retain pixels
+                # from the previous selection. Keep chroma changes inside it.
+                mask = Image.new('L', (width, height))
+                ImageDraw.Draw(mask).rounded_rectangle((0, 0, width-1, height-1), radius=8, fill=255)
+                inside = Image.new('L', (width, height))
+                ImageDraw.Draw(inside).rounded_rectangle((2, 2, width-3, height-3), radius=6, fill=255)
+                rendered.paste((41, 45, 53), mask=ImageChops.subtract(mask, inside))
+                rendered.paste((0, 0, 0), mask=ImageChops.invert(mask))
+            fan_frame = 235 <= icon_id <= 242
             if fan_frame:
                 # Neutral chroma prevents 4:2:0 color bleeding into the black
                 # transparency matte. Remove supersampling ringing before JPEG.
@@ -32,7 +44,7 @@ def main():
                 args.output_directory / (path.stem + '.jpg'), 'JPEG',
                 # Physical T5UIC1 testing showed corrupted selected tiles and
                 # homing artwork with 4:4:4, even after verified SRAM transfer.
-                quality=100 if fan_frame else 94, subsampling=2, progressive=False)
+                quality=100 if fan_frame or button_frame else 94, subsampling=2, progressive=False)
 
 
 if __name__ == '__main__':

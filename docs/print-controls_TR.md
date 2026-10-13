@@ -44,3 +44,5 @@ Switch sadece `SET_PIN PIN=<tam isim> VALUE=0|1` gönderir. O anda ısıtıcı/m
 ```
 
 `Power_OFF_Printer_After_Job` değerini kendi baskı sonu güç makronuzda, tanımlı Moonraker güç cihazınız ve soğutma politikanızla kullanın. Tanımsız pinler, PWM pinleri ve dijital değeri bilinmeyen pinler gizlenir.
+
+Print butonlarının normal/seçili zemini ve sembolü tek library JPEG’idir. Seçim değişimi sadece eski ve yeni butonu, birer ikon ve yazı komutuyla günceller (dört çizim paketi). Pause/Resume değişimi yalnızca ortadaki butonu günceller. Buton şeridi sadece üç butonlu yerleşimden baskı sonundaki iki butonlu yerleşime geçerken temizlenir.

@@ -44,3 +44,5 @@ Switching a row sends only `SET_PIN PIN=<exact name> VALUE=0|1`. It does **not**
 ```
 
 Handle `Power_OFF_Printer_After_Job` in your own end-print power macro using your configured Moonraker power device and cooling policy. Undefined pins, PWM pins and pins without a known digital value are hidden.
+
+Print button normal/selected surfaces and symbols are complete library JPEGs. Selection changes repaint only the old and new button, with one icon and one native label each (four drawing packets); Pause/Resume changes repaint only the middle button. Full strip erasure occurs only when the three-button layout changes to the two-button completion layout.

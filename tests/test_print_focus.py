@@ -105,3 +105,66 @@ class PrintFocusTests(unittest.TestCase):
         data['status']['print_stats']['state']='paused';v.pd.update_variable()
         v._present_print_state();v.Goto_PrintProcess.assert_not_called()
         self.assertEqual(v._focus_buttons()[1][0],'Resume')
+
+    def test_selection_sends_two_complete_icons_and_two_labels_only(self):
+        v,_=self.view();v.lcd=driver();v._focus_draw_buttons()
+        v.lcd.serial.frames.clear();v.select_print.set(1);v._focus_draw_buttons()
+        frames=v.lcd.serial.frames
+        self.assertEqual([f[1] for f in frames],[0x23,0x11,0x23,0x11])
+        self.assertLess(sum(map(len,frames)),80)
+        v.lcd.serial.frames.clear();v._focus_draw_buttons()
+        self.assertEqual(v.lcd.serial.frames,[])
+
+    def test_pause_resume_replaces_only_middle_button(self):
+        v,data=self.view();v.lcd=driver();v._focus_draw_buttons()
+        data['status']['print_stats']['state']='paused';v.pd.update_variable()
+        v.lcd.serial.frames.clear();v._focus_draw_buttons()
+        self.assertEqual([f[1] for f in v.lcd.serial.frames],[0x23,0x11])
+
+    def test_button_states_have_identical_transparency_masks(self):
+        from dwin_emulator.assets import PanelAssets
+        from lcd_resources import PRINT_BUTTON_SELECTED,ICON_LIBRARY_ID
+        assets=PanelAssets()
+        for normal,selected in PRINT_BUTTON_SELECTED.items():
+            with self.subTest(normal=normal):
+                a=assets.icon(ICON_LIBRARY_ID,normal)
+                b=assets.icon(ICON_LIBRARY_ID,selected)
+                self.assertEqual(a.size,b.size)
+                self.assertIn(a.size,((78,36),(119,36)))
+                self.assertEqual([max(p)>31 for p in a.getdata()], [max(p)>31 for p in b.getdata()])
+
+    def test_all_button_variants_round_trip_without_pixel_residue(self):
+        from dwin_emulator.assets import PanelAssets
+        from dwin_emulator.framebuffer import Framebuffer
+        from PIL import ImageChops
+        v,data=self.view(mmu=True);v.lcd=driver();v.framebuffer=Framebuffer(PanelAssets())
+        v.lcd._packet_observer=v.framebuffer;v.lcd.clear(0x2125)
+        for state,locked in [('printing',False),('paused',False),('paused',True),('complete',False)]:
+            data['status']['print_stats']['state']=state
+            data['status']['mmu'].update(print_state='pause_locked' if locked else state,reason_for_pause='Unload failed' if locked else '')
+            v.pd.update_variable();v._focus_button_shape=None;v.select_print.set(0);v._focus_draw_buttons();v.lcd.update()
+            original=v.framebuffer.snapshot()[0]
+            for selected in range(1,len(v._focus_buttons())):
+                v.select_print.set(selected);v._focus_draw_buttons();v.select_print.set(0);v._focus_draw_buttons();v.lcd.update()
+                self.assertIsNone(ImageChops.difference(original,v.framebuffer.snapshot()[0]).getbbox(),state)
+
+    def test_terminal_layout_erases_old_third_button_once(self):
+        v,data=self.view();v._focus_draw_buttons();v.lcd.reset_mock()
+        data['status']['print_stats']['state']='complete';v.pd.update_variable();v._focus_draw_buttons()
+        v.lcd.draw_rectangle.assert_called_once_with(1,v.lcd.Color_Bg_Black,14,311,258,349)
+        self.assertEqual(v.lcd.show_icon.call_count,2)
+
+    def test_small_font_zero_id_is_not_replaced_by_default_font(self):
+        v,_=self.view();v.lcd.font6x12=0;v.lcd.font8x16=1
+        v._focus_text('PRINT',14,64,font=v.lcd.font6x12)
+        self.assertEqual(v.lcd.draw_text.call_args.args[2],0)
+
+    def test_group_headers_have_full_font_height_and_spacing(self):
+        v,_=self.view();v.lcd.font6x12=0;v.lcd.font8x16=1
+        v._focus_tune_open();group=None
+        for setting,y in v._focus_tune_rows():
+            if setting and setting.group!=group:
+                group=setting.group
+                header=next(c for c in v.lcd.draw_text.call_args_list if c.args[-1]==group)
+                self.assertEqual(header.args[2],0)
+                self.assertEqual(header.args[6]+12,y-2)

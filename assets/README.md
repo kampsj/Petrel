@@ -36,4 +36,4 @@ sudo systemctl start Petrel.service
 
 The tool reads the configured UART, rebuilds library 3 and reloads its blocks. Display settings are preserved.
 
-Print actions use IDs 243–247 (16 × 16); After Job switches use 248/249 (27 × 12). The switch at 249 replaces an unused spare source. Library capacity remains seven 32 KiB blocks.
+Print buttons include their rounded surface, selection outline and Lucide symbol in one JPEG. Normal narrow buttons use IDs 243–247; selected variants use 125–129 (78 × 36). Completed-print Tune/Close pairs use 130–133 (119 × 36). Labels remain native panel text. After Job switches use 248/249 (27 × 12). Library capacity is eight 32 KiB blocks. Lucide licensing is in `assets/icon-source/Lucide-LICENSE.txt` (relative to the repository root).
