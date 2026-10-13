@@ -577,7 +577,7 @@ class MMUViewMixin:
         title = self.MMU_TITLES[page]
         if page in ('gate', 'filament', 'spool'):
             title += ' / ' + self._mmu_gate_label(self._mmu_gate)
-        self._mmu_text('title', title, 34, 1, 25, bg=0x2966)
+        self._mmu_text('title', title, 34, 6, 23, bg=0x2966)
         self._draw_header_clock()
         connection = 'OFFLINE' if self.pd.connection_error else 'MMU unavailable' if not m else (
             'MMU DISABLED' if m.enabled is not True else m.action.upper())

@@ -2603,7 +2603,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 3, 1, value_x, y3, position * 10)
 
     def Draw_Title(self, title):
-        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 0, title)
+        self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 6, title)
         self._draw_header_clock()
 
     def _draw_header_clock(self):
@@ -2611,8 +2611,8 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         key = (id(self.lcd), value)
         if key == getattr(self, '_header_clock_drawn', None):
             return False
-        self.lcd.draw_text(True, False, self.lcd.font6x12, self.lcd.Color_White,
-                           self.lcd.Color_Bg_Blue, 121, 18, value)
+        self.lcd.draw_text(False, True, self.lcd.font8x16, self.lcd.Color_White,
+                           self.lcd.Color_Bg_Blue, 224, 6, value)
         self._header_clock_drawn = key
         return True
 

@@ -29,6 +29,21 @@ class AuditRenderingTests(unittest.TestCase):
                 self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23') + bytes((icon,)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
+    def test_clock_is_larger_right_aligned_and_deduplicated(self):
+        from unittest.mock import patch
+        from test_regressions import ui
+        result = self.screen()
+        result._header_clock_drawn = None
+        result.lcd.serial.frames.clear()
+        with patch.object(ui.time, 'strftime', return_value='12:34'):
+            self.assertTrue(result._draw_header_clock())
+            frames = list(result.lcd.serial.frames)
+            self.assertFalse(result._draw_header_clock())
+        self.assertEqual(result.lcd.serial.frames, frames)
+        text = next(f for f in frames if f[1] == 0x11)
+        self.assertEqual(text[2] & 15, result.lcd.font8x16)
+        self.assertEqual(text[7:11], bytes.fromhex('00 E0 00 06'))
+
     def test_title_does_not_draw_removed_power_icon(self):
         result = self.screen()
         result.lcd.serial.frames.clear()
