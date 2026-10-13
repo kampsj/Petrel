@@ -44,7 +44,6 @@ class PowerShortcutMixin:
         self._power_hold_started = None
         if visible:
             self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 8, 27, 235, 29)
-            self._draw_power_icon(False, clear=True)
         if hasattr(self, '_loop'):
             self._loop.set_interval(.5)
 
@@ -52,10 +51,12 @@ class PowerShortcutMixin:
         if event.kind == 'button_down':
             self._power_hold_started = event.value / 1000
             self._power_hold_epoch = event.epoch
-            self._power_hold_pixels = -1
+            self._power_hold_pixels = 0
             self._power_hold_ready = False
             self._power_wake_only = self._display_activity()
-            self._loop.set_interval(.05)
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 8, 27, 235, 29)
+            self.lcd.update()
+            self._loop.set_interval(.02)
             return True
         if event.kind != 'button_release':
             return False
@@ -83,14 +84,11 @@ class PowerShortcutMixin:
             return False
         progress = min(1, max(0, (time.monotonic() - started) * 1000 / self.POWER_OFF_HOLD_MS))
         pixels = round(progress * 228)
-        if pixels != self._power_hold_pixels:
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 8, 27, 235, 29)
-            if pixels:
-                self.lcd.draw_rectangle(1, 0x063B, 8, 27, 7 + pixels, 29)
+        if pixels > self._power_hold_pixels:
+            self.lcd.draw_rectangle(1, 0x063B, 8 + self._power_hold_pixels, 27, 7 + pixels, 29)
             self._power_hold_pixels = pixels
             if progress == 1 and not self._power_hold_ready:
                 self._power_hold_ready = True
-                self._draw_power_icon(True, clear=True)
             self.lcd.update()
         return True
 

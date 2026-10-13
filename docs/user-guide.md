@@ -227,8 +227,6 @@ Configure the Moonraker power-device name with `./configure.sh`. Hold the encode
 
 From any screen, **hold the encoder button for 1.2 seconds, then release** to open power-off confirmation. A thin header bar shows the hold progress. **Cancel is selected initially**; rotate clockwise to select **Power off**, then confirm with a separate short click. Cancel restores the current screen and uncommitted editor value. Shutdown is blocked during printing, paused printing, or an operation in progress. Short clicks act on release without an additional timeout. Releasing an incomplete hold between 450 ms and 1.2 seconds does not select a menu item.
 
-To turn off, rotate counter-clockwise from the first menu item (Back on MMU pages) to focus the top-right power icon. Press to open **Turn off printer?**; **Yes is selected initially**. Confirm Yes to switch off the configured device, or select No to return.
-
 When a relay powers both the printer and display while the Pi stays running, powering back on returns to the first Home page. Wait for startup to finish before using the menus.
 
 When the configured Moonraker power device turns on, Petrel starts nonblocking LCD handshakes at 150 ms intervals. If that device is absent, Klipper becoming ready triggers the same fast connection window. After 10 seconds without a response, handshake requests fall back to 5-second intervals. The connected panel is reused without a fixed 750 ms wake delay.

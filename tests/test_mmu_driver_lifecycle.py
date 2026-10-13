@@ -61,7 +61,7 @@ class MMUDriverLifecycleTests(unittest.TestCase):
         self.assertEqual(v._mmu_page, 'status')
         opcodes = [f[1] for f in restored.serial.frames]
         self.assertEqual(opcodes.count(0x22), 0)
-        self.assertIn(0x23, opcodes)
+        self.assertNotIn(0x23, opcodes)
         self.assertNotIn(0x27, opcodes)
         self.assertEqual(opcodes.count(0x25), 0)
         self.assertFalse(set(opcodes) & {0x31, 0x32, 0x33})

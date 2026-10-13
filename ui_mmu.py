@@ -558,7 +558,6 @@ class MMUViewMixin:
             self._mmu_canvas_page, self._mmu_render = page, {}
             self._mmu_available = m is not None
             self._header_clock_drawn = None
-            self._draw_power_icon(getattr(self, '_power_focus', False))
         if page == 'map' and getattr(self, '_mmu_map_draft', None) is None:
             self._mmu_begin_map()
         if page in ('endless', 'group') and getattr(self, '_mmu_endless_draft', None) is None:
@@ -986,7 +985,6 @@ class MMUViewMixin:
         if self.checkkey == self.MMUMenu:
             if self.pd.connection_error and getattr(self, '_power_focus', False):
                 self._power_focus = False
-                self._draw_power_icon(False, clear=True)
             if was_pending and getattr(self, '_mmu_page', 'home') not in ('home', 'status') and session.phase == 'error':
                 self._mmu_page, self._mmu_selection = 'status', 1
             self.Draw_MMU_Menu()

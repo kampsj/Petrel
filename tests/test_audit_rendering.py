@@ -29,12 +29,12 @@ class AuditRenderingTests(unittest.TestCase):
                 self.assertEqual(icons, [bytes.fromhex('AA 23 00 08 00 8A 23') + bytes((icon,)) + result.lcd.TAIL])
                 self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
-    def test_title_draws_global_power_from_native_library(self):
+    def test_title_does_not_draw_removed_power_icon(self):
         result = self.screen()
         result.lcd.serial.frames.clear()
         result.Draw_Title('Prepare')
         icons = [f for f in result.lcd.serial.frames if f[1] == 0x23]
-        self.assertEqual(icons, [bytes.fromhex('AA 23 00 F4 00 05 23 6B CC 33 C3 3C')])
+        self.assertEqual(icons, [])
         self.assertFalse(any(f[1] == 0x27 for f in result.lcd.serial.frames))
 
     def test_complete_progress_has_three_digits_before_percent_sign(self):

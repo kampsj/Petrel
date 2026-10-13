@@ -2582,17 +2582,9 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 self.lcd.DWIN_FONT_STAT, 0x18C4,
                 3, 1, value_x, y3, position * 10)
 
-    def _draw_power_icon(self, selected=False, clear=False):
-        if clear:
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 241, 2, 268, 29)
-        show_theme_icon(self.lcd, self.ICON, ICON_POWER, 244, 5)
-        if selected:
-            self.lcd.draw_rectangle(0, self.lcd.Color_White, 241, 2, 267, 28)
-
     def Draw_Title(self, title):
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Blue, 14, 0, title)
         self._draw_header_clock()
-        self._draw_power_icon(getattr(self, '_power_focus', False))
 
     def _draw_header_clock(self):
         value = time.strftime('%H:%M', time.localtime())
@@ -2927,7 +2919,6 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
     def Goto_MainMenu(self):
         self.checkkey = self.MainMenu
         self.Clear_Main_Window()
-        self._draw_power_icon(getattr(self, '_power_focus', False))
 
         if self.pd.mmu is None:
             show_theme_icon(self.lcd, self.ICON, self.ICON_LOGO, 71, 52)
@@ -3386,9 +3377,10 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 150, blocked or 'Power off printer?')
             choices = ((False, 'Cancel', 28, 104),) if blocked else ((False, 'Cancel', 28, 104), (True, 'Power off', 140, 104))
             for yes, label, x, width in choices:
-                fill = 0x19E9 if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
+                fill = (0xB986 if yes else 0x19E9) if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
                 self._draw_pill(self.lcd, x, 224, width, 36, fill)
-                self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                self.lcd.draw_text(False, False, self.lcd.font8x16,
+                    0xFBAE if yes and not self._power_confirm_yes else self.lcd.Popup_Text_Color,
                     fill, x + (width - len(label) * 8) // 2, 234, label)
             return
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
@@ -3469,22 +3461,6 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                     self._show_message('Powering off...')
                 else:
                     self._restore_power_origin()
-            return True
-        if getattr(self, '_power_focus', False):
-            if event == self.ENCODER_DIFF_CW:
-                self._power_focus = False
-                self._draw_power_icon(False, clear=True)
-            elif event == self.ENCODER_DIFF_ENTER:
-                self._power_origin = self.checkkey
-                self._power_origin_epoch = self.pd.state.epoch
-                self._power_confirm_yes = True
-                self._power_focus = False
-                self.checkkey = self.PowerConfirm
-                self._draw_power_confirmation()
-            return True
-        if event == self.ENCODER_DIFF_CCW and self._power_at_first_item():
-            self._power_focus = True
-            self._draw_power_icon(True, clear=True)
             return True
         return False
 
