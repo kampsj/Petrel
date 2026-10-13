@@ -16,10 +16,11 @@ from threading import Event, Lock, Thread
 from urllib.parse import urlsplit, urlunsplit
 
 from moonraker_client import MoonrakerError
+from print_tuning import JOB_OBJECTS
 
 
 OBJECTS = ('webhooks', 'toolhead', 'gcode_move', 'print_stats', 'virtual_sdcard',
-           'pause_resume', 'extruder', 'heater_bed', 'fan', 'motion_report', 'manual_probe', 'configfile', 'screws_tilt_adjust', 'bed_mesh', 'stepper_enable', 'save_variables')
+           'pause_resume', 'extruder', 'heater_bed', 'fan', 'motion_report', 'manual_probe', 'configfile', 'screws_tilt_adjust', 'bed_mesh', 'stepper_enable', 'save_variables', 'firmware_retraction') + JOB_OBJECTS
 
 
 def connect(url, timeout, headers):

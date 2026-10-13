@@ -930,11 +930,24 @@ class PrinterData:
             raise ValueError('Restore jog state before resuming')
         return self.postREST('/printer/print/resume', json=None)
 
-    def set_feedrate(self, fr):
+    def print_settings(self):
+        from print_tuning import settings
+        return settings(self)
+
+    def set_print_setting(self, key, value, report_error=True):
+        from print_tuning import set_value
+        return set_value(self, key, value, report_error=report_error)
+
+    def print_layers(self):
+        from print_tuning import layers
+        return layers(self)
+
+    def set_feedrate(self, fr, report_error=True):
         fr = float(fr)
         if not math.isfinite(fr) or fr <= 0:
             raise ValueError('Feedrate percentage must be positive')
-        return self.sendGCode('M220 S{:g}'.format(fr))
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send('M220 S{:g}'.format(fr))
 
     def motion_settings(self):
         if not self.state.ready:
@@ -950,12 +963,13 @@ class PrinterData:
                 available.append((field, argument, label, step, value))
         return tuple(available)
 
-    def set_motion_limit(self, field, value):
+    def set_motion_limit(self, field, value, report_error=True):
         setting = next((item for item in self.motion_settings() if item[0] == field), None)
         if setting is None:
             raise ValueError('Motion setting is unavailable')
         value = validate_motion(field, value)
-        return self.sendGCode('SET_VELOCITY_LIMIT {}={:g}'.format(setting[1], value))
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send('SET_VELOCITY_LIMIT {}={:g}'.format(setting[1], value))
 
     def home(self, homeZ=False): #fixed using gcode
         script = 'G28 X Y'
@@ -1152,10 +1166,11 @@ class PrinterData:
             raise ValueError('Fan speed is out of range')
         return 'M106 S{:g}'.format(percent * 255 / 100)
 
-    def setFanSpeed(self, percent):
+    def setFanSpeed(self, percent, report_error=True):
         if not self.HAS_FAN:
             raise ValueError('Fan is unavailable')
-        return self.sendGCode(self._fan_command(percent))
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send(self._fan_command(percent))
 
     def preheat(self, profile):
         preset = next((item for item in self.material_preset if item.name == profile), None)
@@ -1199,7 +1214,7 @@ class PrinterData:
         self.settings_error = None
         return True
 
-    def setExtTemp(self, target, toolnum=None):
+    def setExtTemp(self, target, toolnum=None, report_error=True):
         heater = self.capabilities.active_hotend
         if toolnum is not None:
             name = 'extruder' + (str(toolnum) if toolnum else '')
@@ -1207,14 +1222,16 @@ class PrinterData:
         if heater is None:
             raise ValueError('Hotend is unavailable')
         value = heater.validate_target(target)
-        return self.sendGCode('SET_HEATER_TEMPERATURE HEATER={} TARGET={:g}'.format(heater.name, value))
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send('SET_HEATER_TEMPERATURE HEATER={} TARGET={:g}'.format(heater.name, value))
 
-    def setBedTemp(self, target):
+    def setBedTemp(self, target, report_error=True):
         heater = self.capabilities.bed
         if heater is None:
             raise ValueError('Heated bed is unavailable')
         value = heater.validate_target(target)
-        return self.sendGCode('SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={:g}'.format(value))
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send('SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET={:g}'.format(value))
 
     def preHeat(self, bedtemp, exttemp, toolnum=None, fan_speed=None):
         # Validate the whole preset before sending any command.
@@ -1236,8 +1253,9 @@ class PrinterData:
         if commands:
             return self.sendGCode('\n'.join(commands))
 
-    def setZOffset(self, offset):
+    def setZOffset(self, offset, report_error=True):
         offset = float(offset)
         if not math.isfinite(offset) or not self.Z_PROBE_OFFSET_RANGE_MIN <= offset <= self.Z_PROBE_OFFSET_RANGE_MAX:
             raise ValueError('Runtime Z offset is outside the supported range')
-        return self.sendGCode('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
+        send = self.sendGCode if report_error else lambda script: self.sendGCode(script, report_error=False)
+        return send('SET_GCODE_OFFSET Z=%s MOVE=1' % offset)
