@@ -166,12 +166,37 @@ class PowerShortcutTests(unittest.TestCase):
         v = self.view()
         with patch.object(ui.time, 'monotonic', return_value=10):
             v._button_pressed(); self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.45):
+            v._power_hold_tick()
         v.lcd = Mock(wraps=v.lcd)
-        for now in (10.1, 10.2, 10.3):
+        for now in (10.5, 10.6, 10.7):
             with patch.object(ui.time, 'monotonic', return_value=now):
                 v._power_hold_tick()
         rectangles = [c.args for c in v.lcd.draw_rectangle.call_args_list]
         self.assertEqual(len(rectangles), 3)
         self.assertTrue(all(c[1] == 0x063B for c in rectangles))
-        self.assertEqual([c[2] for c in rectangles], [8, 27, 46])
+        self.assertEqual([c[2] for c in rectangles], [44, 56, 81])
         v._loop.set_interval.assert_called_with(.02)
+
+    def test_normal_click_never_paints_hold_popup(self):
+        v = self.view(); v._dispatch_input = Mock()
+        v.lcd = Mock(wraps=v.lcd)
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed(); self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.3):
+            v._power_hold_tick()
+        v.lcd.draw_rectangle.assert_not_called()
+        v.lcd.draw_text.assert_not_called()
+        with patch.object(ui.time, 'monotonic', return_value=10.3):
+            v._button_released(); self.drain(v)
+        v._dispatch_input.assert_called_once()
+
+    def test_aborted_visible_popup_restores_original_screen(self):
+        v = self.view(); v.Draw_Control_Menu = Mock()
+        with patch.object(ui.time, 'monotonic', return_value=10):
+            v._button_pressed(); self.drain(v)
+        with patch.object(ui.time, 'monotonic', return_value=10.6):
+            v._power_hold_tick()
+            v._button_released(); self.drain(v)
+        v.Draw_Control_Menu.assert_called_once()
+        self.assertEqual(v.checkkey, v.Control)

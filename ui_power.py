@@ -39,11 +39,13 @@ class PowerShortcutMixin:
             return
         self._loop.post(InputEvent('button_release', elapsed, epoch, ui_epoch))
 
-    def _clear_power_hold(self):
-        visible = getattr(self, '_power_hold_started', None) is not None
+    def _clear_power_hold(self, restore=True):
+        visible = getattr(self, '_power_hold_visible', False)
         self._power_hold_started = None
-        if visible:
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 8, 27, 235, 29)
+        self._power_hold_visible = False
+        if visible and restore:
+            self._power_origin = self.checkkey
+            self._restore_power_origin()
         if hasattr(self, '_loop'):
             self._loop.set_interval(.5)
 
@@ -53,16 +55,15 @@ class PowerShortcutMixin:
             self._power_hold_epoch = event.epoch
             self._power_hold_pixels = 0
             self._power_hold_ready = False
+            self._power_hold_visible = False
             self._power_wake_only = self._display_activity()
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 8, 27, 235, 29)
-            self.lcd.update()
             self._loop.set_interval(.02)
             return True
         if event.kind != 'button_release':
             return False
         wake_only = getattr(self, '_power_wake_only', False)
         self._power_wake_only = False
-        self._clear_power_hold()
+        self._clear_power_hold(restore=event.value < self.POWER_OFF_HOLD_MS)
         if event.value >= self.POWER_OFF_HOLD_MS:
             if self.checkkey != self.PowerConfirm:
                 self._open_power_hold_popup()
@@ -82,13 +83,30 @@ class PowerShortcutMixin:
             self._clear_power_hold()
             self.lcd.update()
             return False
-        progress = min(1, max(0, (time.monotonic() - started) * 1000 / self.POWER_OFF_HOLD_MS))
-        pixels = round(progress * 228)
+        elapsed = round((time.monotonic() - started) * 1000)
+        if elapsed < self.SHORT_PRESS_MS or self.checkkey == self.PowerConfirm:
+            return True
+        dirty = not self._power_hold_visible
+        if not self._power_hold_visible:
+            self._power_hold_visible = True
+            self._draw_pill(self.lcd, 28, 160, 216, 98, self.lcd.Color_Bg_Window)
+            self.lcd.draw_text(False, False, self.lcd.font8x16,
+                self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window, 80, 178, 'Hold for power')
+            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 44, 214, 227, 221)
+        progress = min(1, max(0, (elapsed - self.SHORT_PRESS_MS)
+                       / (self.POWER_OFF_HOLD_MS - self.SHORT_PRESS_MS)))
+        pixels = round(progress * 184)
         if pixels > self._power_hold_pixels:
-            self.lcd.draw_rectangle(1, 0x063B, 8 + self._power_hold_pixels, 27, 7 + pixels, 29)
+            dirty = True
+            self.lcd.draw_rectangle(1, 0x063B, 44 + self._power_hold_pixels,
+                                    214, 43 + pixels, 221)
             self._power_hold_pixels = pixels
             if progress == 1 and not self._power_hold_ready:
                 self._power_hold_ready = True
+                self.lcd.draw_text(False, False, self.lcd.font8x16,
+                    self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
+                    56, 236, 'Release to continue')
+        if dirty:
             self.lcd.update()
         return True
 
