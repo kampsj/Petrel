@@ -2478,9 +2478,9 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             x, y = args[-3:-1]
             # Erase a shrinking string, leaving adjacent icons untouched.
             right = min(271,
-                        x + max(len(previous[-1]), len(args[-1])) * self.STAT_CHR_W - 1)
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black,
-                                    x, y, right, y + 19)
+                        x + max(len(previous[-1]), len(args[-1])) * (T5UIC1Display.FONT_SIZES[args[2]][0] if isinstance(args[2], int) else self.STAT_CHR_W) - 1)
+            self.lcd.draw_rectangle(1, args[4],
+                                    x, y, right, y + (T5UIC1Display.FONT_SIZES[args[2]][1] if isinstance(args[2], int) else 20) - 1)
             # Long telemetry text can reach the next column. Restore only
             # the fields touched by the erasure when they are drawn below.
             for other in list(cache):
@@ -2500,15 +2500,15 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             return
         previous = getattr(self, '_fan_animation_key', None)
         if interval and (force or previous is None or not previous[2]):
-            self.lcd.draw_rectangle(1, 0x18C4, 202, 381, 221, 400)
+            self.lcd.draw_rectangle(1, 0x18C4, 200, 380, 219, 399)
         if interval or (previous is not None and previous[2]):
             self.lcd.configure_animation(1, bool(interval), self.ICON,
-                ICON_FAN_FIRST, ICON_FAN_LAST, 202, 381, interval or 1,
+                ICON_FAN_FIRST, ICON_FAN_LAST, 200, 380, interval or 1,
                 restart_from_first=force or previous is None or not previous[2])
         self._fan_animation_key = key
         if visible and not interval:
-            self.lcd.draw_rectangle(1, 0x18C4, 202, 381, 221, 400)
-            show_theme_icon(self.lcd, self.ICON, self.ICON_FanSpeed, 202, 381)
+            self.lcd.draw_rectangle(1, 0x18C4, 200, 380, 219, 399)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_FanSpeed, 200, 380)
 
     def Draw_Status_Area(self, with_update):
         if getattr(self, 'checkkey', None) == self.MMUMenu:
@@ -2527,69 +2527,69 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 self.STATUS_Y, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
 
             self.lcd.draw_line(self.lcd.Line_Color, 12, 363, 259, 363)
-        y1, y2, y3 = 382, 416, 458
+        y1, y2, y3 = 382, 416, 450
         # Temperature fields need enough width for "actual/target". Keep them
         # in a wider left column and compact the two telemetry columns.
-        x1, x2, x3 = 6, 116, 202
-        value1, value2, value3 = 26, 137, 223
+        x1, x2, x3 = 4, 102, 200
+        value1, value2, value3 = 28, 126, 224
 
         if self.pd.HAS_HOTEND:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1 - 1)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1 - 2)
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3, value1, y1,
                 self.pd.thermalManager['temp_hotend'][0]['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4,
-                value1 + 3 * self.STAT_CHR_W, y1, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
+                value1 + 3 * 8, y1, "/")
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * self.STAT_CHR_W, y1,
+                value1 + 4 * 8, y1,
                 self.pd.thermalManager['temp_hotend'][0]['target'])
 
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
         phase = int(time.monotonic() / 2.0) & 1
-        self._draw_status_field('show_icon', self.ICON, self.ICON_Speed, x2, y1 - 1)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_Speed, x2, y1 - 2)
         if phase:
             speed_text = '{:.0f}%'.format(self.pd.feedrate_percentage)
         else:
             speed_text = '{:.0f}mm/s'.format(abs(self.pd.live_velocity))
-        self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
+        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
             self.lcd.Color_White, 0x18C4, value2, y1, speed_text)
 
         if self.pd.HAS_FAN:
             self._sync_fan_animation(True, force=redraw)
             percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
-            self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, value3, y1, '{:3d}%'.format(percent))
 
         if self.pd.HAS_HEATED_BED:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 1)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 2)
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3, value1, y2,
                 self.pd.thermalManager['temp_bed']['celsius'])
-            self._draw_status_field('draw_text', False, False, self.lcd.DWIN_FONT_STAT,
+            self._draw_status_field('draw_text', False, False, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4,
-                value1 + 3 * self.STAT_CHR_W, y2, "/")
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
+                value1 + 3 * 8, y2, "/")
+            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3,
-                value1 + 4 * self.STAT_CHR_W, y2,
+                value1 + 4 * 8, y2,
                 self.pd.thermalManager['temp_bed']['target'])
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
-        self._draw_status_field('show_icon', self.ICON, self.ICON_StepE, x2, y2 - 1)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_StepE, x2, y2 - 2)
         if phase:
             flow_text = '{:.0f}%'.format(self.pd.flow_percentage)
         else:
-            flow_text = '{:.1f}mm3/s'.format(self.pd.volumetric_flow)
-        self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
+            flow_text = ('{:.1f}mm3/s' if abs(self.pd.volumetric_flow) < 100 else '{:.0f}mm3/s').format(self.pd.volumetric_flow)
+        self._draw_status_field('draw_text', False, True, self.lcd.font8x16,
             self.lcd.Color_White, 0x18C4, value2, y2, flow_text)
 
         if self.pd.HAS_ZOFFSET_ITEM:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2 - 1)
+            self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2 - 2)
             self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.DWIN_FONT_STAT, 0x18C4,
+                self.lcd.font8x16, 0x18C4,
                 2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
 
         positions = self.pd.live_position
@@ -2597,9 +2597,9 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 (self.ICON_MaxSpeedX, x1, value1, positions[0]),
                 (self.ICON_MaxSpeedY, x2, value2, positions[1]),
                 (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
-            self._draw_status_field('show_icon', self.ICON, icon, xpos, y3 - 3)
+            self._draw_status_field('show_icon', self.ICON, icon, xpos, y3 - 2)
             self._draw_status_field('draw_signed_scaled_float_text',
-                self.lcd.DWIN_FONT_STAT, 0x18C4,
+                self.lcd.font8x16, 0x18C4,
                 3, 1, value_x, y3, position * 10)
 
     def Draw_Title(self, title):

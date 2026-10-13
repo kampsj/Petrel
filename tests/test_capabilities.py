@@ -113,11 +113,11 @@ class CapabilityTests(unittest.TestCase):
             result.Draw_Status_Area(True)
         calls = result.lcd.draw_integer_text.call_args_list
         coordinates = [(call.args[7], call.args[8]) for call in calls]
-        self.assertIn((26, 382), coordinates)
-        self.assertIn((66, 382), coordinates)
-        self.assertIn((26, 416), coordinates)
-        self.assertIn((66, 416), coordinates)
-        self.assertLess(66 + 3 * result.STAT_CHR_W, 116)
+        self.assertIn((28, 382), coordinates)
+        self.assertIn((60, 382), coordinates)
+        self.assertIn((28, 416), coordinates)
+        self.assertIn((60, 416), coordinates)
+        self.assertLess(60 + 3 * 8, 102)
 
     def test_printer_data_initializes_mmu_before_first_status_update(self):
         with patch.object(backend, 'MoonrakerClient'), \

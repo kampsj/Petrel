@@ -65,5 +65,13 @@ class FanAnimationTests(unittest.TestCase):
             v.pd.thermalManager['fan_speed'][0] = speed
             v.Draw_Status_Area(True)
             texts = [c.args[-1] for c in v.lcd.draw_text.call_args_list
-                     if c.args[-3:-1] == (223, 382)]
+                     if c.args[-3:-1] == (224, 382)]
             self.assertEqual(texts[-1], '{:3d}%'.format(speed))
+
+    def test_status_text_cleanup_uses_its_own_background_and_font_size(self):
+        v = self.view()
+        v._status_render = {}
+        v._draw_status_field('draw_text', False, True, 1, 65535, 0x18C4, 126, 416, '12.3mm3/s')
+        v.lcd.reset_mock()
+        v._draw_status_field('draw_text', False, True, 1, 65535, 0x18C4, 126, 416, '100%')
+        v.lcd.draw_rectangle.assert_called_once_with(1, 0x18C4, 126, 416, 197, 431)
