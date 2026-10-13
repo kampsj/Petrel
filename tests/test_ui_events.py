@@ -169,7 +169,7 @@ class InputRoutingTests(unittest.TestCase):
         display.encoder_has_data(-3)
         display._button_pressed()
         self.assertEqual(display._loop.post.call_args_list[0].args[0], InputEvent('rotate', -3, 1, 0, -3))
-        self.assertEqual(display._loop.post.call_args_list[1].args[0], InputEvent('press', 1, 1))
+        self.assertEqual(display._loop.post.call_args_list[1].args[0].kind, 'button_down')
         display._dispatch_input.assert_not_called()
 
     def test_configured_hold_routes_power_even_when_printer_and_uart_are_offline(self):
@@ -248,7 +248,7 @@ class InputRoutingTests(unittest.TestCase):
             display._button_pressed()
             display._button_pressed()
             display._button_pressed()
-        self.assertEqual(display._loop.post.call_count, 2)
+        self.assertEqual(display._loop.post.call_count, 1)  # One physical hold, not three Enters.
 
     def test_rotation_rate_uses_continuous_acceleration_curve(self):
         display = self.display()
@@ -372,9 +372,10 @@ class DisplayIntegrationTests(unittest.TestCase):
             subscription.return_value.snapshot.return_value = snapshot
             display = ui.PetrelDisplay('fake-port', (21, 19), 13, '')
             try:
-                self.assertIs(button.when_released, release_callback)
+                self.assertEqual(button.when_released, display._button_released)
                 encoder.callback(-1)  # Main menu -> Prepare, preserving old direction.
                 button.when_pressed()
+                button.when_released()
                 self.assertTrue(prepared.wait(2))
                 self.assertEqual(display.checkkey, display.Prepare)
             finally:

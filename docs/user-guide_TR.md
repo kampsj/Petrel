@@ -225,6 +225,8 @@ cycle_time: 0.01
 
 Moonraker güç aygıtı adını `./configure.sh` ile ayarlayın. Açmak için encoder düğmesini basılı tutun; varsayılan süre **2 saniye**. Pi/servis ve Moonraker erişilebilir kaldığı sürece Klipper veya ekran çevrimdışıyken de çalışır.
 
+Her ekrandan kapatma onayına ulaşmak için encoder düğmesini **1,2 saniye basılı tutup bırakın**. Üstteki ince çubuk süreyi gösterir. **Cancel başlangıçta seçilidir**; saat yönünde çevirerek **Power off** seçin ve ayrı bir kısa basışla onaylayın. Cancel aynı ekrana ve kaydedilmemiş düzenleme değerine döner. Baskı, duraklatılmış baskı veya süren işlem sırasında kapatma engellenir. Kısa basış bırakıldığı anda çalışır; ek bekleme yoktur. 450 ms–1,2 saniye arasında bırakılan yarım uzun basış menüyü tetiklemez.
+
 Kapatmak için ilk menü öğesinden (MMU sayfalarında Back) saat yönünün tersine çevirerek sağ üst güç ikonuna odaklanın. **Turn off printer?** açmak için basın; **başlangıçta Yes seçilidir**. Yapılandırılmış aygıtı kapatmak için Yes onaylayın veya dönmek için No seçin.
 
 Pi çalışmaya devam ederken röle yazıcı ve ekranı birlikte besliyorsa, yeniden güç açıldığında ilk ana ekran sayfasına dönülür. Menüleri kullanmadan önce açılışın bitmesini bekleyin.

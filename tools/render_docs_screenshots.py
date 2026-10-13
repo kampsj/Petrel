@@ -214,7 +214,7 @@ def preset():
 
 @scene('power-confirm', 'controls', 'Printer power-off confirmation', 'Yazıcıyı kapatma onayı')
 def power():
-    v=canvas(); v._power_confirm_yes=True; v._draw_power_confirmation()
+    v=canvas(); v._power_confirm_yes=False; v._power_hold_popup=True; v._power_blocked=None; v._draw_power_confirmation()
     return finish(v)
 
 

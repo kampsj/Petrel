@@ -14,6 +14,7 @@ from command_feedback import CommandFeedback
 from threading import Lock
 from ui_events import UIEventLoop, InputEvent
 from ui_case_light import CaseLightMixin
+from ui_power import PowerShortcutMixin
 from ui_mmu import MMUViewMixin
 from ui_buzzer import BuzzerViewMixin
 from buzzer_control import Settings as BuzzerSettings
@@ -67,7 +68,7 @@ class select_t:
         return self.changed()
 
 
-class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -382,9 +383,11 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self._producer_value = self.encoder.getValue()
             self.encoder.callback = self.encoder_has_data
         self.button.when_pressed = self._button_pressed
+        self.button.when_released = self._button_released
         self.button.when_held = self._button_held
 
     def _uart_failed(self):
+        self._power_hold_started = None
         if getattr(self, '_boot_active', False):
             self._boot_progress = -1
         if (getattr(self, 'checkkey', None) == self.PowerConfirm
@@ -687,6 +690,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self._ensure_uart()
             return
         try:
+            if self._power_hold_tick():
+                return
             now = time.monotonic()
             if now >= getattr(self, '_next_uart_probe', 0):
                 self._next_uart_probe = now + 2.0
@@ -700,6 +705,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
                         logging.warning('LCD liveness lost; reconnecting')
                         self._uart_failed()
                         return
+            if self._power_popup_tick():
+                return
             if getattr(self, '_boot_active', False):
                 self._poll_boot()
                 return
@@ -1037,12 +1044,7 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         # A zero hold time makes the press edge itself request printer power.
         if getattr(self, 'power_on_hold_ms', 2000) == 0:
             self._request_power_on()
-        # Capture a press edge once; rotation while held must not create Enter.
-        with self._input_lock:
-            now = time.monotonic()
-            if now - self._last_press >= self.ENCODER_WAIT_ENTER / 1000:
-                self._last_press = now
-                self._enqueue_input('press', 1)
+        self._power_button_down()
 
     def _request_power_on(self):
         # Power control must remain available while Klipper and/or the LCD UART are offline.
@@ -1052,7 +1054,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             logging.warning('LCD input queue full or closed; power-on request discarded')
 
     def _button_held(self):
-        if getattr(self, 'power_on_hold_ms', 2000) > 0:
+        if (getattr(self, 'power_on_hold_ms', 2000) > 0
+                and not getattr(self, '_button_can_power_off', False)):
             self._request_power_on()
 
     def _sync_input_state(self, event):
@@ -1166,6 +1169,9 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         snapshot = self.pd.subscription.snapshot()
         if ((snapshot['state'] != 'ready' and getattr(self, 'checkkey', None) != self.MMUMenu) or snapshot['epoch'] != event.epoch
                 or self._closed):
+            if event.kind == 'button_release' and getattr(self, '_power_hold_started', None) is not None:
+                self._clear_power_hold()
+                self.lcd.update()
             return
         if event.kind == 'case_light_status':
             self._poll_case_light_state()
@@ -1175,6 +1181,10 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             return
         if event.kind == 'live_jog_flush':
             self._flush_live_jog()
+            return
+        if self._power_button_input(event):
+            return
+        if event.kind == 'rotate' and getattr(self, '_power_hold_started', None) is not None:
             return
         if event.kind == 'rotate':
             direction = self.ENCODER_DIFF_CCW if event.value > 0 else self.ENCODER_DIFF_CW
@@ -3369,6 +3379,18 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         self.Clear_Popup_Area()
         self.Draw_Title('Power')
         self.Draw_Popup_Bkgd_105()
+        if getattr(self, '_power_hold_popup', False):
+            blocked = getattr(self, '_power_blocked', None)
+            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                self.lcd.Color_Bg_Window, (272 - len(blocked or 'Power off printer?') * 8) // 2,
+                150, blocked or 'Power off printer?')
+            choices = ((False, 'Cancel', 28, 104),) if blocked else ((False, 'Cancel', 28, 104), (True, 'Power off', 140, 104))
+            for yes, label, x, width in choices:
+                fill = 0x19E9 if self._power_confirm_yes == yes else self.lcd.Color_Bg_Window
+                self._draw_pill(self.lcd, x, 224, width, 36, fill)
+                self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
+                    fill, x + (width - len(label) * 8) // 2, 234, label)
+            return
         self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Popup_Text_Color,
                            self.lcd.Color_Bg_Window, 42, 150, 'Turn off printer?')
         for yes, label, x in ((True, 'Yes', 42), (False, 'No', 164)):
@@ -3381,6 +3403,8 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         origin = self._power_origin
         self._power_origin = None
         self._power_focus = False
+        self._power_hold_popup = False
+        self._power_blocked = None
         self.checkkey = origin if origin is not None else self.MainMenu
         if self.checkkey == self.MMUMenu:
             # The power popup overwrote the cached full-screen MMU canvas.
@@ -3403,7 +3427,13 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             self.BedMeshScreen: self.Draw_Bed_Mesh,
             self.MeshProfiles: self.Draw_Mesh_Profiles,
             self.FilePreview: self.Draw_File_Preview,
+            self.PrintProcess: self.Goto_PrintProcess,
+            self.ScrewsTiltMenu: self.Draw_Screws_Menu,
+            self.ScrewsTiltResult: self.Draw_Screws_Result,
+            self.ProbeWizardID: self.Draw_Probe_Wizard,
         }.get(self.checkkey)
+        if self._restore_power_editor():
+            return
         if redraw is not None:
             redraw()
         else:
@@ -3415,6 +3445,21 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
             return True
         event = self.get_encoder_state()
         if self.checkkey == self.PowerConfirm:
+            if getattr(self, '_power_hold_popup', False):
+                if getattr(self, '_power_shutdown_requested', False):
+                    return True
+                self._power_blocked = self._power_block_reason()
+                if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
+                    self._power_confirm_yes = event == self.ENCODER_DIFF_CW and not self._power_blocked
+                    self._draw_power_confirmation()
+                elif event == self.ENCODER_DIFF_ENTER:
+                    if self._power_confirm_yes and not self._power_blocked:
+                        self._power_off_future = self.pd.power_off_if_on()
+                        self._power_shutdown_requested = True
+                        self._show_message('Powering off...')
+                    else:
+                        self._restore_power_origin()
+                return True
             if event in (self.ENCODER_DIFF_CW, self.ENCODER_DIFF_CCW):
                 self._power_confirm_yes = not self._power_confirm_yes
                 self._draw_power_confirmation()
@@ -3444,6 +3489,9 @@ class PetrelDisplay(BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMix
         return False
 
     def _dispatch_input(self):
+        if self.checkkey == self.PowerConfirm and getattr(self, '_power_hold_popup', False):
+            self._handle_power_navigation()
+            return
         editors = (self.Move_X, self.Move_Y, self.Move_Z, self.Extruder,
                    self.PrintSpeed, self.ETemp, self.BedTemp, self.FanSpeed,
                    self.Homeoffset, self.CaseLightBrightness)
