@@ -56,3 +56,14 @@ class FanAnimationTests(unittest.TestCase):
         self.assertEqual(values[0], 100)
         self.assertEqual(values[-1], 1)
         self.assertEqual(values, sorted(values, reverse=True))
+
+    def test_dashboard_fan_shows_percent_with_fixed_width(self):
+        v = self.view(100)
+        v.lcd.DWIN_WIDTH, v.lcd.DWIN_HEIGHT = 272, 480
+        v.Draw_Status_Area(False)
+        for speed in (100, 50, 0):
+            v.pd.thermalManager['fan_speed'][0] = speed
+            v.Draw_Status_Area(True)
+            texts = [c.args[-1] for c in v.lcd.draw_text.call_args_list
+                     if c.args[-3:-1] == (223, 382)]
+            self.assertEqual(texts[-1], '{:3d}%'.format(speed))

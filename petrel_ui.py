@@ -2559,9 +2559,9 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
 
         if self.pd.HAS_FAN:
             self._sync_fan_animation(True, force=redraw)
-            self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
-                self.lcd.Color_White, 0x18C4, 3,
-                value3, y1, self.pd.dashboard_fan_pwm)
+            percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
+            self._draw_status_field('draw_text', False, True, self.lcd.DWIN_FONT_STAT,
+                self.lcd.Color_White, 0x18C4, value3, y1, '{:3d}%'.format(percent))
 
         if self.pd.HAS_HEATED_BED:
             self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 1)
