@@ -1,6 +1,6 @@
 from lcd_resources import ICON_ACCELERATION, ICON_BRIGHTNESS, ICON_BUZZER, ICON_CLICK_TONE, ICON_CORNER_SPEED, ICON_CRUISE_RATIO, ICON_DIM_BRIGHTNESS, ICON_ENCODER_TONE, ICON_FLOW, ICON_IDLE_DIM, ICON_LIGHT, ICON_LIVE_JOG, ICON_MOTION, ICON_MOTOR_OFF, ICON_PREHEAT_PROFILE, ICON_VELOCITY, ICON_VOLUME
 from graphite_theme import show_icon as show_theme_icon
-from lcd_resources import ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
+from lcd_resources import ICON_FAN_FIRST, ICON_FAN_LAST, ICON_LIBRARY_ID, ICON_CHECKBOX_EMPTY, ICON_CHECKBOX_CHECKED
 import display_settings
 import copy
 import textwrap
@@ -2492,15 +2492,35 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             getattr(self.lcd, method)(*args)
         cache[key] = value
 
+    def _sync_fan_animation(self, visible, force=False):
+        percent = max(0, min(100, round(self.pd.thermalManager['fan_speed'][0])))
+        interval = max(1, min(255, round(100 / percent))) if visible and percent else 0
+        key = (id(self.lcd), getattr(self, '_uart_epoch', 0), interval)
+        if not force and key == getattr(self, '_fan_animation_key', None):
+            return
+        previous = getattr(self, '_fan_animation_key', None)
+        if interval and (force or previous is None or not previous[2]):
+            self.lcd.draw_rectangle(1, 0x18C4, 202, 381, 221, 400)
+        if interval or (previous is not None and previous[2]):
+            self.lcd.configure_animation(1, bool(interval), self.ICON,
+                ICON_FAN_FIRST, ICON_FAN_LAST, 202, 381, interval or 1,
+                restart_from_first=force or previous is None or not previous[2])
+        self._fan_animation_key = key
+        if visible and not interval:
+            self.lcd.draw_rectangle(1, 0x18C4, 202, 381, 221, 400)
+            show_theme_icon(self.lcd, self.ICON, self.ICON_FanSpeed, 202, 381)
+
     def Draw_Status_Area(self, with_update):
         if getattr(self, 'checkkey', None) == self.MMUMenu:
+            self._sync_fan_animation(False)
             self._status_render = {}
             return
         # Compact dashboard: temperatures / speed / fan, bed / flow / Z offset,
         # then interpolated live X/Y/Z positions.
         layout = (id(self.lcd), self.pd.HAS_HOTEND, self.pd.HAS_FAN,
                   self.pd.HAS_HEATED_BED, self.pd.HAS_ZOFFSET_ITEM)
-        if layout != getattr(self, '_status_layout', None) or not with_update:
+        redraw = layout != getattr(self, '_status_layout', None) or not with_update
+        if redraw:
             self._status_layout = layout
             self._status_render = {}
             self.lcd.draw_rectangle(1, 0x18C4, 0,
@@ -2538,7 +2558,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             self.lcd.Color_White, 0x18C4, value2, y1, speed_text)
 
         if self.pd.HAS_FAN:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_FanSpeed, x3, y1 - 1)
+            self._sync_fan_animation(True, force=redraw)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.DWIN_FONT_STAT,
                 self.lcd.Color_White, 0x18C4, 3,
                 value3, y1, self.pd.dashboard_fan_pwm)
@@ -2975,6 +2995,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self.Clear_Menu_Area()
 
     def Clear_Popup_Area(self):
+        self._sync_fan_animation(False)
         self._list_render = None
         self._status_layout = None
         self.Clear_Title_Bar()

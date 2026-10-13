@@ -13,6 +13,8 @@ Rotate to move the highlight; press to select. Press a numeric value, rotate to 
 
 The fixed dashboard shows temperatures/targets, fan, speed/flow information, runtime Z offset and XYZ coordinates. Speed and extrusion fields alternate between override percentages and actual speed/volumetric flow. MMU pages use their own status layout.
 
+The fan icon uses panel-native animation; its speed follows the fan percentage, rounded to 10 ms intervals. Unchanged intervals send no new command; 0% stops it.
+
 ## Choose and start a print
 
 <p align="center">

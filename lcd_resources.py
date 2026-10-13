@@ -48,3 +48,7 @@ ICON_LIVE_JOG = 231
 ICON_FLOW = 232
 ICON_ACTIVE_MESH = 233
 ICON_MESH_CALIBRATE = 234
+
+# Eight orientations across one quarter turn of the four-blade fan.
+ICON_FAN_FIRST = 235
+ICON_FAN_LAST = 242

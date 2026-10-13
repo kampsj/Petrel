@@ -542,6 +542,7 @@ class MMUViewMixin:
             return False
 
     def Draw_MMU_Menu(self):
+        self._sync_fan_animation(False)
         if not hasattr(self, '_mmu_page'):
             self._mmu_page, self._mmu_selection = 'home', 0
             self._mmu_gate, self._mmu_history, self._mmu_notice = 0, [], ''

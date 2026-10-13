@@ -13,6 +13,8 @@ Seçimi taşımak için çevirin; seçmek için basın. Sayısal değere basın,
 
 Sabit durum alanı sıcaklık/hedefleri, fanı, hız/akış bilgisini, çalışma zamanı Z offset'i ve XYZ koordinatlarını gösterir. Hız ve ekstrüzyon alanları override yüzdeleri ile gerçek hız/hacimsel akış arasında dönüşümlü gösterilir. MMU sayfaları kendi durum düzenini kullanır.
 
+Fan simgesi panelin kendi animasyonuyla döner; hız fan yüzdesinden hesaplanır ve 10 ms aralıklara yuvarlanır. Aynı interval için yeniden komut gönderilmez; %0’da durur.
+
 ## Baskı seçme ve başlatma
 
 <p align="center">
