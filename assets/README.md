@@ -35,3 +35,5 @@ sudo systemctl start Petrel.service
 ```
 
 The tool reads the configured UART, rebuilds library 3 and reloads its blocks. Display settings are preserved.
+
+Print actions use IDs 243–247 (16 × 16); After Job switches use 248/249 (27 × 12). The switch at 249 replaces an unused spare source. Library capacity remains seven 32 KiB blocks.

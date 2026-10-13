@@ -922,13 +922,13 @@ class PrinterData:
     def cancel_job(self): #fixed
         return self.postREST('/printer/print/cancel', json=None)
 
-    def pause_job(self): #fixed
-        return self.postREST('/printer/print/pause', json=None)
+    def pause_job(self, report_error=True): #fixed
+        return self.postREST('/printer/print/pause', json=None, **({} if report_error else {'report_error': False}))
 
-    def resume_job(self): #fixed
+    def resume_job(self, report_error=True): #fixed
         if self.jog_recovery_required:
             raise ValueError('Restore jog state before resuming')
-        return self.postREST('/printer/print/resume', json=None)
+        return self.postREST('/printer/print/resume', json=None, **({} if report_error else {'report_error': False}))
 
     def print_settings(self):
         from print_tuning import settings

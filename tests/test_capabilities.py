@@ -64,6 +64,8 @@ def display(data):
     result = ui.PetrelDisplay.__new__(ui.PetrelDisplay)
     result.pd = printer(data)
     result.lcd = Mock()
+    result.lcd.DWIN_WIDTH = 272
+    result.lcd.DWIN_HEIGHT = 480
     for name in result.SELECTIONS:
         setattr(result, name, ui.select_t())
     result.index_prepare = result.index_tune = result.MROWS

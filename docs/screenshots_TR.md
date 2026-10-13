@@ -24,6 +24,10 @@ Kullanım adımları: [Günlük kullanım](user-guide_TR.md) · [MMU](mmu-guide_
 | Önizleme, bilgiler ve yazdırma onayı | <img src="assets/screens/print-preview.png" width="136" alt="Önizleme, bilgiler ve yazdırma onayı"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/print-preview.png) |
 | Baskı ilerlemesi, süre ve kontroller | <img src="assets/screens/printing.png" width="136" alt="Baskı ilerlemesi, süre ve kontroller"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing.png) |
 | Duraklatılmış baskı ve Resume | <img src="assets/screens/printing-paused.png" width="136" alt="Duraklatılmış baskı ve Resume"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-paused.png) |
+| Aktif filament ve Happy Hare durumu | <img src="assets/screens/printing-mmu.png" width="136" alt="Aktif filament ve Happy Hare durumu"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-mmu.png) |
+| Kaynak ve hedef tool renkleri | <img src="assets/screens/printing-toolchange.png" width="136" alt="Kaynak ve hedef tool renkleri"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-toolchange.png) |
+| MMU hatası ve kurtarmaya geçiş | <img src="assets/screens/printing-mmu-error.png" width="136" alt="MMU hatası ve kurtarmaya geçiş"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-mmu-error.png) |
+| Tamamlanmış baskı ve Close kontrolü | <img src="assets/screens/printing-complete.png" width="136" alt="Tamamlanmış baskı ve Close kontrolü"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-complete.png) |
 | Canlı baskı ayarları | <img src="assets/screens/tune.png" width="136" alt="Canlı baskı ayarları"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/tune.png) |
 
 ## Yazıcı ve ekran kontrolleri

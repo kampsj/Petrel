@@ -116,3 +116,5 @@ This project grew from [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN
 Integrations use [Klipper](https://github.com/Klipper3d/klipper), [Moonraker](https://github.com/Arksine/moonraker), [Mainsail](https://github.com/mainsail-crew/mainsail), [Happy Hare](https://github.com/moggieuk/Happy-Hare) and [Spoolman](https://github.com/Donkie/Spoolman).
 
 Licensed under **GNU GPL v3.0**; see [LICENSE](LICENSE).
+
+Print/Tune controls and optional job policy switches: [guide](docs/print-controls.md).

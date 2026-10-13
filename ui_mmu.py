@@ -104,6 +104,7 @@ class MMUViewMixin:
                   'leds': 'MMU LEDS', 'units': 'MMU UNITS', 'unit': 'UNIT GATES'}
 
     def Enter_MMU_Menu(self, page='home'):
+        self._mmu_return_print = getattr(self, 'checkkey', None) in (self.PrintProcess, self.PrintErrorDetails)
         self.checkkey = self.MMUMenu
         self._mmu_page = page
         self._mmu_selection = 1 if self.pd.mmu_session.state is not None else 0
@@ -149,7 +150,11 @@ class MMUViewMixin:
             self.Draw_MMU_Menu()
         else:
             self._mmu_canvas_page = None
-            self.Goto_MainMenu()
+            if getattr(self, '_mmu_return_print', False):
+                self._mmu_return_print = False
+                self.Goto_PrintProcess()
+            else:
+                self.Goto_MainMenu()
             self.Draw_Status_Area(False)
         self.lcd.update()
 

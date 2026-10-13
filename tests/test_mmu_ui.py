@@ -794,13 +794,13 @@ class MMUUITests(unittest.TestCase):
         v._present_print_state()
         self.assertEqual(v.checkkey, v.MMUMenu)
 
-    def test_mmu_error_pause_routes_directly_to_recovery(self):
+    def test_mmu_error_pause_stays_on_print_with_recovery_button(self):
         v, data = self.make(print_state='pause_locked', reason_for_pause='Filament missing')
         v.checkkey = v.PrintProcess
         v.pd.status = 'paused'
         v._present_print_state()
-        self.assertEqual(v.checkkey, v.MMUMenu)
-        self.assertEqual(v._mmu_page, 'recover')
+        self.assertEqual(v.checkkey, v.PrintProcess)
+        self.assertEqual(v._focus_buttons()[1][0], 'MMU')
 
     def test_all_page_primitives_stay_inside_lcd(self):
         v, _ = self.make()

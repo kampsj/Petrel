@@ -21,6 +21,7 @@ from buzzer_control import Settings as BuzzerSettings
 from ui_screws_tilt import ScrewsTiltMixin
 from ui_bed_mesh import BedMeshMixin
 from ui_file_preview import FilePreviewMixin
+from ui_print_focus import PrintFocusMixin
 from power_lifecycle import PowerMonitor
 from uart_startup import PanelProbe
 
@@ -68,7 +69,7 @@ class select_t:
         return self.changed()
 
 
-class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
+class PetrelDisplay(PrintFocusMixin, PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLightMixin, ScrewsTiltMixin, BedMeshMixin, FilePreviewMixin):
 
     TROWS = 6
     MROWS = TROWS - 1  # Total rows, and other-than-Back
@@ -394,7 +395,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 and getattr(self, '_power_origin', None) == self.MMUMenu):
             self.checkkey = self.MMUMenu
             self._power_origin = None
-        if getattr(self, 'checkkey', None) == self.MMUMenu:
+        if getattr(self, 'checkkey', None) in (self.MMUMenu, self.Tune, self.TuneEdit, self.PrintErrorDetails):
             self._power_focus = False
             self._mmu_canvas_page = None
         self._uart_online = False
@@ -575,6 +576,12 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             if getattr(self, 'checkkey', None) == self.MMUMenu:
                 self._mmu_canvas_page = None
                 self.Draw_MMU_Menu()
+            elif getattr(self, 'checkkey', None) == self.Tune:
+                self.Draw_Tune_Menu()
+            elif getattr(self, 'checkkey', None) == self.TuneEdit:
+                self._focus_edit_draw()
+            elif getattr(self, 'checkkey', None) == self.PrintErrorDetails:
+                self._focus_error_draw()
             if getattr(self, 'checkkey', None) == self.FilePreview:
                 self.Draw_File_Preview()
             if getattr(self, 'checkkey', None) == self.DisplayMenu:
@@ -732,7 +739,9 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                     return
                 self._file_status_at = time.monotonic() + .5
             elif hasattr(self, '_loop'):
-                self._loop.set_interval(.5)
+                blink = bool(getattr(self, '_quiet_blinks', {}))
+                loading = self.checkkey == self.PrintProcess and hasattr(self, '_thumbnail_cache') and self._thumbnail_cache.has_work()
+                self._loop.set_interval(.1 if blink else (.05 if loading else .5))
             self._display_idle_tick()
             if self._draw_header_clock():
                 self.lcd.update()
@@ -1266,21 +1275,17 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         if (self.checkkey == self.MMUMenu or
                 (self.checkkey == self.PowerConfirm and getattr(self, '_power_origin', None) == self.MMUMenu)):
             return
-        mmu = self.pd.mmu_session.state
-        if status == 'paused' and mmu and mmu.locked and mmu.reason:
-            self.Enter_MMU_Menu('recover')
-            return
         if status in ('printing', 'paused', 'pausing'):
-            self.Goto_PrintProcess()
+            if self.checkkey == self.PrintProcess:
+                self._focus_print_tick()
+            elif self.checkkey not in (self.Tune, self.TuneEdit, self.PrintErrorDetails, self.Print_window):
+                self.Goto_PrintProcess()
         elif status == 'complete':
             if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
                 self.Goto_MainMenu()
                 return
             self.Goto_PrintProcess()
             self.pd.HMI_flag.done_confirm_flag = True
-            self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 250,
-                                    self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
-            show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 86, 283)
         elif status == 'error':
             if getattr(self, '_acknowledged_terminal', None) == self._terminal_key():
                 self.Goto_MainMenu()
@@ -1693,122 +1698,13 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self.lcd.update()
 
     def HMI_Printing(self):
-        encoder_diffState = self.get_encoder_state()
-        if (encoder_diffState == self.ENCODER_DIFF_NO):
-            return
-        if (self.pd.HMI_flag.done_confirm_flag):
-            if (encoder_diffState == self.ENCODER_DIFF_ENTER):
-                self.pd.HMI_flag.done_confirm_flag = False
-                self._acknowledged_terminal = self._terminal_key()
-                self.Goto_MainMenu()
-            return
+        self._focus_print_input()
 
-        if (encoder_diffState == self.ENCODER_DIFF_CW):
-            if (self.select_print.inc(3)):
-                if self.select_print.now == 0:
-                    self.ICON_Tune()
-                elif self.select_print.now == 1:
-                    self.ICON_Tune()
-                    if (self.pd.printingIsPaused()):
-                        self.ICON_Continue()
-                    else:
-                        self.ICON_Pause()
-                elif self.select_print.now == 2:
-                    if (self.pd.printingIsPaused()):
-                        self.ICON_Continue()
-                    else:
-                        self.ICON_Pause()
-                    self.ICON_Stop()
-        elif (encoder_diffState == self.ENCODER_DIFF_CCW):
-            if (self.select_print.dec()):
-                if self.select_print.now == 0:
-                    self.ICON_Tune()
-                    if (self.pd.printingIsPaused()):
-                        self.ICON_Continue()
-                    else:
-                        self.ICON_Pause()
-                elif self.select_print.now == 1:
-                    if (self.pd.printingIsPaused()):
-                        self.ICON_Continue()
-                    else:
-                        self.ICON_Pause()
-                    self.ICON_Stop()
-                elif self.select_print.now == 2:
-                    self.ICON_Stop()
-        elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
-            if self.select_print.now == 0:  # Tune
-                self.checkkey = self.Tune
-                self.pd.HMI_ValueStruct.show_mode = 0
-                self.select_tune.reset()
-                self.index_tune = self.MROWS
-                self.Draw_Tune_Menu()
-            elif self.select_print.now == 1:  # Pause
-                if (self.pd.HMI_flag.pause_flag):
-                    self._action("Resume", self.pd.resume_job,
-                             lambda: self.pd.status == "printing",
-                             confirmation_timeout=60, silent=True)
-                else:
-                    self.pd.HMI_flag.select_flag = True
-                    self.checkkey = self.Print_window
-                    self.Popup_window_PauseOrStop()
-            elif self.select_print.now == 2:  # Stop
-                self.pd.HMI_flag.select_flag = True
-                self.checkkey = self.Print_window
-                self.Popup_window_PauseOrStop()
-        self.lcd.update()
-
-    # Pause and Stop window */
     def HMI_PauseOrStop(self):
-        encoder_diffState = self.get_encoder_state()
-        if (encoder_diffState == self.ENCODER_DIFF_NO):
-            return
-        if (encoder_diffState == self.ENCODER_DIFF_CW):
-            self.Draw_Select_Highlight(False)
-        elif (encoder_diffState == self.ENCODER_DIFF_CCW):
-            self.Draw_Select_Highlight(True)
-        elif (encoder_diffState == self.ENCODER_DIFF_ENTER):
-            if (self.select_print.now == 1):  # pause window
-                if (self.pd.HMI_flag.select_flag):
-                    self.pd.HMI_flag.pause_action = True
-                    self._action("Pause", self.pd.pause_job, self.pd.printingIsPaused,
-                                 confirmation_timeout=60, silent=True)
-                self.Goto_PrintProcess()
-            elif (self.select_print.now == 2):  # stop window
-                if (self.pd.HMI_flag.select_flag):
-                    self._action("Cancel", self.pd.cancel_job,
-                                 lambda: self.pd.status == "cancelled",
-                                 confirmation_timeout=60, silent=True,
-                                 on_accept=self._restore_action_screen)
-                else:
-                    self.Goto_PrintProcess()  # cancel stop
-        self.lcd.update()
+        self._focus_stop_input()
 
-    # Tune  */
     def HMI_Tune(self):
-        encoder_diffState = self.get_encoder_state()
-        if (encoder_diffState == self.ENCODER_DIFF_NO):
-            return
-        if self._menu_navigation('tune', self.select_tune, 'index_tune', self.Draw_Tune_Menu):
-            return
-        if (encoder_diffState == self.ENCODER_DIFF_ENTER):
-            if self.select_tune.now == 0:  # Back
-                self.select_print.set(0)
-                self.Goto_PrintProcess()
-            elif self.select_tune.now == self.TUNE_CASE_SPEED:  # Print speed
-                self.checkkey = self.PrintSpeed
-                self.pd.HMI_ValueStruct.print_speed = self.pd.feedrate_percentage
-                self.lcd.draw_integer_text(
-                    True, True, 0, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Select_Color,
-                    3, 216, self.MBASE(self.TUNE_CASE_SPEED + self.MROWS - self.index_tune),
-                    self.pd.feedrate_percentage
-                )
-            elif self._menus['tune'][self.select_tune.now - 1][0] in ('TEMP', 'BED', 'FAN'):
-                key = self._menus['tune'][self.select_tune.now - 1][0]
-                self._open_thermal_editor(key, self.select_tune.now + self.MROWS - self.index_tune)
-            elif self.select_tune.now == self.TUNE_CASE_ZOFF:   #z offset
-                self._open_zoffset(0, self.TUNE_CASE_ZOFF + self.MROWS - self.index_tune)
-
-        self.lcd.update()
+        self._focus_tune_input()
 
     def HMI_PrintSpeed(self):
         encoder_diffState = self.get_encoder_state()
@@ -2511,7 +2407,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             show_theme_icon(self.lcd, self.ICON, ICON_FAN_FIRST, 200, 380)
 
     def Draw_Status_Area(self, with_update):
-        if getattr(self, 'checkkey', None) == self.MMUMenu:
+        if getattr(self, 'checkkey', None) in (self.MMUMenu, self.Tune, self.TuneEdit, self.PrintErrorDetails):
             self._sync_fan_animation(False)
             self._status_render = {}
             return
@@ -2524,7 +2420,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             self._status_layout = layout
             self._status_render = {}
             self.lcd.draw_rectangle(1, 0x18C4, 0,
-                self.STATUS_Y, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
+                self.STATUS_Y, self.lcd.DWIN_WIDTH - 1, self.lcd.DWIN_HEIGHT - 1)
 
             self.lcd.draw_line(self.lcd.Line_Color, 12, 363, 259, 363)
         y1, y2, y3 = 380, 414, 448
@@ -2889,7 +2785,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._info_render_items = items
 
     def Draw_Tune_Menu(self):
-        self._draw_capability_menu('tune', self.select_tune, self.index_tune)
+        self._focus_tune_open()
 
     def Draw_Temperature_Menu(self):
         self._draw_capability_menu('temperature', self.select_temp, self.index_temp)
@@ -2949,36 +2845,11 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._draw_home_page()
 
     def Goto_PrintProcess(self):
-        self.checkkey = self.PrintProcess
-        self.Clear_Main_Window()
-        self.Draw_Printing_Screen()
-
-        self.ICON_Tune()
-        if (self.pd.printingIsPaused()):
-            self.ICON_Continue()
-        else:
-            self.ICON_Pause()
-        self.ICON_Stop()
-
-        # Copy into filebuf string before entry
-        name = self.pd.file_name
-        if name:
-            npos = _MAX(0, self.lcd.DWIN_WIDTH - len(name) * self.MENU_CHR_W) / 2
-            self.lcd.draw_text(False, False, self.lcd.font8x16, self.lcd.Color_White, self.lcd.Color_Bg_Black, npos, 60, name)
-
-        show_theme_icon(self.lcd, self.ICON, self.ICON_PrintTime, 17, 193)
-        show_theme_icon(self.lcd, self.ICON, self.ICON_RemainTime, 150, 191)
-
-        self.Draw_Print_ProgressBar()
-        self.Draw_Print_ProgressElapsed()
-        self.Draw_Print_ProgressRemain()
-
-    # --------------------------------------------------------------#
-    # --------------------------------------------------------------#
+        self._focus_print_open()
 
     def Clear_Title_Bar(self):
         self._info_render_scroll = None
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH, 30)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Blue, 0, 0, self.lcd.DWIN_WIDTH - 1, 30)
         self._header_clock_drawn = None
         self._draw_header_clock()
 
@@ -2987,7 +2858,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._display_drawn_message = None
         self._file_drawn_message = None
         self._home_mmu_layout = None
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.STATUS_Y)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, self.STATUS_Y)
 
     def Clear_Main_Window(self):
         self._info_render_scroll = None
@@ -2999,26 +2870,10 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._list_render = None
         self._status_layout = None
         self.Clear_Title_Bar()
-        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT)
+        self.lcd.draw_rectangle(1, self.lcd.Color_Bg_Black, 0, 31, self.lcd.DWIN_WIDTH - 1, self.lcd.DWIN_HEIGHT - 1)
 
     def Popup_window_PauseOrStop(self):
-        self.Clear_Main_Window()
-        self.Draw_Popup_Bkgd_60()
-        if(self.select_print.now == 1):
-            self.lcd.draw_text(
-                False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
-                (272 - 8 * 11) / 2, 150,
-                self.MSG_PAUSE_PRINT
-            )
-        elif (self.select_print.now == 2):
-            self.lcd.draw_text(
-                False, True, self.lcd.font8x16, self.lcd.Popup_Text_Color, self.lcd.Color_Bg_Window,
-                (272 - 8 * 10) / 2, 150,
-                self.MSG_STOP_PRINT
-            )
-        show_theme_icon(self.lcd, self.ICON, self.ICON_Confirm_E, 26, 280)
-        show_theme_icon(self.lcd, self.ICON, self.ICON_Cancel_E, 146, 280)
-        self.Draw_Select_Highlight(True)
+        self._focus_stop_draw()
 
     def Popup_Window_Home(self, parking=False):
         self.Clear_Main_Window()
@@ -3235,6 +3090,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._poll_case_light_state()
         # variable update
         update = self.pd.update_variable()
+        self._focus_tick_quiet()
         if not self.pd.connection_error and self.checkkey not in (self.SelectFile, self.FilePreview):
             self.pd.prefetch_files()
         if not self.pd.connection_error and self._configure_menus():
@@ -3323,18 +3179,11 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             return
 
         if self.checkkey == self.PrintProcess:
-            if not self.pd.HMI_flag.done_confirm_flag:
-                if self.pd.HMI_flag.pause_flag != self.pd.printingIsPaused():
-                    self.pd.HMI_flag.pause_flag = self.pd.printingIsPaused()
-                    if self.pd.HMI_flag.pause_flag:
-                        self.ICON_Continue()
-                    else:
-                        self.ICON_Pause()
-            self.Draw_Print_ProgressBar()
-            self.Draw_Print_ProgressElapsed()
-            self.Draw_Print_ProgressRemain()
-        elif update and self.checkkey == self.Tune:
-            self.Draw_Tune_Menu()
+            self._focus_print_tick()
+        elif self.checkkey == self.Tune:
+            self._focus_tune_tick()
+        elif self.checkkey in (self.TuneEdit, self.PrintErrorDetails):
+            self._focus_tick_quiet()
         elif update and self.checkkey == self.Motion:
             self.Draw_Motion_Menu()
         elif update and self.checkkey == self.BedMeshMenu:
@@ -3441,6 +3290,8 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             self.MeshProfiles: self.Draw_Mesh_Profiles,
             self.FilePreview: self.Draw_File_Preview,
             self.PrintProcess: self.Goto_PrintProcess,
+            self.TuneEdit: self._focus_edit_draw,
+            self.PrintErrorDetails: self._focus_error_draw,
             self.ScrewsTiltMenu: self.Draw_Screws_Menu,
             self.ScrewsTiltResult: self.Draw_Screws_Result,
             self.ProbeWizardID: self.Draw_Probe_Wizard,
@@ -3562,6 +3413,10 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             self.HMI_Info()
         elif self.checkkey == self.Tune:
             self.HMI_Tune()
+        elif self.checkkey == self.TuneEdit:
+            self._focus_edit_input()
+        elif self.checkkey == self.PrintErrorDetails:
+            self._focus_error_input()
         elif self.checkkey == self.PLAPreheat:
             self.HMI_PLAPreheatSetting()
         elif self.checkkey == self.ABSPreheat:

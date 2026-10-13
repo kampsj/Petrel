@@ -218,7 +218,7 @@ def power():
     return finish(v)
 
 
-def cube_thumbnail():
+def cube_thumbnail(size=128):
     # Representative slicer-style sample model; UI uses the normal SRAM path.
     image=Image.new('RGBA',(128,128),(0,0,0,0)); draw=ImageDraw.Draw(image)
     draw.polygon([(20,50),(64,25),(108,50),(64,75)],fill='#a2d5ef')
@@ -228,7 +228,7 @@ def cube_thumbnail():
         draw.line([(21,y),(63,y+25)],fill='#2c84b5')
         draw.line([(65,y+25),(107,y)],fill='#185776')
     stream=BytesIO(); image.save(stream,format='PNG')
-    return image_jpeg(stream.getvalue())
+    return image_jpeg(stream.getvalue(),size=size)
 
 
 @scene('print-file', 'printing', 'Folders and G-code files', 'Klasörler ve G-code dosyaları')
@@ -253,23 +253,46 @@ def preview():
     return finish(v)
 
 
-def printing(paused=False,tune=False):
-    data=sample(); data['status']['print_stats'].update(state='paused' if paused else 'printing',
-        filename='calibration_cube.gcode',print_duration=2700,total_duration=2800)
-    data['status']['virtual_sdcard'].update(is_active=not paused,progress=.38)
-    data['status']['extruder'].update(temperature=215,target=215)
+def printing(paused=False,tune=False,mmu=False,error=False,changing=False,complete=False):
+    data=sample(mmu=mmu)
+    data['status']['print_stats'].update(state='complete' if complete else ('paused' if paused or error else 'printing'),
+        filename='calibration_cube.gcode',print_duration=4800,total_duration=4900,
+        info={'current_layer':85,'total_layer':200})
+    data['status']['virtual_sdcard'].update(is_active=not paused,progress=1 if complete else .42)
+    data['status']['extruder'].update(temperature=215,target=215,pressure_advance=.04,smooth_time=.04)
     data['status']['heater_bed'].update(temperature=60,target=60)
     data['status']['fan']['speed']=.5
+    data['status']['gcode_move'].update(speed_factor=1,extrude_factor=1)
+    data['objects'].append('firmware_retraction')
+    data['settings']['firmware_retraction']={}
+    data['status']['firmware_retraction']=dict(retract_length=2,retract_speed=35,unretract_extra_length=0,unretract_speed=25)
+    from print_tuning import JOB_PINS
+    for name,_ in JOB_PINS:
+        obj='output_pin '+name;data['objects'].append(obj);data['settings'][obj]={'pwm':False};data['status'][obj]={'value':0 if name.startswith('Power') else 1}
+    if mmu:
+        data['status']['mmu'].update(tool=2,gate=2,action='Unloading' if changing else 'Idle',
+            print_state='pause_locked' if error else 'printing',
+            reason_for_pause='Unload failed: toolhead sensor still active after filament retraction.' if error else '',
+            last_tool=2 if changing else -1,next_tool=3 if changing else -1,
+            gate_material=['PETG','PLA','ABS','PLA'])
     data['status']['motion_report'].update(live_position=[125,125,8.4,200],live_velocity=0 if paused else 65,
                                          live_extruder_velocity=0 if paused else 2.1)
     v=canvas(data)
-    if tune: v.Draw_Tune_Menu()
-    else: v.Goto_PrintProcess()
+    v._sync_thumbnail_cache()
+    key=v._print_thumbnail_key;payload=cube_thumbnail(size=88)
+    v.lcd.write_sram(0,payload);v._thumbnail_cache.entries[key]=(0,len(payload))
+    v._thumbnail_cache.details[key]=PreviewDetails(12000,24,11200,33.4,(Filament(0,'PLA',0x369F,33.4),))
+    if tune:v.Draw_Tune_Menu()
+    else:v.Goto_PrintProcess()
     return finish(v)
 
 
 scene('printing','printing','Print progress, time and controls','Baskı ilerlemesi, süre ve kontroller')(lambda:printing())
 scene('printing-paused','printing','Paused print and Resume','Duraklatılmış baskı ve Resume')(lambda:printing(paused=True))
+scene('printing-mmu','printing','Active filament and Happy Hare status','Aktif filament ve Happy Hare durumu')(lambda:printing(mmu=True))
+scene('printing-toolchange','printing','Real source and target tool colors','Kaynak ve hedef tool renkleri')(lambda:printing(mmu=True,changing=True))
+scene('printing-mmu-error','printing','MMU error and recovery access','MMU hatası ve kurtarmaya geçiş')(lambda:printing(mmu=True,error=True))
+scene('printing-complete','printing','Completed print and Close action','Tamamlanmış baskı ve Close kontrolü')(lambda:printing(complete=True))
 scene('tune','printing','Live print tuning','Canlı baskı ayarları')(lambda:printing(tune=True))
 
 

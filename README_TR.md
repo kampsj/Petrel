@@ -116,3 +116,5 @@ Proje [odwdinc/DWIN_T5UIC1_LCD](https://github.com/odwdinc/DWIN_T5UIC1_LCD) ve [
 Entegrasyonlar [Klipper](https://github.com/Klipper3d/klipper), [Moonraker](https://github.com/Arksine/moonraker), [Mainsail](https://github.com/mainsail-crew/mainsail), [Happy Hare](https://github.com/moggieuk/Happy-Hare) ve [Spoolman](https://github.com/Donkie/Spoolman) kullanır.
 
 **GNU GPL v3.0** lisanslıdır; [LICENSE](LICENSE) dosyasına bakın.
+
+Print/Tune kontrolleri ve isteğe bağlı baskı politikası switchleri: [rehber](docs/print-controls_TR.md).

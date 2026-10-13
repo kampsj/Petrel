@@ -1,0 +1,391 @@
+"""Print-focused views with bounded, field-only rendering and quiet edits."""
+import time
+import textwrap
+from concurrent.futures import Future
+from collections.abc import Mapping
+from graphite_theme import show_icon
+from lcd_resources import (ICON_PRINT_TUNE, ICON_PRINT_PAUSE, ICON_PRINT_RESUME,
+                           ICON_PRINT_STOP, ICON_PRINT_MMU, ICON_JOB_SWITCH_OFF,
+                           ICON_JOB_SWITCH_ON)
+
+
+class PrintFocusMixin:
+    TuneEdit = 70
+    PrintErrorDetails = 71
+
+    def _focus_text(self, text, x, y, font=None, color=None, bg=None):
+        self.lcd.draw_text(False, False, font or self.lcd.font8x16,
+                           self.lcd.Color_White if color is None else color,
+                           self.lcd.Color_Bg_Black if bg is None else bg, x, y, str(text))
+
+    def _focus_round(self, x, y, w, h, color, radius=5):
+        # Two rectangles and four native circles, rather than one UART row per pixel.
+        self.lcd.draw_rectangle(1, color, x+radius, y, x+w-radius-1, y+h-1)
+        self.lcd.draw_rectangle(1, color, x, y+radius, x+w-1, y+h-radius-1)
+        for cx in (x+radius, x+w-radius-1):
+            for cy in (y+radius, y+h-radius-1):
+                self.lcd.fill_circle(color, cx, cy, radius)
+
+    @staticmethod
+    def _focus_time(seconds):
+        minutes = max(0, int(seconds or 0)) // 60
+        return '%02d:%02d' % (minutes//60, minutes%60)
+
+    def _focus_mmu(self):
+        return self.pd.mmu_session.state
+
+    def _focus_error(self):
+        m = self._focus_mmu()
+        return str(m.reason or self.pd.mmu_session.message or 'MMU needs attention') if m and m.locked else ''
+
+    def _focus_color(self, tool):
+        m = self._focus_mmu()
+        if m and isinstance(tool, int) and 0 <= tool < len(m.ttg_map):
+            gate = m.ttg_map[tool]
+            if isinstance(gate, int) and 0 <= gate < len(m.colors):
+                color = m.colors[gate]
+                try:
+                    value = int(str(color).lstrip('#'), 16)
+                    return ((value>>19)&31)<<11 | ((value>>10)&63)<<5 | ((value>>3)&31)
+                except (ValueError, TypeError):
+                    pass
+        cache=getattr(self,'_thumbnail_cache',None)
+        details=cache.details.get(getattr(self,'_print_thumbnail_key',None)) if cache else None
+        if details:
+            f=next((f for f in details.filaments if f.tool==tool),None)
+            if f and f.color is not None:return f.color
+        return 0x7BEF
+
+    def _focus_material(self):
+        m = self._focus_mmu()
+        if not m:
+            cache=getattr(self,'_thumbnail_cache',None)
+            details=cache.details.get(getattr(self,'_print_thumbnail_key',None)) if cache else None
+            if details and len(details.filaments)==1:
+                f=details.filaments[0]
+                return '%s / single extruder'%f.material, 'T%d %s'%(f.tool,f.material), f.tool
+            return 'Single extruder', '', None
+        tool = m.tool
+        material = '--'
+        if isinstance(tool, int) and 0 <= tool < len(m.ttg_map):
+            gate = m.ttg_map[tool]
+            if isinstance(gate, int) and 0 <= gate < len(m.materials):
+                material = m.materials[gate] or '--'
+        return '%s / %d tools' % (material, m.num_gates), 'T%s %s' % (tool if tool is not None and tool >= 0 else '?', material), tool
+
+    def _focus_buttons(self):
+        terminal = self.pd.status in ('complete', 'cancelled')
+        middle = 'MMU' if self._focus_error() else ('Resume' if self._focus_paused() else 'Pause')
+        return [('Tune', ICON_PRINT_TUNE), ('Close', None)] if terminal else [('Tune',ICON_PRINT_TUNE), (middle, {'Pause':ICON_PRINT_PAUSE,'Resume':ICON_PRINT_RESUME,'MMU':ICON_PRINT_MMU}[middle]), ('Stop',ICON_PRINT_STOP)]
+
+    def _focus_paused(self):
+        pending = getattr(self, '_quiet_edits', {}).get('pause')
+        return bool(pending['target']) if pending else self.pd.printingIsPaused()
+
+    def _focus_draw_buttons(self):
+        buttons = self._focus_buttons()
+        self.select_print.now = min(self.select_print.now, len(buttons)-1)
+        for i, (label, icon) in enumerate(buttons):
+            w = 119 if len(buttons)==2 else 78
+            x = 14+i*(w+5)
+            selected = self.select_print.now == i
+            self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,x,311,x+w,349)
+            self._focus_round(x,312,w,36,0x063B if selected else 0x2967,8)
+            if selected:self._focus_round(x+2,314,w-4,32,0x2967,6)
+            color = 0xFBCB if label == 'Stop' else self.lcd.Color_White
+            start=getattr(self,'_quiet_blinks',{}).get('pause')
+            if i==1 and start is not None and int((time.monotonic()-start)/.2)%2==0:color=0xFBCB
+            if icon:
+                show_icon(self.lcd,self.ICON,icon,x+6,322)
+            self._focus_text(label,x+(25 if icon else (w-len(label)*8)//2),322,color=color)
+
+    def _focus_print_open(self):
+        self.checkkey = self.PrintProcess
+        self.Clear_Main_Window()
+        self.Draw_Title('Print')
+        self._focus_render = {}
+        self._focus_preview_drawn = None
+        self._focus_print_tick(force=True)
+        self.Draw_Status_Area(False)
+
+    def _focus_field(self, key, value, x, y, w, h, draw):
+        cache = self._focus_render
+        if cache.get(key) != value:
+            self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,x,y,x+w-1,y+h-1)
+            draw()
+            cache[key] = value
+
+    def _focus_print_tick(self, force=False):
+        self._focus_tick_quiet()
+        if not hasattr(self, '_focus_render'): self._focus_render = {}
+        name = str(self.pd.file_name or '').rsplit('/',1)[-1]
+        self._focus_field('name',name,14,42,244,16,lambda:self._focus_text(name[:30],14,42))
+        material, label, tool = self._focus_material()
+        self._focus_field('material',material,14,62,244,16,lambda:self._focus_text(material[:30],14,62,color=0xADB5))
+        percent = max(0,min(100,int(self.pd.getPercent())))
+        self._focus_field('percent',percent,128,90,130,27,lambda:self._focus_text('%d%%'%percent,128,93,self.lcd.font12x24))
+        remaining = self._focus_time(self.pd.remain())
+        self._focus_field('remain',remaining,128,125,130,42,lambda:(self._focus_text('Remaining',128,125,color=0xADB5),self._focus_text(remaining,128,145,self.lcd.font10x20)))
+        layers = self.pd.print_layers()
+        self._focus_field('layers',layers,128,173,130,13,lambda:self._focus_text('Layer %d/%d'%layers if layers else '',128,174,self.lcd.font6x12,color=0xADB5))
+        self._focus_field('progress',percent,14,190,244,8,lambda:self._draw_progress_track(self.lcd,14,190,244,percent))
+        elapsed = self._focus_time(self.pd.duration())
+        self._focus_field('elapsed',elapsed,14,210,110,44,lambda:(self._focus_text('Elapsed',14,210,color=0xADB5),self._focus_text(elapsed,14,232,self.lcd.font10x20)))
+        finish = 'Finish ~'+time.strftime('%H:%M',time.localtime(time.time()+max(0,self.pd.remain()))) if self.pd.status=='printing' else self.pd.status.capitalize()
+        self._focus_field('finish',finish,128,210,130,17,lambda:self._focus_text(finish[:16],128,210,color=0xADB5))
+        raw = self.pd.state.status.get('mmu',{})
+        change = raw.get('toolchange', {})
+        source = raw.get('last_tool', change.get('from_tool') if isinstance(change, Mapping) else None)
+        target = change.get('next_tool') if isinstance(change, Mapping) else None
+        # Happy Hare versions expose next_tool directly; use it only with a real source.
+        target = raw.get('next_tool',target)
+        m = self._focus_mmu()
+        if source is None and m and m.action.lower() not in ('idle','unknown'): source=tool
+        changing = all(isinstance(v,int) and not isinstance(v,bool) and 0<=v<m.num_gates for v in (source,target)) and source!=target
+        token = (label,tool,self._focus_color(tool),source,target,changing)
+        def draw_filament():
+            if changing:
+                self.lcd.fill_circle(self._focus_color(source),134,243,5)
+                self._focus_text('T%d >'%source,145,234)
+                self.lcd.fill_circle(self._focus_color(target),200,243,5)
+                self._focus_text('T%d'%target,211,234)
+            elif label:
+                self.lcd.fill_circle(self._focus_color(tool),134,243,5)
+                self._focus_text(label[:14],145,234)
+        self._focus_field('filament',token,128,232,130,25,draw_filament)
+        error = self._focus_error()
+        state = error or (m.action if m and m.action.lower() not in ('idle','unknown') else ('Happy Hare ready' if m else 'Single extruder'))
+        self._focus_field('state',(state,error,self.pd.status),14,266,244,38,lambda:self._focus_state_panel(state,error))
+        start=getattr(self,'_quiet_blinks',{}).get('pause')
+        blink=start is not None and int((time.monotonic()-start)/.2)%2==0
+        buttons=(tuple(self._focus_buttons()),self.select_print.now,blink)
+        if self._focus_render.get('buttons')!=buttons:
+            self._focus_draw_buttons();self._focus_render['buttons']=buttons
+        if force:
+            self._focus_round(14,90,88,88,0x2967,8)
+            self._focus_text('Preview',30,124,self.lcd.font6x12,color=0xADB5)
+        self._sync_thumbnail_cache()
+        key=getattr(self,'_print_thumbnail_key',None)
+        if key:
+            self._thumbnail_cache.tick(self.lcd,foreground=key,chunks=2)
+            address=self._thumbnail_cache.address(key)
+            if address is not None and self._focus_preview_drawn != (key,address):
+                self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,14,90,101,177)
+                self.lcd.show_sram_jpeg(14,90,address,background=False,enhanced=True)
+                self._focus_preview_drawn=(key,address)
+
+    def _focus_state_panel(self,state,error):
+        self._focus_round(14,266,244,38,0x40E5 if error else 0x2967,7)
+        self._focus_text(('MMU: '+state)[:28] if error else self.pd.status.capitalize(),24,272,self.lcd.font6x12,color=0xFBCB if error else 0xFFFF)
+        self._focus_text('Click MMU to read / recover' if error else state[:29],24,287,self.lcd.font6x12,color=0xADB5)
+
+    def _focus_print_input(self):
+        event=self.get_encoder_state()
+        if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            delta=1 if event==self.ENCODER_DIFF_CW else -1
+            self.select_print.now=max(0,min(len(self._focus_buttons())-1,self.select_print.now+delta))
+            self._focus_draw_buttons()
+        elif event==self.ENCODER_DIFF_ENTER:
+            label=self._focus_buttons()[self.select_print.now][0]
+            if label=='Tune':
+                self.checkkey=self.Tune;self.select_tune.reset();self._focus_tune_open()
+            elif label=='MMU':
+                self._focus_error_open()
+            elif label in ('Pause','Resume'):
+                target=label=='Pause'
+                self._focus_submit('pause',target,lambda:(self.pd.pause_job if target else self.pd.resume_job)(report_error=False))
+                self._focus_draw_buttons()
+            elif label=='Stop':
+                self.checkkey=self.Print_window
+                self.pd.HMI_flag.select_flag=False
+                self.Popup_window_PauseOrStop()
+            else:
+                self.pd.HMI_flag.done_confirm_flag=False
+                self._acknowledged_terminal=self._terminal_key();self.Goto_MainMenu()
+        self.lcd.update()
+
+    def _focus_submit(self,key,target,submit):
+        if not hasattr(self,'_quiet_edits'): self._quiet_edits={}
+        if not hasattr(self,'_quiet_blinks'): self._quiet_blinks={}
+        actual={s.key:s.value for s in self.pd.print_settings()}
+        old=self.pd.printingIsPaused() if key=='pause' else actual.get(key)
+        try: future=submit()
+        except Exception:
+            self._quiet_edits.pop(key,None);self._quiet_blinks[key]=time.monotonic()
+            if hasattr(self,'_loop'):self._loop.set_interval(.1)
+            return
+        self._quiet_edits[key]={'target':target,'old':old,'future':future,'epoch':self.pd.state.epoch,'accepted':None}
+
+    def _focus_tick_quiet(self):
+        now=time.monotonic()
+        pending=getattr(self,'_quiet_edits',{})
+        values={s.key:s.value for s in self.pd.print_settings()} if pending else {}
+        values['pause']=self.pd.printingIsPaused()
+        for key,p in tuple(pending.items()):
+            if p['epoch']!=self.pd.state.epoch or key not in values:
+                del pending[key];continue
+            future=p['future']
+            if isinstance(future,Future) and future.done() and (future.cancelled() or future.exception()):
+                del pending[key];self._quiet_blinks[key]=now
+            elif abs(values[key]-p['target'])<.00001:
+                del pending[key]
+            elif isinstance(future,Future) and future.done():
+                if p['accepted'] is None: p['accepted']=now
+                # A delayed reply alone is never treated as rejection. After a
+                # completed command, reconcile against subscribed printer state.
+                elif self.pd.state.ready and now-p['accepted']>8:
+                    del pending[key];self._quiet_blinks[key]=now
+        self._quiet_blinks={k:v for k,v in getattr(self,'_quiet_blinks',{}).items() if now-v<.8}
+        if self._quiet_blinks and hasattr(self,'_loop'):self._loop.set_interval(.1)
+
+    def _focus_tune_open(self):
+        self.checkkey=self.Tune
+        self._sync_fan_animation(False)
+        self.Clear_Popup_Area();self.Draw_Title('Tune')
+        self._focus_tune_render={};self._focus_tune_shape=None
+        self._focus_tune_tick()
+
+    def _focus_tune_rows(self):
+        rows=[(None,38)]
+        group=None;y=64
+        for s in self.pd.print_settings():
+            if s.group!=group: group=s.group;y+=12
+            rows.append((s,y));y+=20
+        return rows
+
+    def _focus_tune_tick(self):
+        self._focus_tick_quiet()
+        rows=self._focus_tune_rows()
+        shape=tuple((s.key if s else '',y) for s,y in rows)
+        if shape!=getattr(self,'_focus_tune_shape',None):
+            self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,0,31,271,479)
+            self._focus_tune_render={};self._focus_tune_shape=shape
+            group=None
+            for s,y in rows:
+                if s and s.group!=group:
+                    group=s.group;self._focus_text(group,14,y-12,self.lcd.font6x12,color=0x063B)
+        self.select_tune.now=min(self.select_tune.now,len(rows)-1)
+        cache=self._focus_tune_render
+        now=time.monotonic()
+        for i,(s,y) in enumerate(rows):
+            selected=i==self.select_tune.now
+            value=getattr(self,'_quiet_edits',{}).get(s.key,{}).get('target',s.value) if s else None
+            start=getattr(self,'_quiet_blinks',{}).get(s.key) if s else None
+            red=start is not None and int((now-start)/.2)%2==0
+            token=(selected,value,red)
+            key=s.key if s else 'back'
+            if cache.get(key)==token:continue
+            self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,10,y,261,y+23 if s is None else y+19)
+            bg=0x2967 if selected else self.lcd.Color_Bg_Black
+            if selected:self._focus_round(10,y,252,24 if s is None else 20,bg,5)
+            self._focus_text(s.label if s else '< Back',18,y+2)
+            if s:
+                color=0xFBCB if red else 0x063B
+                if s.toggle:
+                    show_icon(self.lcd,self.ICON,ICON_JOB_SWITCH_ON if value else ICON_JOB_SWITCH_OFF,226,y+4)
+                    if red:self.lcd.draw_rectangle(0,color,224,y+2,255,y+17)
+                else:
+                    text=('%.*f'%(s.decimals,value))+s.unit
+                    self._focus_text(text,254-len(text)*8,y+2,color=color)
+            cache[key]=token
+
+    def _focus_tune_input(self):
+        event=self.get_encoder_state();rows=self._focus_tune_rows()
+        if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            self.select_tune.now=max(0,min(len(rows)-1,self.select_tune.now+(1 if event==self.ENCODER_DIFF_CW else -1)))
+            self._focus_tune_tick()
+        elif event==self.ENCODER_DIFF_ENTER:
+            s=rows[self.select_tune.now][0]
+            if s is None:self.Goto_PrintProcess()
+            elif s.toggle:
+                target=not bool(getattr(self,'_quiet_edits',{}).get(s.key,{}).get('target',s.value))
+                self._focus_submit(s.key,int(target),lambda:self.pd.set_print_setting(s.key,int(target),report_error=False));self._focus_tune_tick()
+            else:
+                self._tune_edit=s
+                self._tune_target=getattr(self,'_quiet_edits',{}).get(s.key,{}).get('target',s.value)
+                self.checkkey=self.TuneEdit;self._focus_edit_draw()
+        self.lcd.update()
+
+    def _focus_edit_draw(self):
+        self.Clear_Popup_Area();self.Draw_Title('Adjust')
+        s=self._tune_edit
+        self._focus_text(s.group,18,74,self.lcd.font6x12,color=0x063B)
+        self._focus_text(s.label,18,96)
+        self._focus_edit_value()
+        self._focus_text('Turn to adjust',80,228)
+        self._focus_round(32,284,208,36,0x063B,8)
+        self._focus_text('Apply',116,294,color=0x10C4)
+
+    def _focus_edit_value(self):
+        self.lcd.draw_rectangle(1,self.lcd.Color_Bg_Black,14,156,257,204)
+        s=self._tune_edit;text=('%.*f'%(s.decimals,self._tune_target))+s.unit
+        self._focus_text(text,(272-len(text)*12)//2,167,self.lcd.font12x24)
+
+    def _focus_edit_input(self):
+        event=self.get_encoder_state();s=self._tune_edit
+        if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            delta=s.step*getattr(self,'_encoder_move_value',1)*(1 if event==self.ENCODER_DIFF_CW else -1)
+            self._tune_target=round(max(s.minimum,min(s.maximum,self._tune_target+delta)),s.decimals)
+            self._focus_edit_value()
+        elif event==self.ENCODER_DIFF_ENTER:
+            target=self._tune_target
+            self._focus_submit(s.key,target,lambda:self.pd.set_print_setting(s.key,target,report_error=False))
+            self.checkkey=self.Tune;self._focus_tune_open()
+        self.lcd.update()
+
+    def _focus_error_open(self):
+        self._focus_full_error=self._focus_error()
+        self._focus_error_scroll=0;self._focus_error_choice=0;self.checkkey=self.PrintErrorDetails
+        self._focus_error_draw()
+
+    def _focus_error_draw(self):
+        self.Clear_Popup_Area();self.Draw_Title('MMU error')
+        lines=textwrap.wrap(self._focus_full_error,30) or ['MMU needs attention']
+        self._focus_error_lines=lines
+        for i,line in enumerate(lines[self._focus_error_scroll:self._focus_error_scroll+15]):self._focus_text(line,14,48+i*20)
+        self._focus_text('Turn: scroll full error',14,376,self.lcd.font6x12,color=0xADB5)
+        for i,label in enumerate(('MMU recovery','Back')):
+            y=410+i*34
+            self._focus_round(14,y,244,30,0x063B if self._focus_error_choice==i else 0x2967,8)
+            self._focus_text(label,(272-len(label)*8)//2,y+7,color=0x10C4 if self._focus_error_choice==i else 0xFFFF)
+
+    def _focus_error_input(self):
+        event=self.get_encoder_state()
+        maximum=max(0,len(self._focus_error_lines)-15)
+        if event==self.ENCODER_DIFF_CW:
+            if self._focus_error_scroll<maximum:self._focus_error_scroll+=1
+            else:self._focus_error_choice=1
+            self._focus_error_draw()
+        elif event==self.ENCODER_DIFF_CCW:
+            if self._focus_error_choice:self._focus_error_choice=0
+            else:self._focus_error_scroll=max(0,self._focus_error_scroll-1)
+            self._focus_error_draw()
+        elif event==self.ENCODER_DIFF_ENTER:
+            if self._focus_error_choice:self.Goto_PrintProcess()
+            else:
+                self._mmu_return_print=True;self.Enter_MMU_Menu('recover')
+        self.lcd.update()
+
+    def _focus_stop_draw(self):
+        self.Clear_Main_Window();self.Draw_Title('Stop print')
+        self._focus_round(14,106,244,202,0x2967,10)
+        self._focus_text('Cancel this print?',36,132,self.lcd.font10x20)
+        self._focus_text('The print cannot resume.',40,184)
+        for yes,label,x in ((False,'Back',26),(True,'Stop',142)):
+            selected=bool(self.pd.HMI_flag.select_flag)==yes
+            color=0xB209 if yes and selected else (0x063B if selected else 0x39C8)
+            self._focus_round(x,244,104,36,color,8)
+            self._focus_text(label,x+36,254)
+
+    def _focus_stop_input(self):
+        event=self.get_encoder_state()
+        if event in (self.ENCODER_DIFF_CW,self.ENCODER_DIFF_CCW):
+            self.pd.HMI_flag.select_flag=event==self.ENCODER_DIFF_CW
+            self._focus_stop_draw()
+        elif event==self.ENCODER_DIFF_ENTER:
+            if self.pd.HMI_flag.select_flag:
+                self._action('Cancel',self.pd.cancel_job,
+                             lambda:self.pd.status=='cancelled',confirmation_timeout=60,
+                             silent=True,on_accept=self._restore_action_screen)
+            else:self.Goto_PrintProcess()
+        self.lcd.update()

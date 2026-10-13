@@ -24,6 +24,10 @@ Usage steps: [Daily use](user-guide.md) · [MMU](mmu-guide.md). Capture and rege
 | Thumbnail, metadata and print confirmation | <img src="assets/screens/print-preview.png" width="136" alt="Thumbnail, metadata and print confirmation"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/print-preview.png) |
 | Print progress, time and controls | <img src="assets/screens/printing.png" width="136" alt="Print progress, time and controls"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing.png) |
 | Paused print and Resume | <img src="assets/screens/printing-paused.png" width="136" alt="Paused print and Resume"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-paused.png) |
+| Active filament and Happy Hare status | <img src="assets/screens/printing-mmu.png" width="136" alt="Active filament and Happy Hare status"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-mmu.png) |
+| Real source and target tool colors | <img src="assets/screens/printing-toolchange.png" width="136" alt="Real source and target tool colors"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-toolchange.png) |
+| MMU error and recovery access | <img src="assets/screens/printing-mmu-error.png" width="136" alt="MMU error and recovery access"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-mmu-error.png) |
+| Completed print and Close action | <img src="assets/screens/printing-complete.png" width="136" alt="Completed print and Close action"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/printing-complete.png) |
 | Live print tuning | <img src="assets/screens/tune.png" width="136" alt="Live print tuning"> | [PNG](https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/tune.png) |
 
 ## Printer and display controls

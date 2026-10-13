@@ -37,3 +37,5 @@ Graphite adds dedicated IDs 210–234 for light, brightness, sound settings, mot
 ## JPEG compatibility rule
 
 All managed icons must be baseline RGB/YCbCr JPEG with 4:2:0 sampling (`Pillow: subsampling=2`). Render directly from SVG using `tools/render_icon_sources.py`; do not repeatedly recompress JPEGs. Physical T5UIC1 tests reproduced damaged selected home tiles and homing artwork with 4:4:4 from both Flash and byte-verified SRAM; 4:2:0 rendered correctly. A clean emulator preview cannot validate the panel JPEG decoder. The source loader rejects other sampling formats before any panel access, and CI checks every shipped icon and the exported ICO against its sources. Check selected/unselected home tiles, homing, small menu/status icons and animation on hardware after artwork updates.
+
+Print actions use IDs 243–247 (16 × 16); After Job switches use 248/249 (27 × 12). The switch at 249 replaces an unused spare source. Library capacity remains seven 32 KiB blocks.

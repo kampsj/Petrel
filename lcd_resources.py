@@ -52,3 +52,12 @@ ICON_MESH_CALIBRATE = 234
 # Eight orientations across one quarter turn of the four-blade fan.
 ICON_FAN_FIRST = 235
 ICON_FAN_LAST = 242
+
+# Compact Print actions and optional job-policy switches.
+ICON_PRINT_TUNE = 243
+ICON_PRINT_PAUSE = 244
+ICON_PRINT_RESUME = 245
+ICON_PRINT_STOP = 246
+ICON_PRINT_MMU = 247
+ICON_JOB_SWITCH_OFF = 248
+ICON_JOB_SWITCH_ON = 249

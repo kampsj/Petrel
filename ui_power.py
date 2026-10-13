@@ -111,9 +111,9 @@ class PowerShortcutMixin:
         return True
 
     def _power_block_reason(self):
-        if self.pd.status in ('printing', 'paused'):
+        if self.pd.status in ('printing', 'paused', 'pausing'):
             return 'Print is active'
-        if getattr(self, '_pending_start', None) or getattr(self, '_action_feedback', None):
+        if getattr(self, '_pending_start', None) or getattr(self, '_action_feedback', None) or getattr(self, '_quiet_edits', None):
             return 'Operation is running'
         return None
 
@@ -132,6 +132,7 @@ class PowerShortcutMixin:
         if not getattr(self, '_power_hold_popup', False) or self.checkkey != self.PowerConfirm:
             return False
         self.pd.update_variable()
+        self._focus_tick_quiet()
         if self.pd.state.epoch != self._power_origin_epoch:
             self._power_origin = self.MainMenu
             self._restore_power_origin()
@@ -155,6 +156,12 @@ class PowerShortcutMixin:
 
     def _restore_power_editor(self):
         screen = self.checkkey
+        if screen == self.TuneEdit:
+            self._focus_edit_draw()
+            return True
+        if screen == self.PrintErrorDetails:
+            self._focus_error_draw()
+            return True
         if screen in (self.PLAPreheat, self.ABSPreheat):
             self._draw_capability_menu('preheat', self.select_PLA,
                                       profile=getattr(self, '_active_preset', 0))
