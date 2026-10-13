@@ -2508,7 +2508,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         self._fan_animation_key = key
         if visible and not interval:
             self.lcd.draw_rectangle(1, 0x18C4, 200, 380, 219, 399)
-            show_theme_icon(self.lcd, self.ICON, self.ICON_FanSpeed, 200, 380)
+            show_theme_icon(self.lcd, self.ICON, ICON_FAN_FIRST, 200, 380)
 
     def Draw_Status_Area(self, with_update):
         if getattr(self, 'checkkey', None) == self.MMUMenu:

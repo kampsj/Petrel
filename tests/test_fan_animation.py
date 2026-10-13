@@ -75,3 +75,16 @@ class FanAnimationTests(unittest.TestCase):
         v.lcd.reset_mock()
         v._draw_status_field('draw_text', False, True, 1, 65535, 0x18C4, 126, 416, '100%')
         v.lcd.draw_rectangle.assert_called_once_with(1, 0x18C4, 126, 416, 197, 431)
+
+    def test_animation_frames_have_clean_black_transparency_matte(self):
+        from dwin_emulator.assets import PanelAssets
+        from lcd_resources import ICON_LIBRARY_ID, ICON_FAN_FIRST, ICON_FAN_LAST
+        assets = PanelAssets()
+        for icon in range(ICON_FAN_FIRST, ICON_FAN_LAST + 1):
+            with self.subTest(icon=icon):
+                image = assets.icon(ICON_LIBRARY_ID, icon)
+                self.assertEqual(image.size, (20, 20))
+                self.assertTrue(all(max(pixel) == 0 or max(pixel) >= 24
+                                    for pixel in image.get_flattened_data()))
+                for corner in ((0, 0), (19, 0), (0, 19), (19, 19)):
+                    self.assertEqual(image.getpixel(corner), (0, 0, 0))

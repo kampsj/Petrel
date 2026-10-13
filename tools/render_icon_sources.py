@@ -22,11 +22,17 @@ def main():
         png = cairosvg.svg2png(bytestring=path.read_bytes(), output_width=width * 4,
                               output_height=height * 4)
         with Image.open(BytesIO(png)) as image:
-            image.convert('RGB').resize((width, height), Image.Resampling.LANCZOS).save(
+            rendered = image.convert('RGB').resize((width, height), Image.Resampling.LANCZOS)
+            fan_frame = 235 <= int(path.stem) <= 242
+            if fan_frame:
+                # Neutral chroma prevents 4:2:0 color bleeding into the black
+                # transparency matte. Remove supersampling ringing before JPEG.
+                rendered = rendered.convert('L').point(lambda v: 0 if v < 24 else v).convert('RGB')
+            rendered.save(
                 args.output_directory / (path.stem + '.jpg'), 'JPEG',
                 # Physical T5UIC1 testing showed corrupted selected tiles and
                 # homing artwork with 4:4:4, even after verified SRAM transfer.
-                quality=94, subsampling=2, progressive=False)
+                quality=100 if fan_frame else 94, subsampling=2, progressive=False)
 
 
 if __name__ == '__main__':
