@@ -489,7 +489,7 @@ def write_galleries():
                       '| Ekran | Önizleme | Dış bağlantı |' if turkish else '| Screen | Preview | External link |', '|---|---|---|']
             for name, category, en, tr, _ in SCENES:
                 if category == group:
-                    url = f'https://raw.githubusercontent.com/sezgynus/Petrel/master/docs/assets/screens/{name}.png'
+                    url = f'assets/screens/{name}.png'
                     caption = tr if turkish else en
                     lines.append(f'| {caption} | <img src="assets/screens/{name}.png" width="136" alt="{caption}"> | [PNG]({url}) |')
             lines.append('')

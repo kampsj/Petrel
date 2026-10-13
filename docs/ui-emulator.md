@@ -91,3 +91,9 @@ To review output without changing repository files:
 ```
 
 See the [gallery](screenshots.md) for sample values and available screens. When reporting an actual bug, use the live-service capture procedure above.
+
+Optional `--frame` places the screenshot inside the physical display enclosure. Without it, the 272×480 output is unchanged.
+
+```bash
+~/petrel-env/bin/python ~/Petrel/tools/screenshot.py --frame
+```

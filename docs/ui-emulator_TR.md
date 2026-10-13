@@ -91,3 +91,9 @@ Repo dosyalarını değiştirmeden incelemek için:
 ```
 
 Örnek değerleri ve kullanılabilir ekranları [galeride](screenshots_TR.md) görebilirsiniz. Gerçek bir hatayı raporlarken yukarıdaki canlı servis yakalama yöntemini kullanın.
+
+İsteğe bağlı `--frame`, ekran görüntüsünü fiziksel ekran çerçevesinin içine yerleştirir. Parametre verilmezse 272×480 çıktı değişmez.
+
+```bash
+~/petrel-env/bin/python ~/Petrel/tools/screenshot.py --frame
+```

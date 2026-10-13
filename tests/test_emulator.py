@@ -271,6 +271,13 @@ class EmulatorLifecycleTests(unittest.TestCase):
                         self.assertEqual(saved.tobytes(), expected.tobytes())
                         self.assertEqual(saved.size, (272, 480))
                 self.assertGreater(Path(files[0]).stat().st_size, 272 * 480 * 3)
+                framed_path = capture(path, frame=True)['path']
+                with Image.open(framed_path) as framed:
+                    self.assertEqual(framed.size, (528, 900))
+                    self.assertEqual(framed.mode, 'RGBA')
+                    self.assertEqual(framed.getpixel((0, 0))[3], 0)
+                    self.assertEqual(framed.crop((128, 122, 400, 602)).convert('RGB').tobytes(), expected.tobytes())
+                self.assertEqual(emulator.snapshot()[0].tobytes(), expected.tobytes())
                 emulator.set_enabled(False)
                 with self.assertRaisesRegex(RuntimeError, 'disabled'): capture(path)
                 with self.assertRaises(RuntimeError): ScreenshotServer(emulator, path, output)
