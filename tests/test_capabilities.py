@@ -113,10 +113,10 @@ class CapabilityTests(unittest.TestCase):
             result.Draw_Status_Area(True)
         calls = result.lcd.draw_integer_text.call_args_list
         coordinates = [(call.args[7], call.args[8]) for call in calls]
-        self.assertIn((28, 382), coordinates)
-        self.assertIn((60, 382), coordinates)
-        self.assertIn((28, 416), coordinates)
-        self.assertIn((60, 416), coordinates)
+        self.assertIn((28, 380), coordinates)
+        self.assertIn((60, 380), coordinates)
+        self.assertIn((28, 414), coordinates)
+        self.assertIn((60, 414), coordinates)
         self.assertLess(60 + 3 * 8, 102)
 
     def test_printer_data_initializes_mmu_before_first_status_update(self):

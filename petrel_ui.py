@@ -2527,14 +2527,14 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 self.STATUS_Y, self.lcd.DWIN_WIDTH, self.lcd.DWIN_HEIGHT - 1)
 
             self.lcd.draw_line(self.lcd.Line_Color, 12, 363, 259, 363)
-        y1, y2, y3 = 382, 416, 450
+        y1, y2, y3 = 380, 414, 448
         # Temperature fields need enough width for "actual/target". Keep them
         # in a wider left column and compact the two telemetry columns.
         x1, x2, x3 = 4, 102, 200
         value1, value2, value3 = 28, 126, 224
 
         if self.pd.HAS_HOTEND:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1 - 2)
+            self._draw_status_field('show_icon', self.ICON, self.ICON_HotendTemp, x1, y1)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3, value1, y1,
                 self.pd.thermalManager['temp_hotend'][0]['celsius'])
@@ -2549,7 +2549,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
         # Match the established dashboard behavior: alternate speed override
         # and instantaneous Klipper toolhead velocity in the same field.
         phase = int(time.monotonic() / 2.0) & 1
-        self._draw_status_field('show_icon', self.ICON, self.ICON_Speed, x2, y1 - 2)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_Speed, x2, y1)
         if phase:
             speed_text = '{:.0f}%'.format(self.pd.feedrate_percentage)
         else:
@@ -2564,7 +2564,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 self.lcd.Color_White, 0x18C4, value3, y1, '{:3d}%'.format(percent))
 
         if self.pd.HAS_HEATED_BED:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2 - 2)
+            self._draw_status_field('show_icon', self.ICON, self.ICON_BedTemp, x1, y2)
             self._draw_status_field('draw_integer_text', True, True, 0, self.lcd.font8x16,
                 self.lcd.Color_White, 0x18C4, 3, value1, y2,
                 self.pd.thermalManager['temp_bed']['celsius'])
@@ -2578,7 +2578,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
 
         # The extrusion field alternates between M221 flow override and
         # instantaneous volumetric flow so both fit without sacrificing XYZ.
-        self._draw_status_field('show_icon', self.ICON, self.ICON_StepE, x2, y2 - 2)
+        self._draw_status_field('show_icon', self.ICON, self.ICON_StepE, x2, y2)
         if phase:
             flow_text = '{:.0f}%'.format(self.pd.flow_percentage)
         else:
@@ -2587,7 +2587,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
             self.lcd.Color_White, 0x18C4, value2, y2, flow_text)
 
         if self.pd.HAS_ZOFFSET_ITEM:
-            self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2 - 2)
+            self._draw_status_field('show_icon', self.ICON, self.ICON_Zoffset, x3, y2)
             self._draw_status_field('draw_signed_scaled_float_text',
                 self.lcd.font8x16, 0x18C4,
                 2, 2, value3, y2, self.pd.BABY_Z_VAR * 100)
@@ -2597,7 +2597,7 @@ class PetrelDisplay(PowerShortcutMixin, BuzzerViewMixin, MMUViewMixin, CaseLight
                 (self.ICON_MaxSpeedX, x1, value1, positions[0]),
                 (self.ICON_MaxSpeedY, x2, value2, positions[1]),
                 (self.ICON_MaxSpeedZ, x3, value3, positions[2])):
-            self._draw_status_field('show_icon', self.ICON, icon, xpos, y3 - 2)
+            self._draw_status_field('show_icon', self.ICON, icon, xpos, y3)
             self._draw_status_field('draw_signed_scaled_float_text',
                 self.lcd.font8x16, 0x18C4,
                 3, 1, value_x, y3, position * 10)
